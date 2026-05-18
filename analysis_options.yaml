@@ -1,0 +1,13 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  plugins:
+    - custom_lint
+  exclude:
+    - "**/*.g.dart"
+
+linter:
+  rules:
+    - prefer_const_constructors
+    - prefer_final_locals
+    - avoid_print
