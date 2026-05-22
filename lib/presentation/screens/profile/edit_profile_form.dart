@@ -1,0 +1,604 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../../../core/theme/app_colors.dart';
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+class _T {
+  // Colors (light / dark aware via context)
+  static Color surface(BuildContext ctx) =>
+      Theme.of(ctx).brightness == Brightness.dark
+          ? const Color(0xFF1C1C1E)
+          : Colors.white;
+
+  static Color field(BuildContext ctx) =>
+      Theme.of(ctx).brightness == Brightness.dark
+          ? const Color(0xFF2C2C2E)
+          : const Color(0xFFF5F5F7);
+
+  static Color border(BuildContext ctx) =>
+      Theme.of(ctx).brightness == Brightness.dark
+          ? Colors.white.withOpacity(0.08)
+          : Colors.black.withOpacity(0.08);
+
+  static Color labelText(BuildContext ctx) =>
+      Theme.of(ctx).brightness == Brightness.dark
+          ? Colors.white.withOpacity(0.35)
+          : Colors.black.withOpacity(0.35);
+
+  static Color bodyText(BuildContext ctx) =>
+      Theme.of(ctx).brightness == Brightness.dark ? Colors.white : Colors.black;
+
+  static Color hintText(BuildContext ctx) =>
+      Theme.of(ctx).brightness == Brightness.dark
+          ? Colors.white.withOpacity(0.25)
+          : Colors.black.withOpacity(0.25);
+
+  static Color cancelBg(BuildContext ctx) =>
+      Theme.of(ctx).brightness == Brightness.dark
+          ? const Color(0xFF2C2C2E)
+          : const Color(0xFFF0F0F2);
+
+  static Color cancelText(BuildContext ctx) =>
+      Theme.of(ctx).brightness == Brightness.dark
+          ? Colors.white.withOpacity(0.6)
+          : Colors.black.withOpacity(0.5);
+
+  // Accent — a single restrained purple
+  static const accent = Color(0xFF534AB7);
+  static const accentLight = Color(0xFFC7BFF9);
+
+  // Spacing
+  static const double gap = 16;
+  static const double gapSm = 10;
+  static const double radius = 12;
+  static const double radiusLg = 20;
+
+  // Typography
+  static const String fontFamily = 'DM Sans'; // add to pubspec.yaml
+
+  static TextStyle label(BuildContext ctx) => TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.8,
+        color: labelText(ctx),
+        fontFamily: fontFamily,
+      );
+
+  static TextStyle body(BuildContext ctx) => TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w400,
+        color: bodyText(ctx),
+        fontFamily: fontFamily,
+      );
+}
+
+// ─── Widget ───────────────────────────────────────────────────────────────────
+class EditProfileForm extends ConsumerStatefulWidget {
+  final dynamic profile;
+  final VoidCallback onCancel;
+  final VoidCallback onSaveSuccess;
+  final AlwaysAliveProviderBase<dynamic> profileProvider;
+
+  const EditProfileForm({
+    Key? key,
+    required this.profile,
+    required this.onCancel,
+    required this.onSaveSuccess,
+    required this.profileProvider,
+  }) : super(key: key);
+
+  @override
+  ConsumerState<EditProfileForm> createState() => _EditProfileFormState();
+}
+
+class _EditProfileFormState extends ConsumerState<EditProfileForm> {
+  late TextEditingController _usernameController;
+  late TextEditingController _bioController;
+  late TextEditingController _avatarUrlController;
+
+  String? _previewAvatarUrl;
+  File? _pickedImageFile;
+  final ImagePicker _imagePicker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    final username = widget.profile.username as String? ?? '';
+    final bio = widget.profile.bio as String? ?? '';
+    final avatarUrl = widget.profile.avatarUrl as String? ?? '';
+
+    _usernameController = TextEditingController(text: username);
+    _bioController = TextEditingController(text: bio);
+    _avatarUrlController = TextEditingController(text: avatarUrl);
+    _previewAvatarUrl = avatarUrl.isNotEmpty ? avatarUrl : null;
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _bioController.dispose();
+    _avatarUrlController.dispose();
+    super.dispose();
+  }
+
+  // ── Image picking ──────────────────────────────────────────────────────────
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? picked = await _imagePicker.pickImage(
+          source: source, maxWidth: 800, maxHeight: 800, imageQuality: 85);
+      if (picked == null || !mounted) return;
+      setState(() {
+        _pickedImageFile = File(picked.path);
+        _previewAvatarUrl = null;
+      });
+      // TODO: upload file and set _avatarUrlController.text = uploadedUrl
+    } catch (e) {
+      if (!mounted) return;
+      _snack('Could not pick image: $e');
+    }
+  }
+
+  void _snack(String msg) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(msg)));
+
+  // ── Photo source bottom sheet ──────────────────────────────────────────────
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final surface = _T.surface(ctx);
+        final hasPhoto = _previewAvatarUrl != null || _pickedImageFile != null;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // drag handle
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: _T.border(ctx),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              _SheetTile(
+                icon: Icons.photo_library_outlined,
+                label: 'Choose from gallery',
+                onTap: () { Navigator.pop(ctx); _pickImage(ImageSource.gallery); },
+              ),
+              const SizedBox(height: 8),
+              _SheetTile(
+                icon: Icons.camera_alt_outlined,
+                label: 'Take a photo',
+                onTap: () { Navigator.pop(ctx); _pickImage(ImageSource.camera); },
+              ),
+              const SizedBox(height: 8),
+              _SheetTile(
+                icon: Icons.link_rounded,
+                label: 'Paste image URL',
+                onTap: () { Navigator.pop(ctx); _showAvatarUrlDialog(); },
+              ),
+              if (hasPhoto) ...[
+                const SizedBox(height: 8),
+                _SheetTile(
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Remove photo',
+                  destructive: true,
+                  onTap: () {
+                    setState(() {
+                      _pickedImageFile = null;
+                      _previewAvatarUrl = null;
+                      _avatarUrlController.clear();
+                    });
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ── URL dialog ─────────────────────────────────────────────────────────────
+  void _showAvatarUrlDialog() {
+    final tempCtrl = TextEditingController(text: _avatarUrlController.text);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _T.surface(ctx),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_T.radiusLg)),
+        title: Text('Image URL',
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                fontFamily: _T.fontFamily)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Paste the URL of any publicly accessible image.',
+              style: TextStyle(
+                  fontSize: 13,
+                  color: _T.labelText(ctx),
+                  fontFamily: _T.fontFamily)),
+          const SizedBox(height: 14),
+          _MinimalTextField(
+            controller: tempCtrl,
+            hint: 'https://example.com/avatar.jpg',
+            context: ctx,
+          ),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel',
+                style: TextStyle(color: _T.labelText(ctx))),
+          ),
+          TextButton(
+            onPressed: () {
+              final url = tempCtrl.text.trim();
+              if (mounted) {
+                setState(() {
+                  _avatarUrlController.text = url;
+                  _previewAvatarUrl = url.isNotEmpty ? url : null;
+                  _pickedImageFile = null;
+                });
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Apply',
+                style: TextStyle(
+                    color: _T.accent, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+  Future<void> _saveProfile() async {
+    final username = _usernameController.text.trim();
+    final bio = _bioController.text.trim();
+    final avatarUrl = _avatarUrlController.text.trim();
+
+    if (username.isEmpty) {
+      _snack('Username cannot be empty');
+      return;
+    }
+    if (_pickedImageFile != null && avatarUrl.isEmpty) {
+      _snack('Upload the photo to save it.');
+      return;
+    }
+
+    final notifier =
+        ref.read((widget.profileProvider as dynamic).notifier);
+    final success = await notifier.updateUserProfile(
+      username: username,
+      bio: bio.isNotEmpty ? bio : null,
+      avatarUrl: avatarUrl.isNotEmpty ? avatarUrl : null,
+    );
+
+    if (!mounted) return;
+    if (success) {
+      widget.onSaveSuccess();
+    } else {
+      final state = ref.read(widget.profileProvider as dynamic);
+      _snack(state.error ?? 'Update failed');
+    }
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    final profileState = ref.watch(widget.profileProvider as dynamic);
+    final username = widget.profile.username as String? ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Avatar ──────────────────────────────────────────────────────────
+        Center(
+          child: GestureDetector(
+            onTap: _showImageSourceSheet,
+            child: Stack(alignment: Alignment.bottomRight, children: [
+              _AvatarPreview(
+                username: username,
+                pickedFile: _pickedImageFile,
+                avatarUrl: _previewAvatarUrl,
+              ),
+              Container(
+                width: 26,
+                height: 26,
+                margin: const EdgeInsets.only(bottom: 2, right: 2),
+                decoration: BoxDecoration(
+                  color: _T.accent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: _T.surface(context), width: 2),
+                ),
+                child: const Icon(Icons.edit_rounded,
+                    size: 12, color: Colors.white),
+              ),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: Text('change photo',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: _T.labelText(context),
+                  letterSpacing: 0.3,
+                  fontFamily: _T.fontFamily)),
+        ),
+        const SizedBox(height: 32),
+
+        // ── Divider ─────────────────────────────────────────────────────────
+        Divider(height: 1, thickness: 0.5, color: _T.border(context)),
+        const SizedBox(height: 28),
+
+        // ── Fields ──────────────────────────────────────────────────────────
+        _FieldLabel(label: 'Username', context: context),
+        const SizedBox(height: 8),
+        _MinimalTextField(
+          controller: _usernameController,
+          hint: 'your username',
+          context: context,
+        ),
+        const SizedBox(height: 20),
+
+        _FieldLabel(label: 'Bio', context: context),
+        const SizedBox(height: 8),
+        _MinimalTextField(
+          controller: _bioController,
+          hint: 'a short intro about you',
+          maxLines: 3,
+          context: context,
+        ),
+        const SizedBox(height: 32),
+
+        // ── Actions ─────────────────────────────────────────────────────────
+        Row(children: [
+          Expanded(
+            child: _ActionButton(
+              label: 'Cancel',
+              onTap: widget.onCancel,
+              backgroundColor: _T.cancelBg(context),
+              foregroundColor: _T.cancelText(context),
+            ),
+          ),
+          const SizedBox(width: _T.gapSm),
+          Expanded(
+            child: _ActionButton(
+              label: 'Save',
+              onTap: _saveProfile,
+              backgroundColor: _T.accent,
+              foregroundColor: Colors.white,
+              loading: profileState.isUpdating,
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
+}
+
+// ─── Sub-widgets ──────────────────────────────────────────────────────────────
+
+class _AvatarPreview extends StatelessWidget {
+  final String username;
+  final File? pickedFile;
+  final String? avatarUrl;
+
+  const _AvatarPreview({
+    required this.username,
+    this.pickedFile,
+    this.avatarUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const size = 84.0;
+    final initial =
+        username.isNotEmpty ? username[0].toUpperCase() : '?';
+
+    Widget image;
+    if (pickedFile != null) {
+      image = Image.file(pickedFile!,
+          fit: BoxFit.cover,
+          width: size,
+          height: size,
+          errorBuilder: (_, __, ___) => _initials(initial, size));
+    } else if ((avatarUrl ?? '').isNotEmpty) {
+      image = Image.network(avatarUrl!,
+          fit: BoxFit.cover,
+          width: size,
+          height: size,
+          errorBuilder: (_, __, ___) => _initials(initial, size));
+    } else {
+      image = _initials(initial, size);
+    }
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+            color: _T.border(context), width: 1),
+      ),
+      child: ClipOval(child: image),
+    );
+  }
+
+  Widget _initials(String initial, double size) {
+    return Container(
+      width: size,
+      height: size,
+      color: _T.accentLight.withOpacity(0.5),
+      child: Center(
+        child: Text(initial,
+            style: TextStyle(
+              fontSize: size * 0.38,
+              fontWeight: FontWeight.w500,
+              color: _T.accent,
+              fontFamily: _T.fontFamily,
+            )),
+      ),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String label;
+  final BuildContext context;
+  const _FieldLabel({required this.label, required this.context});
+
+  @override
+  Widget build(BuildContext _) {
+    return Text(label.toUpperCase(), style: _T.label(context));
+  }
+}
+
+class _MinimalTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final int maxLines;
+  final BuildContext context;
+
+  const _MinimalTextField({
+    required this.controller,
+    required this.hint,
+    required this.context,
+    this.maxLines = 1,
+  });
+
+  @override
+  Widget build(BuildContext _) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      style: _T.body(context),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(
+            color: _T.hintText(context), fontFamily: _T.fontFamily),
+        filled: true,
+        fillColor: _T.field(context),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(_T.radius),
+            borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(_T.radius),
+          borderSide: const BorderSide(color: _T.accent, width: 1.0),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final bool loading;
+
+  const _ActionButton({
+    required this.label,
+    required this.onTap,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    this.loading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: backgroundColor,
+      borderRadius: BorderRadius.circular(_T.radius),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(_T.radius),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          alignment: Alignment.center,
+          child: loading
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(foregroundColor)),
+                )
+              : Text(label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: foregroundColor,
+                    fontFamily: _T.fontFamily,
+                  )),
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool destructive;
+
+  const _SheetTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.destructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = destructive
+        ? const Color(0xFFE24B4A)
+        : _T.bodyText(context);
+    return Material(
+      color: _T.field(context),
+      borderRadius: BorderRadius.circular(_T.radius),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(_T.radius),
+        child: Padding(
+          padding:
+              const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          child: Row(children: [
+            Icon(icon,
+                size: 20,
+                color: destructive ? const Color(0xFFE24B4A) : _T.accent),
+            const SizedBox(width: 14),
+            Text(label,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                  color: fg,
+                  fontFamily: _T.fontFamily,
+                )),
+          ]),
+        ),
+      ),
+    );
+  }
+}

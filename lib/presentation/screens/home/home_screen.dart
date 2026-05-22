@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
-import '../../../core/constants/app_constants.dart';
 
-import '../../widgets/custom_buttons.dart';
+import '../../../core/theme/app_colors.dart';
+
 
 import 'home_dashboard_screen.dart';
-import '../../widgets/CreateHabitModal.dart';           // ← pulled out here
+import '../../widgets/create_habit_modal.dart';
 import '../categories/categories_screen.dart';
 import '../community/community_screen.dart';
 import '../profile/profile_screen.dart';
@@ -150,17 +148,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   _buildSvgIcon(
                     item.iconPath,
-                    isActive
-                        ? const Color.fromARGB(255, 9, 8, 9)
-                        : Colors.grey,
+                    isActive ? const Color.fromARGB(255, 9, 8, 9) : Colors.grey,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     item.label,
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight:
-                          isActive ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                       color: isActive
                           ? const Color.fromARGB(255, 0, 0, 0)
                           : (isDark
@@ -181,12 +176,8 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => CreateHabitModal(       // ← just a call now
-        onClose: () => Navigator.pop(context),
-      ),
+      backgroundColor: Colors.transparent,
+      builder: (context) => const CreateHabitModal(),
     );
   }
 }

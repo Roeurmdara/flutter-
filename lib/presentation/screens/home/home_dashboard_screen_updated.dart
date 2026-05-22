@@ -57,6 +57,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          // Trigger refresh by reloading habits
           await Future.delayed(const Duration(seconds: 1));
         },
         child: SingleChildScrollView(
@@ -394,12 +395,12 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard(
+              child: _buildStatCard(
             isDark,
             '${habits.length}',
             'Total Habits',
             Icons.assignment,
-            AppColors.primaryPurple,
+            AppColors.primaryPurpleDark,
           ),
         ),
         const SizedBox(width: 12),

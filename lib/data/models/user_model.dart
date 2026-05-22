@@ -14,6 +14,7 @@ class User {
   final int completedToday;
   final List<String> achievements;
   final Map<String, dynamic> preferences;
+  final String? token;
 
   User({
     required this.id,
@@ -30,6 +31,7 @@ class User {
     required this.completedToday,
     required this.achievements,
     required this.preferences,
+    required this.token,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,7 @@ class User {
       fullName: json['full_name'] as String?,
       avatar: json['avatar'] as String?,
       bio: json['bio'] as String?,
+      token: json['token'] as String?, 
       createdAt: DateTime.parse(json['created_at'] as String),
       lastLogin: json['last_login'] != null
           ? DateTime.parse(json['last_login'] as String)
@@ -50,6 +53,7 @@ class User {
       completedToday: json['completed_today'] as int? ?? 0,
       achievements: List<String>.from(json['achievements'] as List? ?? []),
       preferences: Map<String, dynamic>.from(json['preferences'] as Map? ?? {}),
+  
     );
   }
 
@@ -69,6 +73,7 @@ class User {
       'completed_today': completedToday,
       'achievements': achievements,
       'preferences': preferences,
+      'token': token,
     };
   }
 
@@ -103,6 +108,7 @@ class User {
       completedToday: completedToday ?? this.completedToday,
       achievements: achievements ?? this.achievements,
       preferences: preferences ?? this.preferences,
+      token: token ?? this.token,
     );
   }
 }

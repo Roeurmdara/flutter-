@@ -7,6 +7,10 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
+	<key>NSPhotoLibraryUsageDescription</key>
+    <string>Select a profile photo</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Take a profile photo</string>
 	<string>Flutter001</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
