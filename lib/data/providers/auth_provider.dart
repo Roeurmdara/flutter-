@@ -3,9 +3,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_models.dart';
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
+import '../services/secure_storage_service.dart';
+
+// Secure Storage Provider
+final secureStorageProvider = Provider((ref) {
+  return SecureStorageService();
+});
 
 // Auth Service Provider
-final authServiceProvider = Provider((ref) => AuthService());
+final authServiceProvider = Provider((ref) {
+  final secureStorage = ref.watch(secureStorageProvider);
+  return AuthService(secureStorage: secureStorage);
+});
 
 // Auth State
 class AuthState {
@@ -187,6 +196,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await prefs.remove('auth_user_username');
     await prefs.remove('auth_user_avatar');
     await prefs.remove('auth_token');
+    await prefs.remove('user_token');
   }
 
   /// Save auth data to local storage
@@ -197,6 +207,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     if (token.isNotEmpty) {
       await prefs.setString('auth_token', token);
+      await prefs.setString('user_token', token);
     }
 
     await prefs.setString('auth_user_id', user.id);
@@ -275,6 +286,86 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         error: e.toString(),
         errorCode: 'UNKNOWN_ERROR',
+      );
+      return false;
+    }
+  }
+
+  /// Login with Google OAuth
+  Future<bool> loginWithGoogle() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final response = await _authService.loginWithGoogle();
+
+      if (response.success && response.data?.user != null) {
+        final token = response.data!.token ?? response.data!.user?.token ?? '';
+        final userWithToken = _mergeToken(response.data!.user!, token);
+
+        debugPrint('✅ Google login token: "$token"');
+
+        state = state.copyWith(
+          isLoading: false,
+          isAuthenticated: true,
+          user: userWithToken,
+          error: null,
+        );
+
+        await _saveAuthData(userWithToken, token);
+        return true;
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          error: response.error ?? response.message,
+          errorCode: response.errorCode,
+        );
+        return false;
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+        errorCode: 'GOOGLE_AUTH_FAILED',
+      );
+      return false;
+    }
+  }
+
+  /// Login with GitHub OAuth
+  Future<bool> loginWithGithub() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final response = await _authService.loginWithGithub();
+
+      if (response.success && response.data?.user != null) {
+        final token = response.data!.token ?? response.data!.user?.token ?? '';
+        final userWithToken = _mergeToken(response.data!.user!, token);
+
+        debugPrint('✅ GitHub login token: "$token"');
+
+        state = state.copyWith(
+          isLoading: false,
+          isAuthenticated: true,
+          user: userWithToken,
+          error: null,
+        );
+
+        await _saveAuthData(userWithToken, token);
+        return true;
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          error: response.error ?? response.message,
+          errorCode: response.errorCode,
+        );
+        return false;
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+        errorCode: 'GITHUB_AUTH_FAILED',
       );
       return false;
     }

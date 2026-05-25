@@ -140,58 +140,71 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
     }
   }
 
-  void _snack(String msg) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
-  // ── Photo source bottom sheet ──────────────────────────────────────────────
   void _showImageSourceSheet() {
+    // capture theme values from outer context before entering builder
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.08)
+        : Colors.black.withOpacity(0.08);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final surface = _T.surface(ctx);
         final hasPhoto = _previewAvatarUrl != null || _pickedImageFile != null;
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
           decoration: BoxDecoration(
-            color: surface,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(24)),
+            color: surfaceColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // drag handle
+              // ← was missing
               Container(
                 width: 36,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 24),
+                margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: _T.border(ctx),
+                  color: borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               _SheetTile(
-                icon: Icons.photo_library_outlined,
+                icon: Icons.image_outlined,
                 label: 'Choose from gallery',
-                onTap: () { Navigator.pop(ctx); _pickImage(ImageSource.gallery); },
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
               ),
               const SizedBox(height: 8),
               _SheetTile(
-                icon: Icons.camera_alt_outlined,
+                icon: Icons.camera_outlined,
                 label: 'Take a photo',
-                onTap: () { Navigator.pop(ctx); _pickImage(ImageSource.camera); },
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera);
+                },
               ),
               const SizedBox(height: 8),
               _SheetTile(
-                icon: Icons.link_rounded,
+                icon: Icons.link_outlined,
                 label: 'Paste image URL',
-                onTap: () { Navigator.pop(ctx); _showAvatarUrlDialog(); },
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showAvatarUrlDialog();
+                },
               ),
               if (hasPhoto) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 _SheetTile(
-                  icon: Icons.delete_outline_rounded,
+                  icon: Icons.delete_outline_rounded, // remove — red tinted box
                   label: 'Remove photo',
                   destructive: true,
                   onTap: () {
@@ -241,8 +254,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel',
-                style: TextStyle(color: _T.labelText(ctx))),
+            child: Text('Cancel', style: TextStyle(color: _T.labelText(ctx))),
           ),
           TextButton(
             onPressed: () {
@@ -257,8 +269,8 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
               Navigator.pop(ctx);
             },
             child: const Text('Apply',
-                style: TextStyle(
-                    color: _T.accent, fontWeight: FontWeight.w600)),
+                style:
+                    TextStyle(color: _T.accent, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -280,8 +292,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
       return;
     }
 
-    final notifier =
-        ref.read((widget.profileProvider as dynamic).notifier);
+    final notifier = ref.read((widget.profileProvider as dynamic).notifier);
     final success = await notifier.updateUserProfile(
       username: username,
       bio: bio.isNotEmpty ? bio : null,
@@ -323,8 +334,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
                 decoration: BoxDecoration(
                   color: _T.accent,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                      color: _T.surface(context), width: 2),
+                  border: Border.all(color: _T.surface(context), width: 2),
                 ),
                 child: const Icon(Icons.edit_rounded,
                     size: 12, color: Colors.white),
@@ -409,8 +419,7 @@ class _AvatarPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const size = 84.0;
-    final initial =
-        username.isNotEmpty ? username[0].toUpperCase() : '?';
+    final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
     Widget image;
     if (pickedFile != null) {
@@ -434,8 +443,7 @@ class _AvatarPreview extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-            color: _T.border(context), width: 1),
+        border: Border.all(color: _T.border(context), width: 1),
       ),
       child: ClipOval(child: image),
     );
@@ -491,8 +499,8 @@ class _MinimalTextField extends StatelessWidget {
       style: _T.body(context),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(
-            color: _T.hintText(context), fontFamily: _T.fontFamily),
+        hintStyle:
+            TextStyle(color: _T.hintText(context), fontFamily: _T.fontFamily),
         filled: true,
         fillColor: _T.field(context),
         contentPadding:
@@ -572,31 +580,36 @@ class _SheetTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = destructive
-        ? const Color(0xFFE24B4A)
-        : _T.bodyText(context);
-    return Material(
-      color: _T.field(context),
+    final color = destructive ? const Color(0xFFE24B4A) : _T.accent;
+
+    return InkWell(
       borderRadius: BorderRadius.circular(_T.radius),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(_T.radius),
-        child: Padding(
-          padding:
-              const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          child: Row(children: [
-            Icon(icon,
-                size: 20,
-                color: destructive ? const Color(0xFFE24B4A) : _T.accent),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 20, color: color),
+            ),
             const SizedBox(width: 14),
-            Text(label,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  color: fg,
-                  fontFamily: _T.fontFamily,
-                )),
-          ]),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: destructive
+                    ? const Color(0xFFE24B4A)
+                    : _T.bodyText(context),
+                fontFamily: _T.fontFamily,
+              ),
+            ),
+          ],
         ),
       ),
     );

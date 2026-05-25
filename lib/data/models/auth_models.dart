@@ -45,7 +45,7 @@ class PasswordResetRequest {
 
   Map<String, dynamic> toJson() => {
         'email': email,
-        'redirect_uri': redirectUri,
+        'redirect_uri': 'http://habit-api.rattanakmony.com/*',
       };
 }
 

@@ -10,11 +10,13 @@ import './custom_buttons.dart';
 class CreateHabitModal extends ConsumerStatefulWidget {
   final Habit? editingHabit;
   final Function(Map<String, dynamic> data)? onSubmit;
+  final VoidCallback? onDelete;
 
   const CreateHabitModal({
     Key? key,
     this.editingHabit,
     this.onSubmit,
+    this.onDelete,
   }) : super(key: key);
 
   @override
@@ -24,7 +26,6 @@ class CreateHabitModal extends ConsumerStatefulWidget {
 class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  late TextEditingController _categoryController;
 
   String? _selectedCategoryId;
   String _selectedFrequency = 'daily';
@@ -39,343 +40,377 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
         TextEditingController(text: widget.editingHabit?.title ?? '');
     _descriptionController =
         TextEditingController(text: widget.editingHabit?.description ?? '');
-    _categoryController =
-        TextEditingController(text: widget.editingHabit?.category ?? 'Health');
+    _selectedCategoryId = widget.editingHabit?.categoryId;
     _selectedFrequency = widget.editingHabit?.frequency ?? 'daily';
-    _startDate = widget.editingHabit?.startDate ?? DateTime.now();
-    _endDate = widget.editingHabit?.endDate;
+    _startDate = _dateOnly(widget.editingHabit?.startDate ?? DateTime.now());
+    _endDate = widget.editingHabit?.endDate != null
+        ? _dateOnly(widget.editingHabit!.endDate!)
+        : null;
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _categoryController.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.6,
-      maxChildSize: 0.95,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-          ),
-          child: SingleChildScrollView(
-            controller: scrollController,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      widget.editingHabit != null
-                          ? 'Edit Habit'
-                          : 'Create New Habit',
-                      style: AppTypography.headlineLarge(
-                        isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Title Input
-                _buildTextInput(
-                  isDark,
-                  'Habit Title',
-                  _titleController,
-                  'e.g., Morning Run',
-                  Icons.label_outlined,
-                ),
-                const SizedBox(height: 16),
-
-                // Description Input
-                _buildTextInput(
-                  isDark,
-                  'Description',
-                  _descriptionController,
-                  'Add details about your habit',
-                  Icons.description_outlined,
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-
-                // Category Selector
-                _buildCategorySelector(isDark),
-                const SizedBox(height: 16),
-
-                // Frequency Selector
-                _buildFrequencySelector(isDark),
-                const SizedBox(height: 16),
-
-                // Date Selectors
-                _buildDateSelector(isDark, 'Start Date', _startDate, (date) {
-                  if (date != null)
-                    setState(() => _startDate = date); // ← guard null
-                }),
-                const SizedBox(height: 12),
-
-                _buildDateSelector(isDark, 'End Date (Optional)', _endDate,
-                    (date) {
-                  setState(() => _endDate =
-                      date); // ← _endDate is DateTime?, so null is fine
-                }, isOptional: true),
-                const SizedBox(height: 32),
-
-                // Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: SecondaryButton(
-                        label: 'Cancel',
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: PrimaryButton(
-                        label:
-                            widget.editingHabit != null ? 'Update' : 'Create',
-                        onPressed: () async {
-                          if (_titleController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Please enter habit title')),
-                            );
-                            return;
-                          }
-
-                          if (widget.editingHabit != null &&
-                              widget.onSubmit != null) {
-                            // Edit mode - call onSubmit
-                            widget.onSubmit!({
-                              'title': _titleController.text,
-                              'description': _descriptionController.text,
-                              'frequencyType': _selectedFrequency,
-                              'frequencyConfig': [_selectedFrequency],
-                            });
-                          } else {
-                            // Create mode - use provider
-                            if (_selectedCategoryId == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Please select a category')),
-                              );
-                              return;
-                            }
-
-                            try {
-                              await ref
-                                  .read(habitsProvider.notifier)
-                                  .createHabit(
-                                    categoryId: _selectedCategoryId!,
-                                    title: _titleController.text,
-                                    description: _descriptionController.text,
-                                    frequencyType: _selectedFrequency,
-                                    frequencyConfig: [_selectedFrequency],
-                                    goalType: 'binary',
-                                    targetValue: 1,
-                                    targetUnit: 'completion',
-                                    startDate: _startDate,
-                                    endDate: _endDate,
-                                    visibility: 'private',
-                                  );
-                              if (mounted) {
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content:
-                                          Text('Habit created successfully!')),
-                                );
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Error: $e')),
-                                );
-                              }
-                            }
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
-        );
-      },
+  // ── Shared input decoration ─────────────────────────────────────────────────
+  InputDecoration _inputDecoration(bool isDark, {String? hint, Widget? suffix}) {
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: isDark ? Colors.white12 : Colors.black12,
+        width: 1,
+      ),
+    );
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(
+        color: isDark ? Colors.white30 : Colors.black26,
+        fontSize: 14,
+      ),
+      filled: true,
+      fillColor: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: border,
+      enabledBorder: border,
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: AppColors.primaryPurple.withOpacity(0.6),
+          width: 1,
+        ),
+      ),
+      suffixIcon: suffix,
     );
   }
 
-  Widget _buildTextInput(
-    bool isDark,
-    String label,
-    TextEditingController controller,
-    String hint,
-    IconData icon, {
-    int maxLines = 1,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTypography.labelLarge(
-            isDark ? Colors.white : Colors.black,
+  // ── Section label ───────────────────────────────────────────────────────────
+  Widget _label(String text, bool isDark) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.8,
+            color: isDark ? Colors.white38 : Colors.black38,
           ),
         ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          maxLines: maxLines,
-          minLines: maxLines == 1 ? 1 : null,
-          decoration: InputDecoration(
-            hintText: hint,
-            prefixIcon: maxLines == 1 ? Icon(icon) : null,
-            filled: true,
-            fillColor: isDark ? AppColors.darkBackground : Colors.grey[100],
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-              ),
-            ),
+      );
+
+@override
+Widget build(BuildContext context) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final bg = isDark
+      ? AppColors.darkSurface
+      : AppColors.lightSurface;
+
+  return DraggableScrollableSheet(
+    initialChildSize: 0.72,
+    minChildSize: 0.55,
+    maxChildSize: 0.90,
+    builder: (context, scrollController) {
+      return Container(
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(24),
           ),
         ),
-      ],
-    );
-  }
+        child: Column(
+          children: [
+            // Drag Handle
+            const SizedBox(height: 10),
 
-  Widget _buildCategorySelector(bool isDark) {
-    return Consumer(
-      builder: (context, ref, child) {
-        final categoriesAsync = ref.watch(categoriesProvider);
+            Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white24
+                    : Colors.black12,
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
 
-        return categoriesAsync.when(
-          loading: () => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Category',
-                style: AppTypography.labelLarge(
-                  isDark ? Colors.white : Colors.black,
-                ),
+            const SizedBox(height: 18),
+
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
               ),
-              const SizedBox(height: 8),
-              const CircularProgressIndicator(),
-            ],
-          ),
-          error: (error, stack) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Category',
-                style: AppTypography.labelLarge(
-                  isDark ? Colors.white : Colors.black,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Error loading categories',
-                style: AppTypography.bodySmall(Colors.red),
-              ),
-            ],
-          ),
-          data: (categories) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Category',
-                  style: AppTypography.labelLarge(
-                    isDark ? Colors.white : Colors.black,
+              child: Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.editingHabit != null
+                        ? 'Edit Habit'
+                        : 'New Habit',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: isDark
+                          ? Colors.white
+                          : Colors.black,
+                    ),
                   ),
+
+                  // Close button
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white10
+                            : Colors.black.withOpacity(0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: isDark
+                            ? Colors.white70
+                            : Colors.black54,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Divider(
+              height: 1,
+              color: isDark
+                  ? Colors.white10
+                  : Colors.black.withOpacity(0.05),
+            ),
+
+            // Body
+            Expanded(
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(
+                  20,
+                  18,
+                  20,
+                  28,
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: categories
-                      .map((category) => GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedCategoryId = category.id;
-                                _categoryController.text = category.name;
-                              });
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    // TITLE
+                    _label('TITLE', isDark),
+
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: _titleController,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark
+                            ? Colors.white
+                            : Colors.black,
+                      ),
+                      decoration: _inputDecoration(
+                        isDark,
+                        hint: 'e.g. Morning run',
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // DESCRIPTION
+                    _label('DESCRIPTION', isDark),
+
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: _descriptionController,
+                      maxLines: 3,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark
+                            ? Colors.white
+                            : Colors.black,
+                      ),
+                      decoration: _inputDecoration(
+                        isDark,
+                        hint: 'Optional notes...',
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // CATEGORY
+                    _label('CATEGORY', isDark),
+
+                    const SizedBox(height: 8),
+
+                    _buildCategoryDropdown(isDark),
+
+                    const SizedBox(height: 18),
+
+                    // FREQUENCY
+                    _label('FREQUENCY', isDark),
+
+                    const SizedBox(height: 8),
+
+                    _buildFrequencyDropdown(isDark),
+
+                    const SizedBox(height: 18),
+
+                    // DATES
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDateField(
+                            isDark,
+                            'START',
+                            _startDate,
+                            (d) {
+                              if (d != null) {
+                                setState(
+                                  () => _startDate = d,
+                                );
+                              }
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _selectedCategoryId == category.id
-                                    ? AppColors.primaryPurple
-                                    : (isDark
-                                        ? AppColors.darkBackground
-                                        : Colors.grey[100]),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: _selectedCategoryId == category.id
-                                      ? AppColors.primaryPurple
-                                      : (isDark
-                                          ? AppColors.darkBorder
-                                          : AppColors.lightBorder),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    category.icon,
-                                    style: const TextStyle(fontSize: 18),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    category.name,
-                                    style: AppTypography.bodySmall(
-                                      _selectedCategoryId == category.id
-                                          ? Colors.white
-                                          : (isDark
-                                              ? Colors.white
-                                              : Colors.black),
-                                    ),
-                                  ),
-                                ],
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        Expanded(
+                          child: _buildDateField(
+                            isDark,
+                            'END',
+                            _endDate,
+                            (d) {
+                              setState(
+                                () => _endDate = d,
+                              );
+                            },
+                            isOptional: true,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // CREATE / SAVE BUTTON
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: FilledButton(
+                        onPressed: _handleSubmit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor:
+                              AppColors.primaryPurple,
+                          shape:
+                              RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(
+                          widget.editingHabit != null
+                              ? 'Save Changes'
+                              : 'Create Habit',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // DELETE BUTTON
+                    if (widget.editingHabit != null &&
+                        widget.onDelete != null) ...[
+                      const SizedBox(height: 12),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: TextButton(
+                          onPressed: widget.onDelete,
+                          style: TextButton.styleFrom(
+                            shape:
+                                RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(
+                                12,
                               ),
                             ),
-                          ))
-                      .toList(),
+                          ),
+                          child: Text(
+                            'Delete Habit',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.error,
+                              fontWeight:
+                                  FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+  // ── Category dropdown ───────────────────────────────────────────────────────
+  Widget _buildCategoryDropdown(bool isDark) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final categoriesAsync = ref.watch(categoriesProvider);
+        return categoriesAsync.when(
+          loading: () => const SizedBox(
+            height: 44,
+            child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 1.5))),
+          ),
+          error: (_, __) => Text('Failed to load categories',
+              style: TextStyle(color: AppColors.error, fontSize: 13)),
+          data: (categories) {
+            return DropdownButtonFormField(
+              value: _selectedCategoryId,
+              isExpanded: true,
+               itemHeight: 148,
+              icon: Icon(Icons.expand_more, size: 18, color: isDark ? Colors.white38 : Colors.black38),
+              decoration: _inputDecoration(isDark),
+              dropdownColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+              style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black),
+              hint: Text('Select category',
+                  style: TextStyle(fontSize: 14, color: isDark ? Colors.white30 : Colors.black26)),
+              items: categories.map((cat) {
+                return DropdownMenuItem(
+                  value: cat.id,
+                  child: Row(
+                    children: [
+                      Text(cat.icon, style: const TextStyle(fontSize: 16)),
+                      const SizedBox(width: 10),
+                      Text(cat.name, style: const TextStyle(fontSize: 14)),
+                    ],
                   ),
-              ],
+                );
+              }).toList(),
+              onChanged: (value) => setState(() => _selectedCategoryId = value),
             );
           },
         );
@@ -383,77 +418,109 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
     );
   }
 
-  Widget _buildFrequencySelector(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Frequency',
-          style: AppTypography.labelLarge(
-            isDark ? Colors.white : Colors.black,
+// ── Frequency dropdown ──────────────────────────────────────────────────────
+Widget _buildFrequencyDropdown(bool isDark) {
+  return MenuAnchor(
+    builder: (
+      BuildContext context,
+      MenuController controller,
+      Widget? child,
+    ) {
+      return GestureDetector(
+        onTap: () {
+          controller.isOpen
+              ? controller.close()
+              : controller.open();
+        },
+
+        child: Container(
+          height: 48,
+
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+          ),
+
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.04)
+                : Colors.black.withOpacity(0.03),
+
+            borderRadius:
+                BorderRadius.circular(8),
+
+            border: Border.all(
+              color: isDark
+                  ? Colors.white12
+                  : Colors.black12,
+            ),
+          ),
+
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _selectedFrequency.capitalize(),
+
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
+                ),
+              ),
+
+              Icon(
+                Icons.expand_more_rounded,
+                size: 18,
+                color: isDark
+                    ? Colors.white38
+                    : Colors.black38,
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: _frequencies
-              .map((freq) => Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() => _selectedFrequency = freq);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _selectedFrequency == freq
-                              ? AppColors.primaryPurple
-                              : (isDark
-                                  ? AppColors.darkBackground
-                                  : Colors.grey[100]),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: _selectedFrequency == freq
-                                ? AppColors.primaryPurple
-                                : (isDark
-                                    ? AppColors.darkBorder
-                                    : AppColors.lightBorder),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Text(
-                          freq.capitalize(),
-                          textAlign: TextAlign.center,
-                          style: AppTypography.bodySmall(
-                            _selectedFrequency == freq
-                                ? Colors.white
-                                : (isDark ? Colors.white : Colors.black),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ))
-              .toList(),
-        ),
-      ],
-    );
-  }
+      );
+    },
 
-  Widget _buildDateSelector(
+    menuChildren: _frequencies.map((freq) {
+      return MenuItemButton(
+        style: MenuItemButton.styleFrom(
+          minimumSize: const Size(
+            160,
+            42,
+          ),
+        ),
+
+        onPressed: () {
+          setState(() {
+            _selectedFrequency = freq;
+          });
+        },
+
+        child: Text(
+          freq.capitalize(),
+          style: const TextStyle(
+            fontSize: 14,
+          ),
+        ),
+      );
+    }).toList(),
+  );
+}
+
+  // ── Date field ──────────────────────────────────────────────────────────────
+  Widget _buildDateField(
     bool isDark,
     String label,
     DateTime? date,
-    Function(DateTime?) onDateChanged, {
+    Function(DateTime?) onChanged, {
     bool isOptional = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTypography.labelLarge(
-            isDark ? Colors.white : Colors.black,
-          ),
-        ),
-        const SizedBox(height: 8),
+        _label(label, isDark),
         GestureDetector(
           onTap: () async {
             final picked = await showDatePicker(
@@ -462,46 +529,40 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
               firstDate: DateTime(2000),
               lastDate: DateTime(2100),
             );
-            if (picked != null) {
-              onDateChanged(picked);
-            }
+            if (picked != null) onChanged(picked);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkBackground : Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-              ),
+              color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: isDark ? Colors.white12 : Colors.black12),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.calendar_today,
-                  color: AppColors.primaryPurple,
-                  size: 18,
-                ),
+                Icon(Icons.calendar_today_outlined,
+                    size: 14, color: AppColors.primaryPurple.withOpacity(0.7)),
                 const SizedBox(width: 8),
-                Text(
-                  date != null
-                      ? '${date.day}/${date.month}/${date.year}'
-                      : 'Select date',
-                  style: AppTypography.bodySmall(
-                    isDark ? Colors.white : Colors.black,
-                  ),
-                ),
-                if (isOptional && date != null) ...[
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => onDateChanged(null),
-                    child: Icon(
-                      Icons.close,
-                      color: isDark ? Colors.white70 : Colors.black54,
-                      size: 18,
+                Expanded(
+                  child: Text(
+                    date != null
+                        ? '${date.day}/${date.month}/${date.year}'
+                        : 'Select',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: date != null
+                          ? (isDark ? Colors.white : Colors.black)
+                          : (isDark ? Colors.white30 : Colors.black26),
                     ),
                   ),
-                ],
+                ),
+                if (isOptional && date != null)
+                  GestureDetector(
+                    onTap: () => onChanged(null),
+                    child: Icon(Icons.close, size: 14,
+                        color: isDark ? Colors.white38 : Colors.black38),
+                  ),
               ],
             ),
           ),
@@ -509,10 +570,69 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
       ],
     );
   }
+
+  // ── Submit ──────────────────────────────────────────────────────────────────
+  Future<void> _handleSubmit() async {
+    if (_titleController.text.trim().isEmpty) {
+      _showSnack('Please enter a title');
+      return;
+    }
+
+    if (widget.editingHabit != null && widget.onSubmit != null) {
+      widget.onSubmit!({
+        'title': _titleController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'categoryId': _selectedCategoryId,
+        'frequencyType': _selectedFrequency,
+        'frequencyConfig': [_selectedFrequency],
+        'startDate': _startDate,
+        'endDate': _endDate,
+      });
+      Navigator.pop(context);
+      return;
+    }
+
+    if (_selectedCategoryId == null) {
+      _showSnack('Please select a category');
+      return;
+    }
+
+    try {
+      await ref.read(habitsProvider.notifier).createHabit(
+            categoryId: _selectedCategoryId!,
+            title: _titleController.text.trim(),
+            description: _descriptionController.text.trim(),
+            frequencyType: _selectedFrequency,
+            frequencyConfig: [_selectedFrequency],
+            goalType: 'binary',
+            targetValue: 1,
+            targetUnit: 'completion',
+            startDate: _startDate,
+            endDate: _endDate,
+            visibility: 'private',
+          );
+      if (mounted) {
+        Navigator.pop(context);
+        _showSnack('Habit created');
+      }
+    } catch (e) {
+      if (mounted) _showSnack('Error: $e');
+    }
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+  }
 }
 
+// ── Extensions / helpers ──────────────────────────────────────────────────────
 extension StringExtension on String {
-  String capitalize() {
-    return "${this[0].toUpperCase()}${substring(1)}";
-  }
+  String capitalize() => "${this[0].toUpperCase()}${substring(1)}";
+}
+
+DateTime _dateOnly(DateTime date) {
+  final d = date.toLocal();
+  return DateTime(d.year, d.month, d.day);
 }

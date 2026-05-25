@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../widgets/custom_buttons.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Function(bool isDark) onThemeToggle;
   final bool isDarkMode;
   final Future<void> Function() onLogout;
+  final VoidCallback? onEditProfile;
 
   const SettingsScreen({
     Key? key,
     required this.onThemeToggle,
     required this.isDarkMode,
     required this.onLogout,
+    this.onEditProfile,
   }) : super(key: key);
 
   @override
@@ -37,93 +38,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionTitle('Appearance', isDark),
-            const SizedBox(height: 12),
-            _buildSettingTile(
-              icon: Icons.brightness_7,
-              title: 'Dark Mode',
+            // ── Appearance ──────────────────────────────────────────
+            _buildSectionLabel('Appearance', isDark),
+            const SizedBox(height: 8),
+            _buildCard(
               isDark: isDark,
-              trailing: Switch(
+              child: _buildToggleItem(
+                icon: Icons.brightness_4_outlined,
+                title: 'Dark Mode',
+                isDark: isDark,
                 value: widget.isDarkMode,
-                onChanged: (value) {
-                  widget.onThemeToggle(value);
-                },
+                onChanged: widget.onThemeToggle,
               ),
             ),
+
             const SizedBox(height: 24),
-            _buildSectionTitle('Notifications', isDark),
-            const SizedBox(height: 12),
-            _buildSettingTile(
-              icon: Icons.notifications,
-              title: 'Enable Notifications',
+
+            // ── Notifications ───────────────────────────────────────
+            _buildSectionLabel('Notifications', isDark),
+            const SizedBox(height: 8),
+            _buildCard(
               isDark: isDark,
-              trailing: Switch(
-                value: _notificationsEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _notificationsEnabled = value;
-                  });
-                },
+              child: Column(
+                children: [
+                  _buildToggleItem(
+                    icon: Icons.notifications_outlined,
+                    title: 'Enable Notifications',
+                    isDark: isDark,
+                    value: _notificationsEnabled,
+                    onChanged: (v) => setState(() => _notificationsEnabled = v),
+                  ),
+                  _buildDivider(isDark),
+                  _buildToggleItem(
+                    icon: Icons.smart_toy_outlined,
+                    title: 'Smart Reminders',
+                    isDark: isDark,
+                    value: _smartReminders,
+                    onChanged: (v) => setState(() => _smartReminders = v),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            _buildSettingTile(
-              icon: Icons.smart_toy,
-              title: 'Smart Reminders',
+
+            const SizedBox(height: 24),
+
+            // ── Account ─────────────────────────────────────────────
+            _buildSectionLabel('Account', isDark),
+            const SizedBox(height: 8),
+            _buildCard(
               isDark: isDark,
-              trailing: Switch(
-                value: _smartReminders,
-                onChanged: (value) {
-                  setState(() {
-                    _smartReminders = value;
-                  });
-                },
+              child: Column(
+                children: [
+                  _buildTapItem(
+                    icon: Icons.person_outline_rounded,
+                    title: 'Edit Profile',
+                    isDark: isDark,
+                    onTap: widget.onEditProfile ?? () {},
+                  ),
+                  _buildDivider(isDark),
+                  _buildTapItem(
+                    icon: Icons.language_outlined,
+                    title: 'Language',
+                    isDark: isDark,
+                    onTap: () {},
+                  ),
+                  _buildDivider(isDark),
+                  _buildTapItem(
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'Privacy Policy',
+                    isDark: isDark,
+                    onTap: () {},
+                  ),
+                ],
               ),
             ),
+
             const SizedBox(height: 24),
-            _buildSectionTitle('Account', isDark),
-            const SizedBox(height: 12),
-            _buildSettingTile(
-              icon: Icons.person,
-              title: 'Edit Profile',
+
+            // ── About ───────────────────────────────────────────────
+            _buildSectionLabel('About', isDark),
+            const SizedBox(height: 8),
+            _buildCard(
               isDark: isDark,
-              onTap: () {},
+              child: _buildTapItem(
+                icon: Icons.info_outline_rounded,
+                title: 'Version 1.0.0',
+                isDark: isDark,
+                showArrow: false,
+              ),
             ),
-            const SizedBox(height: 12),
-            _buildSettingTile(
-              icon: Icons.language,
-              title: 'Language',
+
+            const SizedBox(height: 32),
+
+            // ── Logout ──────────────────────────────────────────────
+            _buildCard(
               isDark: isDark,
-              onTap: () {},
-            ),
-            const SizedBox(height: 12),
-            _buildSettingTile(
-              icon: Icons.privacy_tip,
-              title: 'Privacy Policy',
-              isDark: isDark,
-              onTap: () {},
-            ),
-            const SizedBox(height: 24),
-            _buildSectionTitle('About', isDark),
-            const SizedBox(height: 12),
-            _buildSettingTile(
-              icon: Icons.info,
-              title: 'Version 1.0.0',
-              isDark: isDark,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _handleLogout,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error,
-                ),
-                child: const Text('Logout'),
+              child: _buildTapItem(
+                icon: Icons.logout_rounded,
+                title: 'Logout',
+                isDark: isDark,
+                showArrow: false,
+                destructive: true,
+                onTap: _handleLogout,
               ),
             ),
           ],
@@ -132,61 +152,162 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title, bool isDark) {
-    return Text(
-      title,
-      style: AppTypography.titleLarge(
-        isDark ? AppColors.darkText : AppColors.lightText,
+  // ─────────────────────────────────────────────────────────────
+  // SECTION LABEL
+  // ─────────────────────────────────────────────────────────────
+
+  Widget _buildSectionLabel(String label, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+          color: isDark
+              ? AppColors.darkTextSecondary
+              : AppColors.lightTextSecondary,
+        ),
       ),
     );
   }
 
-  Widget _buildSettingTile({
+  // ─────────────────────────────────────────────────────────────
+  // CARD
+  // ─────────────────────────────────────────────────────────────
+
+  Widget _buildCard({required bool isDark, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // DIVIDER
+  // ─────────────────────────────────────────────────────────────
+
+  Widget _buildDivider(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Divider(
+        height: 1,
+        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // TAP ITEM  (matches ProfileScreen._buildQuickActionItem exactly)
+  // ─────────────────────────────────────────────────────────────
+
+  Widget _buildTapItem({
     required IconData icon,
     required String title,
     required bool isDark,
-    Widget? trailing,
     VoidCallback? onTap,
+    bool showArrow = true,
+    bool destructive = false,
   }) {
-    return GestureDetector(
+    final color = destructive ? Colors.red : AppColors.primaryPurple;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: AppColors.primaryPurple,
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 20, color: color),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Text(
                 title,
-                style: AppTypography.titleMedium(
-                  isDark ? AppColors.darkText : AppColors.lightText,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: destructive
+                      ? Colors.red
+                      : (isDark ? AppColors.darkText : AppColors.lightText),
                 ),
               ),
             ),
-            trailing ??
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary,
-                ),
+            if (showArrow)
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 15,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.lightTextSecondary,
+              ),
           ],
         ),
       ),
     );
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // TOGGLE ITEM
+  // ─────────────────────────────────────────────────────────────
+
+  Widget _buildToggleItem({
+    required IconData icon,
+    required String title,
+    required bool isDark,
+    required bool value,
+    required Function(bool) onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primaryPurple.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: AppColors.primaryPurple),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isDark ? AppColors.darkText : AppColors.lightText,
+              ),
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: AppColors.primaryPurple,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // LOGOUT DIALOG
+  // ─────────────────────────────────────────────────────────────
 
   Future<void> _handleLogout() async {
     showDialog(
@@ -204,7 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.pop(context);
               widget.onLogout();
             },
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Logout'),
           ),
         ],

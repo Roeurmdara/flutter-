@@ -667,37 +667,96 @@ class _Divider extends StatelessWidget {
 }
 
 // ─── Social row ───────────────────────────────────────────────────────────────
-class _SocialRow extends StatelessWidget {
+class _SocialRow extends ConsumerWidget {
+  const _SocialRow();
+
   @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final isLoading = authState.isLoading;
+
+    return Column(
       children: [
-        Expanded(
-          child: _SocialBtn(
-            label: 'Google',
-            icon: FontAwesomeIcons.google,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _SocialBtn(
-            label: 'Facebook',
-            icon: FontAwesomeIcons.facebookF,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _SocialBtn(
+                label: 'Google',
+                icon: FontAwesomeIcons.google,
+                onPressed: () =>
+                    ref.read(authProvider.notifier).loginWithGoogle(),
+                isLoading: isLoading,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _SocialBtn(
+                label: 'GitHub',
+                icon: FontAwesomeIcons.github,
+                onPressed: () =>
+                    ref.read(authProvider.notifier).loginWithGithub(),
+                isLoading: isLoading,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _SocialBtn extends StatelessWidget {
+class _SocialBtn extends ConsumerStatefulWidget {
   final String label;
   final IconData icon;
+  final VoidCallback onPressed;
+  final bool isLoading;
 
   const _SocialBtn({
     required this.label,
     required this.icon,
+    required this.onPressed,
+    this.isLoading = false,
   });
+
+  @override
+  ConsumerState<_SocialBtn> createState() => __SocialBtnState();
+}
+
+class __SocialBtnState extends ConsumerState<_SocialBtn> {
+  late bool _isButtonLoading = false;
+
+  Future<void> _handlePress() async {
+    setState(() => _isButtonLoading = true);
+    try {
+      widget.onPressed();
+      // Wait a bit for the auth state to update
+      await Future.delayed(const Duration(milliseconds: 500));
+      final authState = ref.read(authProvider);
+      if (authState.isAuthenticated && mounted) {
+        // Navigation will be handled by the main app logic
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Authenticated successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${widget.label} login failed: $e'),
+            backgroundColor: Colors.red.shade600,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isButtonLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -707,18 +766,32 @@ class _SocialBtn extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FaIcon(icon, size: 20),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-            ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _isButtonLoading || widget.isLoading ? null : _handlePress,
+          borderRadius: BorderRadius.circular(14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_isButtonLoading || widget.isLoading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                FaIcon(widget.icon, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                widget.label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

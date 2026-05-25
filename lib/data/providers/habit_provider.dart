@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/habit_service.dart';
 import '../models/habit_model.dart';
 import 'auth_provider.dart';
@@ -13,9 +14,16 @@ final habitServiceProvider = Provider((ref) {
 
   dio.interceptors.add(
     InterceptorsWrapper(
-      onRequest: (options, handler) {
-        if (token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
+      onRequest: (options, handler) async {
+        var authToken = token;
+        if (authToken.isEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          authToken = prefs.getString('auth_token') ??
+              prefs.getString('user_token') ??
+              '';
+        }
+        if (authToken.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $authToken';
         }
         return handler.next(options);
       },
@@ -34,6 +42,8 @@ class HabitState {
   final DateTime selectedDate;
   final Map<String, bool>
       completedStatus; // habitId -> isCompleted for selected date
+  final Map<String, Set<String>>
+      completedDatesMap; // habitId -> Set of completed dates (local tracking)
 
   HabitState({
     this.habits = const [],
@@ -42,6 +52,7 @@ class HabitState {
     this.error,
     DateTime? selectedDate,
     this.completedStatus = const {},
+    this.completedDatesMap = const {},
   }) : selectedDate = selectedDate ?? DateTime.now();
 
   HabitState copyWith({
@@ -51,6 +62,7 @@ class HabitState {
     String? error,
     DateTime? selectedDate,
     Map<String, bool>? completedStatus,
+    Map<String, Set<String>>? completedDatesMap,
   }) {
     return HabitState(
       habits: habits ?? this.habits,
@@ -59,6 +71,7 @@ class HabitState {
       error: error,
       selectedDate: selectedDate ?? this.selectedDate,
       completedStatus: completedStatus ?? this.completedStatus,
+      completedDatesMap: completedDatesMap ?? this.completedDatesMap,
     );
   }
 }
@@ -68,32 +81,58 @@ class HabitsNotifier extends StateNotifier<HabitState> {
   final HabitService _service;
 
   HabitsNotifier(this._service) : super(HabitState()) {
-    _loadHabits();
+    loadHabits();
   }
 
-  Future<void> _loadHabits() async {
-    state = state.copyWith(isLoading: true, error: null);
+  // FIX 1: _formatDate added as an instance method so it's accessible
+  // throughout the class (was previously only a top-level function)
+  String _formatDate(DateTime date) {
+    final d = _dateOnly(date);
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> loadHabits() async {
     try {
-      final response = await _service.getHabits();
-      _updateCompletionStatus(response.data);
-      state = state.copyWith(habits: response.data, isLoading: false);
+      state = state.copyWith(isLoading: true, error: null);
+    } catch (_) {
+      // Notifier already disposed, ignore
+      return;
+    }
+
+    try {
+      final habits = await _service.getAllHabits();
+      _updateCompletionStatus(habits);
+      try {
+        state = state.copyWith(habits: habits, isLoading: false);
+      } catch (_) {
+        // Disposed during async operation, ignore
+      }
     } catch (e) {
-      // Don't show 401 as a persistent error — it just means not authed yet
-      state = state.copyWith(
-        isLoading: false,
-        error: e is DioException && e.response?.statusCode == 401
-            ? null // silence auth errors on initial load
-            : e.toString(),
-      );
+      try {
+        // Don't show 401 as a persistent error — it just means not authed yet
+        state = state.copyWith(
+          isLoading: false,
+          error: e is DioException && e.response?.statusCode == 401
+              ? null // silence auth errors on initial load
+              : e.toString(),
+        );
+      } catch (_) {
+        // Disposed during error handling, ignore
+      }
     }
   }
 
   void _updateCompletionStatus(List<Habit> habits) {
+    // Update based on the selected date using local tracking map
+    final dateStr = _formatDate(state.selectedDate);
     final completedStatus = <String, bool>{};
+
     for (final habit in habits) {
-      // Use todayStatus from API instead of completedDates
-      completedStatus[habit.id] = habit.todayStatus == 'completed';
+      // Check if the selected date is in the local completed dates map
+      final completedDates = state.completedDatesMap[habit.id] ?? {};
+      completedStatus[habit.id] = completedDates.contains(dateStr);
     }
+
     state = state.copyWith(completedStatus: completedStatus);
   }
 
@@ -148,6 +187,7 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     String? description,
     String? frequencyType,
     List<String>? frequencyConfig,
+    String? categoryId,
     DateTime? startDate,
     DateTime? endDate,
     String? status,
@@ -160,6 +200,7 @@ class HabitsNotifier extends StateNotifier<HabitState> {
         description: description,
         frequencyType: frequencyType,
         frequencyConfig: frequencyConfig,
+        categoryId: categoryId,
         startDate: startDate,
         endDate: endDate,
         status: status,
@@ -182,26 +223,25 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     }
   }
 
-  // Mark habit as done
+  // Mark habit as done for specific date only (does NOT affect other days)
   Future<void> markHabitAsDone(String habitId, DateTime date) async {
     state = state.copyWith(isUpdating: true, error: null);
     try {
       await _service.markHabitAsDone(habitId, date);
 
-      final updatedHabits = state.habits.map((habit) {
-        if (habit.id == habitId) {
-          return habit.copyWith(
-            todayStatus: 'completed',
-          );
-        }
-        return habit;
-      }).toList() as List<Habit>;
+      final dateStr = _formatDate(date);
+
+      // Update local completion tracking map
+      final updatedDatesMap =
+          Map<String, Set<String>>.from(state.completedDatesMap);
+      final currentDates = updatedDatesMap[habitId] ?? {};
+      updatedDatesMap[habitId] = {...currentDates, dateStr};
 
       final completedStatus = Map<String, bool>.from(state.completedStatus);
       completedStatus[habitId] = true;
 
       state = state.copyWith(
-        habits: updatedHabits,
+        completedDatesMap: updatedDatesMap,
         completedStatus: completedStatus,
         isUpdating: false,
       );
@@ -213,26 +253,26 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     }
   }
 
-  // Unmark habit as done
+  // Unmark habit as done for specific date only (does NOT affect other days)
   Future<void> unmarkHabitAsDone(String habitId, DateTime date) async {
     state = state.copyWith(isUpdating: true, error: null);
     try {
       await _service.unmarkHabitAsDone(habitId, date);
 
-      final updatedHabits = state.habits.map((habit) {
-        if (habit.id == habitId) {
-          return habit.copyWith(
-            todayStatus: 'pending',
-          );
-        }
-        return habit;
-      }).toList() as List<Habit>;
+      final dateStr = _formatDate(date);
+
+      // Update local completion tracking map
+      final updatedDatesMap =
+          Map<String, Set<String>>.from(state.completedDatesMap);
+      final currentDates = updatedDatesMap[habitId] ?? {};
+      updatedDatesMap[habitId] =
+          currentDates.where((d) => d != dateStr).toSet();
 
       final completedStatus = Map<String, bool>.from(state.completedStatus);
       completedStatus[habitId] = false;
 
       state = state.copyWith(
-        habits: updatedHabits,
+        completedDatesMap: updatedDatesMap,
         completedStatus: completedStatus,
         isUpdating: false,
       );
@@ -268,15 +308,26 @@ class HabitsNotifier extends StateNotifier<HabitState> {
 
   // Select date and update completion status
   void selectDate(DateTime date) {
-    state = state.copyWith(selectedDate: date); // update date first
-    _updateCompletionStatus(state.habits); // then recalculate
+    final selectedDate = _dateOnly(date);
+    final dateStr = _formatDate(selectedDate);
+    final completedStatus = <String, bool>{};
+
+    for (final habit in state.habits) {
+      // Check if this specific date is in the local completed dates map
+      final completedDates = state.completedDatesMap[habit.id] ?? {};
+      completedStatus[habit.id] = completedDates.contains(dateStr);
+    }
+
+    state = state.copyWith(
+      selectedDate: selectedDate,
+      completedStatus: completedStatus,
+    );
   }
 
   // Get habits for selected date
   List<Habit> getHabitsForDate(DateTime date) {
     return state.habits.where((habit) {
-      if (habit.startDate.isAfter(date)) return false;
-      if (habit.endDate != null && habit.endDate!.isBefore(date)) return false;
+      if (!_isWithinDateRange(habit, date)) return false;
 
       // Check frequency
       switch (habit.frequency.toLowerCase()) {
@@ -304,10 +355,7 @@ final habitsForDateProvider = Provider<List<Habit>>((ref) {
   final habitState = ref.watch(habitsProvider);
   return habitState.habits.where((habit) {
     final selectedDate = habitState.selectedDate;
-    if (habit.startDate.isAfter(selectedDate)) return false;
-    if (habit.endDate != null && habit.endDate!.isBefore(selectedDate)) {
-      return false;
-    }
+    if (!_isWithinDateRange(habit, selectedDate)) return false;
 
     switch (habit.frequency.toLowerCase()) {
       case 'daily':
@@ -321,6 +369,21 @@ final habitsForDateProvider = Provider<List<Habit>>((ref) {
     }
   }).toList();
 });
+
+DateTime _dateOnly(DateTime date) {
+  final localDate = date.toLocal();
+  return DateTime(localDate.year, localDate.month, localDate.day);
+}
+
+bool _isWithinDateRange(Habit habit, DateTime date) {
+  final selectedDate = _dateOnly(date);
+  final startDate = _dateOnly(habit.startDate);
+  final endDate = habit.endDate != null ? _dateOnly(habit.endDate!) : null;
+
+  if (selectedDate.isBefore(startDate)) return false;
+  if (endDate != null && selectedDate.isAfter(endDate)) return false;
+  return true;
+}
 
 // Computed: Get completion rate for today
 final todayCompletionRateProvider = Provider<int>((ref) {

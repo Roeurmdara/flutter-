@@ -34,6 +34,10 @@ dependencies:
   sqlite3: ^2.9.4
   path: ^1.9.0
   shared_preferences: ^2.2.3
+  flutter_secure_storage: ^9.0.0
+
+  # OAuth & Web Auth
+  flutter_web_auth_2: ^5.0.2
 
   # UI Components
   cached_network_image: ^3.3.1
@@ -75,4 +79,3 @@ flutter:
 
   assets:
     - assets/images/
-  

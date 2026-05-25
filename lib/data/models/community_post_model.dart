@@ -1,0 +1,246 @@
+class CommunityPost {
+  final String id;
+  final String communityId;
+  final String authorId;
+  final String contentType;
+  final String title;
+  final String body;
+  final bool isPinned;
+  final String status;
+  final int likeCount;
+  final int commentCount;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+
+  CommunityPost({
+    required this.id,
+    required this.communityId,
+    required this.authorId,
+    required this.contentType,
+    required this.title,
+    required this.body,
+    required this.isPinned,
+    required this.status,
+    required this.likeCount,
+    required this.commentCount,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+  });
+
+  factory CommunityPost.fromJson(Map<String, dynamic> json) {
+    return CommunityPost(
+      id: json['id'] as String,
+      communityId: json['community_id'] as String,
+      authorId: json['author_id'] as String,
+      contentType: json['content_type'] as String,
+      title: json['title'] as String,
+      body: json['body'] as String,
+      isPinned: json['is_pinned'] as bool? ?? false,
+      status: json['status'] as String,
+      likeCount: json['like_count'] as int? ?? 0,
+      commentCount: json['comment_count'] as int? ?? 0,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      deletedAt: json['deleted_at'] != null
+          ? DateTime.parse(json['deleted_at'] as String)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'community_id': communityId,
+        'author_id': authorId,
+        'content_type': contentType,
+        'title': title,
+        'body': body,
+        'is_pinned': isPinned,
+        'status': status,
+        'like_count': likeCount,
+        'comment_count': commentCount,
+        'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
+        'deleted_at': deletedAt?.toIso8601String(),
+      };
+}
+
+class CommunityPostComment {
+  final String id;
+  final String postId;
+  final String authorId;
+  final String body;
+  final String status;
+  final int likeCount;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+
+  CommunityPostComment({
+    required this.id,
+    required this.postId,
+    required this.authorId,
+    required this.body,
+    required this.status,
+    required this.likeCount,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+  });
+
+  factory CommunityPostComment.fromJson(Map<String, dynamic> json) {
+    return CommunityPostComment(
+      id: json['id'] as String,
+      postId: json['post_id'] as String,
+      authorId: json['author_id'] as String,
+      body: json['body'] as String,
+      status: json['status'] as String,
+      likeCount: json['like_count'] as int? ?? 0,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      deletedAt: json['deleted_at'] != null
+          ? DateTime.parse(json['deleted_at'] as String)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'post_id': postId,
+        'author_id': authorId,
+        'body': body,
+        'status': status,
+        'like_count': likeCount,
+        'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt.toIso8601String(),
+        'deleted_at': deletedAt?.toIso8601String(),
+      };
+}
+
+class PostReaction {
+  final String type; // "like"
+  final String userId;
+
+  PostReaction({
+    required this.type,
+    required this.userId,
+  });
+
+  factory PostReaction.fromJson(Map<String, dynamic> json) {
+    return PostReaction(
+      type: json['type'] as String,
+      userId: json['user_id'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'user_id': userId,
+      };
+}
+
+class PostListResponse {
+  final List<CommunityPost> data;
+  final PaginationMeta meta;
+
+  PostListResponse({
+    required this.data,
+    required this.meta,
+  });
+
+  factory PostListResponse.fromJson(Map<String, dynamic> json) {
+    return PostListResponse(
+      data: (json['data'] as List<dynamic>)
+          .map((post) => CommunityPost.fromJson(post as Map<String, dynamic>))
+          .toList(),
+      meta: PaginationMeta.fromJson(json['meta'] as Map<String, dynamic>),
+    );
+  }
+}
+
+class CommentsListResponse {
+  final List<CommunityPostComment> data;
+  final PaginationMeta meta;
+
+  CommentsListResponse({
+    required this.data,
+    required this.meta,
+  });
+
+  factory CommentsListResponse.fromJson(dynamic json) {
+    // Handle both direct list responses and wrapped responses
+    List<dynamic> commentsList = [];
+    Map<String, dynamic>? metaData;
+
+    if (json['data'] is List) {
+      commentsList = json['data'] as List<dynamic>;
+      metaData = json['meta'] as Map<String, dynamic>?;
+    } else if (json is List) {
+      commentsList = json;
+    }
+
+    return CommentsListResponse(
+      data: commentsList
+          .map((comment) =>
+              CommunityPostComment.fromJson(comment as Map<String, dynamic>))
+          .toList(),
+      meta: metaData != null
+          ? PaginationMeta.fromJson(metaData)
+          : PaginationMeta(
+              page: 1,
+              size: commentsList.length,
+              totalElements: commentsList.length,
+              totalPages: 1,
+              hasNext: false,
+              hasPrevious: false,
+              perPage: commentsList.length,
+              total: commentsList.length,
+              lastPage: 1,
+            ),
+    );
+  }
+}
+
+class PaginationMeta {
+  final int page;
+  final int size;
+  final int totalElements;
+  final int totalPages;
+  final bool hasNext;
+  final bool hasPrevious;
+  final int perPage;
+  final int total;
+  final int lastPage;
+
+  PaginationMeta({
+    required this.page,
+    required this.size,
+    required this.totalElements,
+    required this.totalPages,
+    required this.hasNext,
+    required this.hasPrevious,
+    required this.perPage,
+    required this.total,
+    required this.lastPage,
+  });
+
+  factory PaginationMeta.fromJson(Map<String, dynamic> json) {
+    return PaginationMeta(
+      page: (json['page'] as num?)?.toInt() ?? 1,
+      size: (json['size'] as num?)?.toInt() ?? 0,
+      totalElements: (json['totalElements'] as num?)?.toInt() ??
+          (json['total'] as num?)?.toInt() ??
+          0,
+      totalPages: (json['totalPages'] as num?)?.toInt() ??
+          ((json['last_page'] as num?)?.toInt() ?? 1),
+      hasNext: json['hasNext'] as bool? ?? false,
+      hasPrevious: json['hasPrevious'] as bool? ?? false,
+      perPage: (json['per_page'] as num?)?.toInt() ??
+          (json['size'] as num?)?.toInt() ??
+          10,
+      total: (json['total'] as num?)?.toInt() ?? 0,
+      lastPage: (json['last_page'] as num?)?.toInt() ?? 1,
+    );
+  }
+}

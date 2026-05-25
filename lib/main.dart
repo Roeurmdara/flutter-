@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'data/providers/session_provider.dart';
 
 import 'presentation/screens/onboarding/onboarding_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
@@ -12,6 +13,10 @@ import 'presentation/screens/home/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Pre-initialize SharedPreferences globally for session loading
+  final prefs = await SharedPreferences.getInstance();
+  SessionNotifier.initializePrefs(prefs);
 
   // Lock orientation
   await SystemChrome.setPreferredOrientations([
@@ -53,12 +58,17 @@ class _MyAppState extends State<MyApp> {
   // ─── Load saved data ─────────────────────────────────────────────────────
   Future<void> _initApp() async {
     final prefs = await SharedPreferences.getInstance();
+    final authToken = prefs.getString('auth_token');
+    final legacyToken = prefs.getString(AppConstants.keyUserToken);
 
     setState(() {
       _isDarkMode = prefs.getBool(AppConstants.keyDarkMode) ?? false;
       _hasSeenOnboarding =
           prefs.getBool(AppConstants.keyOnboardingDone) ?? false;
-      _isLoggedIn = prefs.getString(AppConstants.keyUserToken) != null;
+      _isLoggedIn = (authToken != null && authToken.isNotEmpty) ||
+          (legacyToken != null &&
+              legacyToken.isNotEmpty &&
+              legacyToken != 'token');
       _initialized = true;
     });
   }
@@ -85,9 +95,6 @@ class _MyAppState extends State<MyApp> {
 
   // ─── Login success ───────────────────────────────────────────────────────
   Future<void> _login() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(AppConstants.keyUserToken, "token");
-
     setState(() {
       _isLoggedIn = true;
     });
@@ -96,6 +103,7 @@ class _MyAppState extends State<MyApp> {
   // ─── Logout ─────────────────────────────────────────────────────────────
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
     await prefs.remove(AppConstants.keyUserToken);
 
     setState(() {

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-
 import '../../../core/theme/app_colors.dart';
-
+import '../../../data/providers/auth_provider.dart';
+import '../../../data/providers/session_provider.dart';
 
 import 'home_dashboard_screen.dart';
 import '../../widgets/create_habit_modal.dart';
@@ -11,8 +12,10 @@ import '../categories/categories_screen.dart';
 import '../community/community_screen.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
+import '../profile/edit_profile_form.dart';
+import '../../../data/providers/profile_provider.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   final Function(bool isDark) onThemeToggle;
   final bool isDarkMode;
   final Future<void> Function() onLogout;
@@ -25,10 +28,10 @@ class HomeScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentTabIndex = 0;
 
   late final List<NavBarItem> _navItems = [
@@ -53,6 +56,19 @@ class _HomeScreenState extends State<HomeScreen> {
       iconPath: 'assets/images/circle-user-regular-full.svg',
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(authProvider.notifier).checkAuthStatus();
+      // Sync user's communities from API on app startup
+      final userId = ref.read(authProvider).user?.id;
+      if (userId != null) {
+        ref.read(sessionProvider.notifier).syncUserCommunitiesFromAPI(userId);
+      }
+    });
+  }
 
   Widget _buildSvgIcon(String path, Color color) {
     return SvgPicture.asset(
@@ -109,10 +125,44 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       case 4:
-        return SettingsScreen(
-          onThemeToggle: widget.onThemeToggle,
+        return // home_screen.dart — find your SettingsScreen(...) and add onEditProfile:
+
+            SettingsScreen(
           isDarkMode: widget.isDarkMode,
+          onThemeToggle: widget.onThemeToggle,
           onLogout: widget.onLogout,
+
+          // ← ADD THIS:
+          onEditProfile: () {
+            final profile = ref.read(profileProvider).profile;
+            if (profile == null) return;
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => Scaffold(
+                  appBar: AppBar(title: const Text('Edit Profile')),
+                  body: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: EditProfileForm(
+                      profile: profile,
+                      profileProvider: profileProvider,
+                      onCancel: () => Navigator.pop(context),
+                      onSaveSuccess: () {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Profile updated successfully'),
+                          ),
+                        );
+                        ref.read(profileProvider.notifier).fetchUserProfile();
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         );
       default:
         return HomeDashboardScreen(

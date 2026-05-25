@@ -1,41 +1,48 @@
-// Community Model
+// Community Model - matches API response
 class Community {
   final String id;
   final String name;
   final String description;
-  final String category;
-  final String? avatar;
+  final String categoryId;
+  final String? coverImage;
+  final String joinType; // 'open' or 'invite'
+  final String status; // 'active', 'inactive'
+  final String createdBy;
   final int memberCount;
-  final int postCount;
   final DateTime createdAt;
-  final bool isJoined;
-  final List<String> tags;
+  final DateTime updatedAt;
 
   Community({
     required this.id,
     required this.name,
     required this.description,
-    required this.category,
-    this.avatar,
+    required this.categoryId,
+    this.coverImage,
+    required this.joinType,
+    required this.status,
+    required this.createdBy,
     required this.memberCount,
-    required this.postCount,
     required this.createdAt,
-    required this.isJoined,
-    required this.tags,
+    required this.updatedAt,
   });
 
   factory Community.fromJson(Map<String, dynamic> json) {
     return Community(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      description: json['description'] as String,
-      category: json['category'] as String,
-      avatar: json['avatar'] as String?,
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      categoryId: json['category_id'] as String? ?? '',
+      coverImage: json['cover_image'] as String?,
+      joinType: json['join_type'] as String? ?? 'open',
+      status: json['status'] as String? ?? 'active',
+      createdBy: json['created_by'] as String? ?? '',
       memberCount: json['member_count'] as int? ?? 0,
-      postCount: json['post_count'] as int? ?? 0,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      isJoined: json['is_joined'] as bool? ?? false,
-      tags: List<String>.from(json['tags'] as List? ?? []),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : DateTime.now(),
     );
   }
 
@@ -44,63 +51,46 @@ class Community {
       'id': id,
       'name': name,
       'description': description,
-      'category': category,
-      'avatar': avatar,
+      'category_id': categoryId,
+      'cover_image': coverImage,
+      'join_type': joinType,
+      'status': status,
+      'created_by': createdBy,
       'member_count': memberCount,
-      'post_count': postCount,
       'created_at': createdAt.toIso8601String(),
-      'is_joined': isJoined,
-      'tags': tags,
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 }
 
-// Community Post Model
-class CommunityPost {
+// Community Member Model
+class CommunityMember {
   final String id;
   final String communityId;
   final String userId;
-  final String username;
-  final String? userAvatar;
-  final String content;
-  final List<String> imageUrls;
-  final int likeCount;
-  final int commentCount;
-  final bool isLiked;
-  final DateTime createdAt;
-  final List<PostComment> comments;
+  final String role; // 'admin', 'moderator', 'member'
+  final String status; // 'active', 'inactive'
+  final DateTime joinedAt;
 
-  CommunityPost({
+  CommunityMember({
     required this.id,
     required this.communityId,
     required this.userId,
-    required this.username,
-    this.userAvatar,
-    required this.content,
-    required this.imageUrls,
-    required this.likeCount,
-    required this.commentCount,
-    required this.isLiked,
-    required this.createdAt,
-    required this.comments,
+    required this.role,
+    required this.status,
+    required this.joinedAt,
   });
 
-  factory CommunityPost.fromJson(Map<String, dynamic> json) {
-    return CommunityPost(
-      id: json['id'] as String,
-      communityId: json['community_id'] as String,
-      userId: json['user_id'] as String,
-      username: json['username'] as String,
-      userAvatar: json['user_avatar'] as String?,
-      content: json['content'] as String,
-      imageUrls: List<String>.from(json['image_urls'] as List? ?? []),
-      likeCount: json['like_count'] as int? ?? 0,
-      commentCount: json['comment_count'] as int? ?? 0,
-      isLiked: json['is_liked'] as bool? ?? false,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      comments: (json['comments'] as List? ?? [])
-          .map((c) => PostComment.fromJson(c as Map<String, dynamic>))
-          .toList(),
+  factory CommunityMember.fromJson(Map<String, dynamic> json) {
+    return CommunityMember(
+      id: json['id'] as String? ?? '',
+      communityId: json['community_id'] as String? ?? '',
+      userId: json['user_id'] as String? ?? '',
+      role: json['role'] as String? ?? 'member',
+      status: json['status'] as String? ?? 'active',
+      joinedAt: json['joined_at'] != null
+          ? DateTime.parse(json['joined_at'] as String)
+          : DateTime.now(),
     );
   }
 
@@ -109,16 +99,42 @@ class CommunityPost {
       'id': id,
       'community_id': communityId,
       'user_id': userId,
-      'username': username,
-      'user_avatar': userAvatar,
-      'content': content,
-      'image_urls': imageUrls,
-      'like_count': likeCount,
-      'comment_count': commentCount,
-      'is_liked': isLiked,
-      'created_at': createdAt.toIso8601String(),
-      'comments': comments.map((c) => c.toJson()).toList(),
+      'role': role,
+      'status': status,
+      'joined_at': joinedAt.toIso8601String(),
     };
+  }
+}
+
+// Community Join Response
+class CommunityJoinResponse {
+  final String id;
+  final String communityId;
+  final String userId;
+  final String role;
+  final String status;
+  final DateTime joinedAt;
+
+  CommunityJoinResponse({
+    required this.id,
+    required this.communityId,
+    required this.userId,
+    required this.role,
+    required this.status,
+    required this.joinedAt,
+  });
+
+  factory CommunityJoinResponse.fromJson(Map<String, dynamic> json) {
+    return CommunityJoinResponse(
+      id: json['id'] as String? ?? '',
+      communityId: json['community_id'] as String? ?? '',
+      userId: json['user_id'] as String? ?? '',
+      role: json['role'] as String? ?? 'member',
+      status: json['status'] as String? ?? 'active',
+      joinedAt: json['joined_at'] != null
+          ? DateTime.parse(json['joined_at'] as String)
+          : DateTime.now(),
+    );
   }
 }
 

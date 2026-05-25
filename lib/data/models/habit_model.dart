@@ -4,7 +4,7 @@ class Habit {
   final String? categoryId;
   final String title;
   final String description;
-  final String status; // "created", "pending", etc.
+  final String status; // "created", "active", etc.
   final String frequency; // frequency_type
   final String? category;
   final String? categoryIcon;
@@ -13,7 +13,7 @@ class Habit {
   final DateTime? endDate;
   final int currentStreak;
   final int bestStreak;
-  final String todayStatus; // "pending", "completed"
+  final String todayStatus; // "pending", "completed" for today only
   final DateTime createdAt;
 
   Habit({

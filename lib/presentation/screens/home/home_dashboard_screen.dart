@@ -8,6 +8,7 @@ import '../../../data/providers/habit_provider.dart';
 import '../../../data/models/habit_model.dart';
 import '../../widgets/habit_card_widget.dart';
 import '../../widgets/create_habit_modal.dart';
+import '../habit/habit_detail_screen.dart';
 
 class HomeDashboardScreen extends ConsumerStatefulWidget {
   final Function(bool isDark) onThemeToggle;
@@ -25,14 +26,7 @@ class HomeDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
-  late DateTime _selectedDate;
   bool _showCalendar = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedDate = DateTime.now();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +34,14 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     final habitState = ref.watch(habitsProvider);
     final habitsForDate = ref.watch(habitsForDateProvider);
     final completionRate = ref.watch(todayCompletionRateProvider);
+    final selectedDate = habitState.selectedDate;
+
+    final pendingHabits = habitsForDate
+        .where((h) => !(habitState.completedStatus[h.id] ?? false))
+        .toList();
+    final doneHabits = habitsForDate
+        .where((h) => habitState.completedStatus[h.id] ?? false)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -57,56 +59,69 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          await Future.delayed(const Duration(seconds: 1));
+          await ref.read(habitsProvider.notifier).loadHabits();
         },
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Greeting Card
               _buildGreetingCard(isDark, completionRate, habitsForDate.length),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Date Selector with Calendar
-              _buildDateSelector(isDark),
-              const SizedBox(height: 24),
+              // Date Selector
+              _buildDateSelector(isDark, selectedDate),
+              const SizedBox(height: 4),
 
+              // Calendar (toggleable)
               if (_showCalendar) ...[
-                _buildCalendarView(isDark),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                _buildCalendarView(isDark, selectedDate),
+                const SizedBox(height: 12),
               ],
 
-              // Habits for Selected Date
-              _buildSectionTitle(
-                  'Habits for ${DateFormat('MMM dd, yyyy').format(_selectedDate)}',
-                  isDark),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
+              // Loading
               if (habitState.isLoading)
                 const Center(child: CircularProgressIndicator())
               else if (habitsForDate.isEmpty)
                 _buildEmptyState(isDark)
-              else
-                _buildHabitsGrid(isDark, habitsForDate, habitState),
+              else ...[
+                // Pending habits (no section header, just listed)
+                if (pendingHabits.isNotEmpty)
+                  _buildHabitList(
+                    isDark,
+                    pendingHabits,
+                    habitState,
+                    selectedDate,
+                    isPending: true,
+                  ),
 
-              const SizedBox(height: 24),
-
-              // Stats Section
-              if (habitsForDate.isNotEmpty) ...[
-                _buildSectionTitle('Today\'s Statistics', isDark),
-                const SizedBox(height: 12),
-                _buildStatsRow(isDark, habitsForDate, habitState),
-                const SizedBox(height: 24),
+                // Done section
+                if (doneHabits.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  _buildSectionTitle('Done', isDark),
+                  const SizedBox(height: 10),
+                  _buildHabitList(
+                    isDark,
+                    doneHabits,
+                    habitState,
+                    selectedDate,
+                    isPending: false,
+                  ),
+                ],
               ],
 
-              // Error Handling
-              if (habitState.error != null)
+              // Error
+              if (habitState.error != null) ...[
+                const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: AppColors.error.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppColors.error),
                   ),
                   child: Text(
@@ -114,6 +129,9 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                     style: AppTypography.bodySmall(AppColors.error),
                   ),
                 ),
+              ],
+
+              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -184,69 +202,59 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     );
   }
 
-  Widget _buildDateSelector(bool isDark) {
-    return Column(
+  Widget _buildDateSelector(bool isDark, DateTime selectedDate) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () {
-                setState(() {
-                  _selectedDate =
-                      _selectedDate.subtract(const Duration(days: 1));
-                  ref.read(habitsProvider.notifier).selectDate(_selectedDate);
-                });
-              },
-            ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _showCalendar = !_showCalendar;
-                });
-              },
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryPurple.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.primaryPurple,
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      DateFormat('MMM dd, yyyy').format(_selectedDate),
-                      style: AppTypography.labelLarge(
-                        isDark ? Colors.white : AppColors.lightText,
-                      ),
-                    ),
-                  ],
-                ),
+        IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            final previousDate = selectedDate.subtract(const Duration(days: 1));
+            ref.read(habitsProvider.notifier).selectDate(previousDate);
+          },
+        ),
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _showCalendar = !_showCalendar;
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryPurple.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primaryPurple,
+                width: 1,
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.arrow_forward),
-              onPressed: () {
-                setState(() {
-                  _selectedDate = _selectedDate.add(const Duration(days: 1));
-                  ref.read(habitsProvider.notifier).selectDate(_selectedDate);
-                });
-              },
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  DateFormat('MMM dd, yyyy').format(selectedDate),
+                  style: AppTypography.labelLarge(
+                    isDark ? Colors.white : AppColors.lightText,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.arrow_forward),
+          onPressed: () {
+            final nextDate = selectedDate.add(const Duration(days: 1));
+            ref.read(habitsProvider.notifier).selectDate(nextDate);
+          },
         ),
       ],
     );
   }
 
-  Widget _buildCalendarView(bool isDark) {
+  Widget _buildCalendarView(bool isDark, DateTime selectedDate) {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
@@ -261,14 +269,11 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
         child: TableCalendar(
           firstDay: DateTime.utc(2020),
           lastDay: DateTime.utc(2030),
-          focusedDay: _selectedDate,
-          selectedDayPredicate: (day) => isSameDay(_selectedDate, day),
+          focusedDay: selectedDate,
+          selectedDayPredicate: (day) => isSameDay(selectedDate, day),
           onDaySelected: (selectedDay, focusedDay) {
-            setState(() {
-              _selectedDate = selectedDay;
-              _showCalendar = false;
-              ref.read(habitsProvider.notifier).selectDate(_selectedDate);
-            });
+            setState(() => _showCalendar = false);
+            ref.read(habitsProvider.notifier).selectDate(selectedDay);
           },
           calendarStyle: CalendarStyle(
             cellMargin: const EdgeInsets.all(4),
@@ -308,13 +313,18 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     );
   }
 
-  Widget _buildHabitsGrid(
-      bool isDark, List<Habit> habits, HabitState habitState) {
+  Widget _buildHabitList(
+    bool isDark,
+    List<Habit> habits,
+    HabitState habitState,
+    DateTime selectedDate, {
+    required bool isPending,
+  }) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: habits.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final habit = habits[index];
         final isCompleted = habitState.completedStatus[habit.id] ?? false;
@@ -324,22 +334,27 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           isCompleted: isCompleted,
           onToggle: () {
             if (isCompleted) {
-              ref.read(habitsProvider.notifier).unmarkHabitAsDone(
-                    habit.id,
-                    _selectedDate,
-                  );
+              ref
+                  .read(habitsProvider.notifier)
+                  .unmarkHabitAsDone(habit.id, selectedDate);
             } else {
-              ref.read(habitsProvider.notifier).markHabitAsDone(
-                    habit.id,
-                    _selectedDate,
-                  );
+              ref
+                  .read(habitsProvider.notifier)
+                  .markHabitAsDone(habit.id, selectedDate);
             }
           },
-          onEdit: () {
-            _showEditHabitModal(habit);
-          },
-          onDelete: () {
-            _showDeleteConfirmation(habit.id, habit.title);
+          onEdit: () => _showEditHabitModal(habit),
+          onDelete: () => _showDeleteConfirmation(habit.id, habit.title),
+          onViewDetails: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => HabitDetailScreen(
+                  habit: habit,
+                  selectedDate: selectedDate,
+                ),
+              ),
+            );
           },
         );
       },
@@ -384,93 +399,11 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     );
   }
 
-  Widget _buildStatsRow(
-      bool isDark, List<Habit> habits, HabitState habitState) {
-    final completed =
-        habits.where((h) => habitState.completedStatus[h.id] ?? false).length;
-    final total = habits.length;
-    final completion = total > 0 ? ((completed / total) * 100).toInt() : 0;
-
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            isDark,
-            '${habits.length}',
-            'Total Habits',
-            Icons.assignment,
-            AppColors.primaryPurple,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            isDark,
-            '$completed',
-            'Completed',
-            Icons.check_circle,
-            AppColors.secondaryGreen,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            isDark,
-            '$completion%',
-            'Progress',
-            Icons.trending_up,
-            AppColors.primaryPurpleDark,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(
-    bool isDark,
-    String value,
-    String label,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: AppTypography.headlineSmall(
-              isDark ? Colors.white : Colors.black,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: AppTypography.bodySmall(
-              isDark ? Colors.white70 : Colors.black54,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSectionTitle(String title, bool isDark) {
     return Text(
       title,
       style: AppTypography.headlineSmall(
-        isDark ? Colors.white : Colors.black,
+        isDark ? Colors.white54 : Colors.black38,
       ),
     );
   }
@@ -505,9 +438,16 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                 habit.id,
                 title: data['title'],
                 description: data['description'],
+                categoryId: data['categoryId'],
                 frequencyType: data['frequencyType'],
                 frequencyConfig: data['frequencyConfig'],
+                startDate: data['startDate'],
+                endDate: data['endDate'],
               );
+        },
+        onDelete: () {
+          Navigator.pop(context);
+          _showDeleteConfirmation(habit.id, habit.title);
         },
       ),
     );
@@ -538,12 +478,8 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) {
-      return 'Morning';
-    } else if (hour < 17) {
-      return 'Afternoon';
-    } else {
-      return 'Evening';
-    }
+    if (hour < 12) return 'Morning';
+    if (hour < 17) return 'Afternoon';
+    return 'Evening';
   }
 }
