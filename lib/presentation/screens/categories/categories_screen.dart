@@ -24,17 +24,6 @@ class CategoriesScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Library',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w400,
-                letterSpacing: 0.08,
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.lightTextSecondary,
-              ),
-            ),
-            Text(
               'Discover habits',
               style: TextStyle(
                 fontSize: 18,
@@ -44,7 +33,7 @@ class CategoriesScreen extends ConsumerWidget {
             ),
           ],
         ),
-        toolbarHeight: 64,
+        toolbarHeight: 56,
         elevation: 0,
         backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
         bottom: PreferredSize(
@@ -88,8 +77,7 @@ class CategoriesScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Shimmer.fromColors(
-                baseColor:
-                    isDark ? AppColors.darkBorder : Colors.grey[300]!,
+                baseColor: isDark ? AppColors.darkBorder : Colors.grey[300]!,
                 highlightColor:
                     isDark ? AppColors.darkSurface : Colors.grey[100]!,
                 child: Container(
@@ -110,8 +98,7 @@ class CategoriesScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: 3,
                 itemBuilder: (_, __) => Shimmer.fromColors(
-                  baseColor:
-                      isDark ? AppColors.darkBorder : Colors.grey[300]!,
+                  baseColor: isDark ? AppColors.darkBorder : Colors.grey[300]!,
                   highlightColor:
                       isDark ? AppColors.darkSurface : Colors.grey[100]!,
                   child: Container(
@@ -142,7 +129,9 @@ class CategoriesScreen extends ConsumerWidget {
             Icon(
               Icons.error_outline,
               size: 36,
-              color: (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)
+              color: (isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary)
                   .withOpacity(0.4),
             ),
             const SizedBox(height: 16),
@@ -268,12 +257,10 @@ class _CategorySection extends ConsumerWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color:
-                      isDark ? AppColors.darkSurface : Colors.white,
+                  color: isDark ? AppColors.darkSurface : Colors.white,
                   border: Border.all(
-                    color: isDark
-                        ? AppColors.darkBorder
-                        : AppColors.lightBorder,
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder,
                     width: 0.5,
                   ),
                   borderRadius: BorderRadius.circular(8),
@@ -359,8 +346,7 @@ class _CategorySection extends ConsumerWidget {
         itemCount: 3,
         itemBuilder: (_, __) => Shimmer.fromColors(
           baseColor: isDark ? AppColors.darkBorder : Colors.grey[300]!,
-          highlightColor:
-              isDark ? AppColors.darkSurface : Colors.grey[100]!,
+          highlightColor: isDark ? AppColors.darkSurface : Colors.grey[100]!,
           child: Container(
             width: 148,
             margin: const EdgeInsets.only(right: 10),
@@ -465,8 +451,7 @@ class _TemplateCardState extends State<_TemplateCard> {
           children: [
             // Frequency badge
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
               decoration: BoxDecoration(
                 color: widget.categoryColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(5),
@@ -492,9 +477,7 @@ class _TemplateCardState extends State<_TemplateCard> {
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 height: 1.35,
-                color: widget.isDark
-                    ? AppColors.darkText
-                    : AppColors.lightText,
+                color: widget.isDark ? AppColors.darkText : AppColors.lightText,
               ),
             ),
             const SizedBox(height: 5),
@@ -764,7 +747,8 @@ class _TemplateDetailSheetState extends State<TemplateDetailSheet> {
                   // ── Benefits ────────────────────────────────────────────
                   if (benefits.isNotEmpty) ...[
                     const SizedBox(height: 28),
-                    _SectionLabel(label: 'Benefits', textSecondary: textSecondary),
+                    _SectionLabel(
+                        label: 'Benefits', textSecondary: textSecondary),
                     const SizedBox(height: 12),
                     ...benefits.map((b) => _BulletRow(
                           text: b.toString(),
@@ -802,9 +786,7 @@ class _TemplateDetailSheetState extends State<TemplateDetailSheet> {
                 width: double.infinity,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: _added
-                      ? Colors.transparent
-                      : widget.categoryColor,
+                  color: _added ? Colors.transparent : widget.categoryColor,
                   border: Border.all(
                     color: _added
                         ? const Color(0xFF63993B).withOpacity(0.6)
@@ -820,9 +802,7 @@ class _TemplateDetailSheetState extends State<TemplateDetailSheet> {
                       Icon(
                         _added ? Icons.check : Icons.add,
                         size: 16,
-                        color: _added
-                            ? const Color(0xFF63993B)
-                            : Colors.white,
+                        color: _added ? const Color(0xFF63993B) : Colors.white,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -830,9 +810,8 @@ class _TemplateDetailSheetState extends State<TemplateDetailSheet> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: _added
-                              ? const Color(0xFF63993B)
-                              : Colors.white,
+                          color:
+                              _added ? const Color(0xFF63993B) : Colors.white,
                         ),
                       ),
                     ],

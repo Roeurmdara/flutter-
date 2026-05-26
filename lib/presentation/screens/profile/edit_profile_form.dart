@@ -376,25 +376,58 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
           context: context,
         ),
         const SizedBox(height: 32),
-
         // ── Actions ─────────────────────────────────────────────────────────
         Row(children: [
           Expanded(
-            child: _ActionButton(
-              label: 'Cancel',
-              onTap: widget.onCancel,
-              backgroundColor: _T.cancelBg(context),
-              foregroundColor: _T.cancelText(context),
+            child: ElevatedButton(
+              onPressed: widget.onCancel,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _T.cancelBg(context),
+                foregroundColor: _T.cancelText(context),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: _T.gapSm),
           Expanded(
-            child: _ActionButton(
-              label: 'Save',
-              onTap: _saveProfile,
-              backgroundColor: _T.accent,
-              foregroundColor: Colors.white,
-              loading: profileState.isUpdating,
+            child: ElevatedButton(
+              onPressed: profileState.isUpdating ? null : _saveProfile,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryPurple,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: profileState.isUpdating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Save',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
         ]),

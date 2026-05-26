@@ -89,7 +89,7 @@ class CommunityService {
   }
 
   /// Join a community
-  Future<CommunityJoinResponse> joinCommunity(String communityId) async {
+  Future<void> joinCommunity(String communityId) async {
     try {
       final response = await _dio.post(
         '$_baseUrl/$communityId/join',
@@ -101,10 +101,7 @@ class CommunityService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data as Map<String, dynamic>;
-        final joinData = data['data'] as Map<String, dynamic>? ?? {};
-
-        return CommunityJoinResponse.fromJson(joinData);
+        return;
       } else {
         throw Exception(
           'Failed to join community: ${response.statusCode} - ${response.data}',
@@ -201,6 +198,8 @@ class CommunityService {
     required String categoryId,
     String? coverImage,
     String joinType = 'open',
+    String? customColor,
+    String? customEmoji,
   }) async {
     try {
       final requestData = {
@@ -210,6 +209,8 @@ class CommunityService {
         'cover_image': coverImage ?? 'https://example.com/',
         'join_type': joinType,
         'status': 'active',
+        if (customColor != null) 'custom_color': customColor,
+        if (customEmoji != null) 'custom_emoji': customEmoji,
       };
 
       final response = await _dio.post(
@@ -260,6 +261,30 @@ class CommunityMembersResponse {
     required this.members,
     required this.pagination,
   });
+}
+
+/// Community member model
+class CommunityMember {
+  final String userId;
+  final String username;
+  final String? avatar;
+  final String role;
+
+  CommunityMember({
+    required this.userId,
+    required this.username,
+    this.avatar,
+    required this.role,
+  });
+
+  factory CommunityMember.fromJson(Map<String, dynamic> json) {
+    return CommunityMember(
+      userId: json['user_id'] as String? ?? json['id'] as String? ?? '',
+      username: json['username'] as String? ?? '',
+      avatar: json['avatar'] as String?,
+      role: json['role'] as String? ?? 'member',
+    );
+  }
 }
 
 /// Pagination metadata

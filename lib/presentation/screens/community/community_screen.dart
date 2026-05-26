@@ -1,15 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../data/providers/community_provider.dart';
-import '../../../data/providers/auth_provider.dart';
 import '../../../data/providers/category_providers.dart';
 import '../../../data/models/community_model.dart';
 import '../../../data/providers/session_provider.dart';
 import 'community_posts_feed_screen.dart';
 import 'community_search_screen.dart';
+import '../../../core/theme/app_typography.dart';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+Color communityColor(Community c) {
+  if (c.customColor != null) {
+    try {
+      return Color(
+          int.parse('FF${c.customColor!.replaceAll('#', '')}', radix: 16));
+    } catch (_) {}
+  }
+  const fallback = {
+    'fitness': Color(0xFFFF6B6B),
+    'health': Color(0xFF10B981),
+    'productivity': Color(0xFF3B82F6),
+    'learning': Color(0xFF8B5CF6),
+    'mindfulness': Color(0xFFFBBF24),
+    'nutrition': Color(0xFF06B6D4),
+    'social': Color(0xFFEC4899),
+    'work': Color(0xFF6366F1),
+  };
+  return fallback[c.categoryId.toLowerCase()] ?? const Color(0xFF7C3AED);
+}
+
+String communityEmoji(Community c) {
+  if (c.customEmoji != null && c.customEmoji!.isNotEmpty) return c.customEmoji!;
+  const fallback = {
+    'fitness': '💪',
+    'health': '🏥',
+    'productivity': '⚡',
+    'learning': '📚',
+    'mindfulness': '🧘',
+    'nutrition': '🥗',
+    'social': '👥',
+    'work': '💼',
+    'hobby': '🎨',
+    'gaming': '🎮',
+    'sports': '⚽',
+    'music': '🎵',
+  };
+  return fallback[c.categoryId.toLowerCase()] ?? '🌟';
+}
+
+String _fmt(int n) =>
+    n >= 1000 ? '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}k' : '$n';
+
+// ─── Community Screen ─────────────────────────────────────────────────────────
 
 class CommunityScreen extends ConsumerWidget {
   const CommunityScreen({Key? key}) : super(key: key);
@@ -20,137 +64,101 @@ class CommunityScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     final joinedIds = session.joinedCommunityIds;
     final createdIds = session.createdCommunityIds;
-    final authState = ref.watch(authProvider);
-    final currentUserId = authState.user?.id;
 
-    final allCommunitiesAsync = ref.watch(
-      communitiesProvider(
-        CommunityPaginationParams(page: 1, perPage: 100),
-      ),
+    final allAsync = ref.watch(
+      communitiesProvider(CommunityPaginationParams(page: 1, perPage: 100)),
     );
 
     return Scaffold(
       backgroundColor:
           isDark ? AppColors.darkBackground : AppColors.lightBackground,
-
-      // ── FAB: circle + icon floats above the nav bar ──────────────
-      floatingActionButton: SizedBox(
-        width: 52,
-        height: 52,
-        child: FloatingActionButton(
-          onPressed: () => _showCreateCommunityDialog(context, ref),
-          backgroundColor: AppColors.primaryPurple,
-          elevation: 0,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showDialog(
+          context: context,
+          builder: (_) => const _CreateCommunityDialog(),
         ),
+        backgroundColor: AppColors.primaryPurple,
+        elevation: 0,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-
       appBar: AppBar(
         backgroundColor:
-            isDark ? AppColors.darkBackground : AppColors.lightBackground,
+            isDark ? AppColors.darkSurface : AppColors.lightSurface,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
           'Communities',
           style: AppTypography.titleLarge(
             isDark ? AppColors.darkText : AppColors.lightText,
-          ).copyWith(fontWeight: FontWeight.w700),
+          ).copyWith(
+            fontSize: 18, // 👈 font size change here
+          ),
         ),
-        // Only search icon — no add button
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _AppBarIconButton(
-              icon: Icons.search_rounded,
-              isDark: isDark,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const CommunitySearchScreen()),
+          IconButton(
+            icon: Icon(
+              Icons.search_rounded,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
+            ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CommunitySearchScreen(),
               ),
             ),
           ),
         ],
       ),
-
-      body: allCommunitiesAsync.when(
+      body: allAsync.when(
         loading: () => Center(
-          child: CircularProgressIndicator(
-            color: AppColors.primaryPurple,
-            strokeWidth: 2,
-          ),
-        ),
-        error: (e, _) => Center(
-          child: Text(
-            'Something went wrong',
-            style: AppTypography.bodyMedium(
-              isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-            ),
-          ),
-        ),
+            child: CircularProgressIndicator(
+                color: AppColors.primaryPurple, strokeWidth: 1.5)),
+        error: (_, __) => Center(
+            child: Text('Something went wrong',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary))),
         data: (response) {
           final all = response.communities;
-
-          final myCommunities =
-              all.where((c) => createdIds.contains(c.id)).toList();
-
-          final joinedCommunities = all
+          final mine = all.where((c) => createdIds.contains(c.id)).toList();
+          final joined = all
               .where(
                   (c) => joinedIds.contains(c.id) && !createdIds.contains(c.id))
               .toList();
 
-          if (myCommunities.isEmpty && joinedCommunities.isEmpty) {
+          if (mine.isEmpty && joined.isEmpty)
             return _EmptyState(isDark: isDark);
-          }
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            padding: const EdgeInsets.fromLTRB(15, 4, 15, 100),
             children: [
-              if (myCommunities.isNotEmpty) ...[
-                _SectionHeader(
-                  title: 'My Communities',
-                  count: myCommunities.length,
-                  isDark: isDark,
-                ),
+              if (mine.isNotEmpty) ...[
+                _Label('My Communities', isDark),
                 const SizedBox(height: 8),
-                ...myCommunities.map((c) => _CommunityTile(
-                      community: c,
-                      isDark: isDark,
-                      onTap: () => Navigator.push(
+                ...mine.map((c) => _CommunityCard(
+                    community: c,
+                    isDark: isDark,
+                    onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => CommunityPostsFeedScreen(
-                            communityId: c.id,
-                            communityName: c.name,
-                          ),
-                        ),
-                      ),
-                    )),
+                            builder: (_) => CommunityPostsFeedScreen(
+                                communityId: c.id, communityName: c.name))))),
                 const SizedBox(height: 28),
               ],
-
-              if (joinedCommunities.isNotEmpty) ...[
-                _SectionHeader(
-                  title: 'Joined',
-                  count: joinedCommunities.length,
-                  isDark: isDark,
-                ),
+              if (joined.isNotEmpty) ...[
+                _Label('Joined', isDark),
                 const SizedBox(height: 8),
-                ...joinedCommunities.map((c) => _CommunityTile(
-                      community: c,
-                      isDark: isDark,
-                      onTap: () => Navigator.push(
+                ...joined.map((c) => _CommunityCard(
+                    community: c,
+                    isDark: isDark,
+                    onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => CommunityPostsFeedScreen(
-                            communityId: c.id,
-                            communityName: c.name,
-                          ),
-                        ),
-                      ),
-                    )),
+                            builder: (_) => CommunityPostsFeedScreen(
+                                communityId: c.id, communityName: c.name))))),
               ],
             ],
           );
@@ -158,260 +166,140 @@ class CommunityScreen extends ConsumerWidget {
       ),
     );
   }
-
-  void _showCreateCommunityDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (_) => const _CreateCommunityDialog(),
-    );
-  }
 }
 
-// ─── AppBar icon button ────────────────────────────────────────────
-class _AppBarIconButton extends StatelessWidget {
-  final IconData icon;
-  final bool isDark;
-  final VoidCallback onPressed;
+// ─── Section label ────────────────────────────────────────────────────────────
 
-  const _AppBarIconButton({
-    required this.icon,
-    required this.isDark,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isDark
-              ? Colors.white.withOpacity(0.06)
-              : Colors.black.withOpacity(0.05),
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: isDark ? AppColors.darkText : AppColors.lightText,
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Empty state ───────────────────────────────────────────────────
-class _EmptyState extends StatelessWidget {
-  final bool isDark;
-  const _EmptyState({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primaryPurple.withOpacity(0.10),
-            ),
-            child: Icon(
-              Icons.groups_rounded,
-              size: 36,
-              color: AppColors.primaryPurple,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'No communities yet',
-            style: AppTypography.bodyLarge(
-              isDark ? AppColors.darkText : AppColors.lightText,
-            ).copyWith(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Tap + to create or join one',
-            style: AppTypography.bodySmall(
-              isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Section header ────────────────────────────────────────────────
-class _SectionHeader extends StatelessWidget {
+class _Label extends StatelessWidget {
   final String title;
-  final int count;
   final bool isDark;
-
-  const _SectionHeader({
-    required this.title,
-    required this.count,
-    required this.isDark,
-  });
+  const _Label(this.title, this.isDark);
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          title.toUpperCase(),
-          style: AppTypography.bodySmall(
-            isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-          ).copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 11,
-            letterSpacing: 0.8,
-          ),
+  Widget build(BuildContext context) => Text(
+        title,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+          color: isDark
+              ? AppColors.darkTextSecondary
+              : AppColors.lightTextSecondary,
         ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(
-            color: AppColors.primaryPurple.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            '$count',
-            style: AppTypography.bodySmall(AppColors.primaryPurple)
-                .copyWith(fontWeight: FontWeight.w700, fontSize: 11),
-          ),
-        ),
-      ],
-    );
-  }
+      );
 }
 
-// ─── Community tile ────────────────────────────────────────────────
-class _CommunityTile extends StatelessWidget {
+// ─── Community card ───────────────────────────────────────────────────────────
+//
+//  ┌────────────────────────────────────────────┐
+//  ║▌  🔥  Community Name          1.2k  👥     ║
+//  └────────────────────────────────────────────┘
+
+class _CommunityCard extends StatelessWidget {
   final Community community;
   final bool isDark;
   final VoidCallback onTap;
-
-  const _CommunityTile({
-    required this.community,
-    required this.isDark,
-    required this.onTap,
-  });
+  const _CommunityCard(
+      {required this.community, required this.isDark, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final color = communityColor(community);
+    final emoji = communityEmoji(community);
+    final bgColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final nameColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final subColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
+        height: 56,
         margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.06)
-                : Colors.black.withOpacity(0.06),
-            width: 0.5,
-          ),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.25), width: 2),
         ),
         child: Row(
           children: [
-            _Avatar(community: community),
             const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    community.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.bodyMedium(
-                      isDark ? AppColors.darkText : AppColors.lightText,
-                    ).copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${_formatCount(community.memberCount)} members',
-                    style: AppTypography.bodySmall(
-                      isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                  ),
-                ],
+
+            // Emoji in color circle
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 18)),
               ),
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 20,
-              color: isDark
-                  ? AppColors.darkTextSecondary.withOpacity(0.4)
-                  : AppColors.lightTextSecondary.withOpacity(0.4),
+            const SizedBox(width: 12),
+
+            // Name
+            Expanded(
+              child: Text(
+                community.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                  color: nameColor,
+                ),
+              ),
             ),
+
+            // Member count as text
+            Text(
+              '${_fmt(community.memberCount)} members',
+              style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w400, color: subColor),
+            ),
+            const SizedBox(width: 14),
           ],
         ),
       ),
     );
   }
-
-  String _formatCount(int count) {
-    if (count >= 1000) {
-      return '${(count / 1000).toStringAsFixed(count % 1000 == 0 ? 0 : 1)}k';
-    }
-    return '$count';
-  }
 }
 
-// ─── Avatar ────────────────────────────────────────────────────────
-class _Avatar extends StatelessWidget {
-  final Community community;
-  const _Avatar({required this.community});
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  final bool isDark;
+  const _EmptyState({required this.isDark});
 
   @override
-  Widget build(BuildContext context) {
-    if (community.coverImage != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Image.network(
-          community.coverImage!,
-          width: 42,
-          height: 42,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
-        ),
-      );
-    }
-    return _placeholder();
-  }
-
-  Widget _placeholder() => Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: AppColors.primaryPurple.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          Icons.groups_rounded,
-          size: 22,
-          color: AppColors.primaryPurple,
-        ),
+  Widget build(BuildContext context) => Center(
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Text('🌟', style: TextStyle(fontSize: 38)),
+          const SizedBox(height: 14),
+          Text('No communities yet',
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.darkText : AppColors.lightText)),
+          const SizedBox(height: 4),
+          Text('Tap + to create or search to join',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary)),
+        ]),
       );
 }
 
-// ─── Create Community Dialog ───────────────────────────────────────
+// ─── Create community dialog ──────────────────────────────────────────────────
+
 class _CreateCommunityDialog extends ConsumerStatefulWidget {
   const _CreateCommunityDialog();
-
   @override
   ConsumerState<_CreateCommunityDialog> createState() =>
       _CreateCommunityDialogState();
@@ -419,177 +307,251 @@ class _CreateCommunityDialog extends ConsumerStatefulWidget {
 
 class _CreateCommunityDialogState
     extends ConsumerState<_CreateCommunityDialog> {
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
   String? _selectedCategoryId;
   bool _isLoading = false;
+  Color _color = AppColors.primaryPurple;
+  String _emoji = '🌟';
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
+    _nameCtrl.dispose();
+    _descCtrl.dispose();
     super.dispose();
   }
+
+  String get _colorHex =>
+      _color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final categoriesAsync = ref.watch(categoriesProvider);
+    final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final bg = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+    final text = isDark ? AppColors.darkText : AppColors.lightText;
+    final sub =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     return Dialog(
-      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+      backgroundColor: surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              children: [
+            // Title
+            Text('New Community',
+                style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                    color: text)),
+            const SizedBox(height: 20),
+
+            // Live preview — mirrors card exactly
+            Container(
+              height: 56,
+              decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(14),
+                  border:
+                      Border.all(color: _color.withOpacity(0.25), width: 2)),
+              child: Row(children: [
+                const SizedBox(width: 12),
                 Container(
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
+                    color: _color.withOpacity(0.15),
                     shape: BoxShape.circle,
-                    color: AppColors.primaryPurple.withOpacity(0.12),
                   ),
-                  child: Icon(Icons.groups_rounded,
-                      size: 18, color: AppColors.primaryPurple),
+                  child: Center(
+                    child: Text(_emoji, style: const TextStyle(fontSize: 18)),
+                  ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'New Community',
-                  style: AppTypography.titleLarge(
-                    isDark ? AppColors.darkText : AppColors.lightText,
-                  ).copyWith(fontWeight: FontWeight.w700),
+                Expanded(
+                  child: Text(
+                    _nameCtrl.text.trim().isEmpty
+                        ? 'Community name'
+                        : _nameCtrl.text.trim(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.2,
+                      color: _nameCtrl.text.trim().isEmpty ? sub : text,
+                    ),
+                  ),
                 ),
-              ],
+                Text('0 members',
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w400, color: sub)),
+                const SizedBox(width: 14),
+              ]),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Name field
-            _DialogField(
-              controller: _nameController,
-              hint: 'Community name',
-              isDark: isDark,
-            ),
-            const SizedBox(height: 12),
+            _Field(
+                controller: _nameCtrl,
+                hint: 'Community name',
+                isDark: isDark,
+                onChanged: (_) => setState(() {})),
+            const SizedBox(height: 10),
 
             // Description field
-            _DialogField(
-              controller: _descriptionController,
-              hint: 'Description (optional)',
-              maxLines: 3,
-              isDark: isDark,
-            ),
-            const SizedBox(height: 12),
+            _Field(
+                controller: _descCtrl,
+                hint: 'Description (optional)',
+                maxLines: 2,
+                isDark: isDark),
+            const SizedBox(height: 10),
 
             // Category dropdown
-            categoriesAsync.when(
-              data: (categories) {
-                if (categories.isEmpty) return const SizedBox.shrink();
-                return DropdownButtonFormField<String>(
-                  value: _selectedCategoryId ?? categories.first.id,
-                  onChanged: (v) => setState(() => _selectedCategoryId = v),
-                  dropdownColor: isDark
-                      ? AppColors.darkSurface
-                      : AppColors.lightSurface,
-                  style: AppTypography.bodyMedium(
-                      isDark ? AppColors.darkText : AppColors.lightText),
-                  decoration: InputDecoration(
-                    hintText: 'Category',
-                    hintStyle: AppTypography.bodyMedium(
-                      isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? AppColors.darkBackground
-                        : AppColors.lightBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
-                  ),
-                  items: categories
-                      .map((cat) => DropdownMenuItem(
-                            value: cat.id,
-                            child: Text(cat.name),
-                          ))
-                      .toList(),
-                );
-              },
-              loading: () => const Center(
-                  child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2))),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+            ref.watch(categoriesProvider).when(
+                  data: (cats) {
+                    if (cats.isEmpty) return const SizedBox.shrink();
+                    _selectedCategoryId ??= cats.first.id;
+                    return DropdownButtonFormField<String>(
+                      value: _selectedCategoryId,
+                      onChanged: (v) => setState(() => _selectedCategoryId = v),
+                      dropdownColor: surface,
+                      style: TextStyle(fontSize: 14, color: text),
+                      decoration: InputDecoration(
+                        hintText: 'Category',
+                        hintStyle: TextStyle(fontSize: 14, color: sub),
+                        filled: true,
+                        fillColor: bg,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                      ),
+                      items: cats
+                          .map((c) => DropdownMenuItem(
+                              value: c.id, child: Text(c.name)))
+                          .toList(),
+                    );
+                  },
+                  loading: () => const SizedBox(
+                      height: 44,
+                      child: Center(
+                          child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 1.5)))),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+            const SizedBox(height: 20),
 
+            // Customize label
+            Text('Customize',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: sub)),
+            const SizedBox(height: 10),
+
+            // Color + Emoji buttons
+            Row(children: [
+              Expanded(
+                child: _PickerButton(
+                  onTap: () => _pickColor(isDark),
+                  color: _color.withOpacity(0.1),
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                                color: _color, shape: BoxShape.circle)),
+                        const SizedBox(width: 8),
+                        Text('Color',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: _color)),
+                      ]),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _PickerButton(
+                  onTap: () => _pickEmoji(isDark),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.04),
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_emoji, style: const TextStyle(fontSize: 18)),
+                        const SizedBox(width: 8),
+                        Text('Emoji',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: sub)),
+                      ]),
+                ),
+              ),
+            ]),
             const SizedBox(height: 24),
 
             // Actions
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(
+            Row(children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: BorderSide(
                           color: isDark
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.black.withOpacity(0.1),
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: AppTypography.bodyMedium(
-                        isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary,
-                      ).copyWith(fontWeight: FontWeight.w500),
+                              ? Colors.white.withOpacity(0.08)
+                              : Colors.black.withOpacity(0.08)),
                     ),
                   ),
+                  child: Text('Cancel',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: sub)),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _create,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryPurple,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : Text(
-                            'Create',
-                            style: AppTypography.bodyMedium(Colors.white)
-                                .copyWith(fontWeight: FontWeight.w600),
-                          ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _create,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryPurple,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                   ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Text('Create',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600)),
                 ),
-              ],
-            ),
+              ),
+            ]),
           ],
         ),
       ),
@@ -597,90 +559,282 @@ class _CreateCommunityDialogState
   }
 
   Future<void> _create() async {
-    if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a community name')),
-      );
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please enter a name')));
       return;
     }
     if (_selectedCategoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a category')),
-      );
+          const SnackBar(content: Text('Please select a category')));
       return;
     }
-
     setState(() => _isLoading = true);
     try {
       final newCommunity =
           await ref.read(communityServiceProvider).createCommunity(
-                name: _nameController.text.trim(),
-                description: _descriptionController.text.trim(),
+                name: name,
+                description: _descCtrl.text.trim(),
                 categoryId: _selectedCategoryId!,
+                customColor: _colorHex,
+                customEmoji: _emoji,
               );
-
+      try {
+        await ref.read(communityServiceProvider).joinCommunity(newCommunity.id);
+        await Future.delayed(const Duration(milliseconds: 300));
+      } catch (_) {}
       await ref.read(sessionProvider.notifier).createCommunity(newCommunity.id);
       ref.invalidate(communitiesProvider);
-
+      ref.invalidate(sessionProvider);
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('${_nameController.text.trim()} created!')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$name created!')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  void _pickColor(bool isDark) {
+    final colors = [
+      AppColors.primaryPurple,
+      const Color(0xFFFF6B6B),
+      const Color(0xFFFFA500),
+      const Color(0xFFFBBF24),
+      AppColors.secondaryGreen,
+      const Color(0xFF3B82F6),
+      const Color(0xFFEC4899),
+      const Color(0xFF8B5CF6),
+      const Color(0xFF06B6D4),
+      const Color(0xFF6366F1),
+      const Color(0xFF10B981),
+      const Color(0xFFEF4444),
+    ];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => _Sheet(
+        title: 'Color',
+        isDark: isDark,
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: colors.map((c) {
+            final sel = c.value == _color.value;
+            return GestureDetector(
+              onTap: () {
+                setState(() => _color = c);
+                Navigator.pop(context);
+              },
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: c,
+                  border:
+                      sel ? Border.all(color: Colors.white, width: 3) : null,
+                  boxShadow: sel
+                      ? [BoxShadow(color: c.withOpacity(0.4), blurRadius: 8)]
+                      : [],
+                ),
+                child: sel
+                    ? const Icon(Icons.check, color: Colors.white, size: 18)
+                    : null,
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  void _pickEmoji(bool isDark) {
+    const emojis = [
+      '🌟',
+      '✨',
+      '🔥',
+      '⚡',
+      '💎',
+      '🎯',
+      '💪',
+      '🚀',
+      '🎨',
+      '🎭',
+      '🎮',
+      '🎲',
+      '😎',
+      '🥳',
+      '🤩',
+      '❤️',
+      '🧡',
+      '💛',
+      '💚',
+      '💙',
+      '💜',
+      '🌈',
+      '☀️',
+      '🌙',
+      '🏆',
+      '🥇',
+      '🎁',
+      '🎉',
+      '🍕',
+      '🍔',
+      '🌮',
+      '☕',
+      '📚',
+      '✏️',
+      '💻',
+      '📷',
+      '🎸',
+      '⚽',
+      '🎤',
+      '🎧',
+      '🎬',
+      '🎪',
+      '🌿',
+      '🦋',
+    ];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => _Sheet(
+        title: 'Emoji',
+        isDark: isDark,
+        child: Wrap(
+          spacing: 2,
+          runSpacing: 2,
+          children: emojis.map((e) {
+            final sel = e == _emoji;
+            return GestureDetector(
+              onTap: () {
+                setState(() => _emoji = e);
+                Navigator.pop(context);
+              },
+              child: Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: sel ? _color.withOpacity(0.15) : Colors.transparent,
+                  border: sel ? Border.all(color: _color, width: 1.5) : null,
+                ),
+                child: Center(
+                    child: Text(e, style: const TextStyle(fontSize: 22))),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
 }
 
-// ─── Reusable dialog text field ────────────────────────────────────
-class _DialogField extends StatelessWidget {
+// ─── Shared picker sheet ──────────────────────────────────────────────────────
+
+class _Sheet extends StatelessWidget {
+  final String title;
+  final bool isDark;
+  final Widget child;
+  const _Sheet(
+      {required this.title, required this.isDark, required this.child});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+              width: 32,
+              height: 3,
+              decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 16),
+          Text(title,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black)),
+          const SizedBox(height: 18),
+          child,
+        ]),
+      );
+}
+
+// ─── Picker button ────────────────────────────────────────────────────────────
+
+class _PickerButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final Color color;
+  final Widget child;
+  const _PickerButton(
+      {required this.onTap, required this.color, required this.child});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 44,
+          decoration: BoxDecoration(
+              color: color, borderRadius: BorderRadius.circular(10)),
+          child: child,
+        ),
+      );
+}
+
+// ─── Text field ───────────────────────────────────────────────────────────────
+
+class _Field extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
   final int maxLines;
   final bool isDark;
+  final ValueChanged<String>? onChanged;
 
-  const _DialogField({
+  const _Field({
     required this.controller,
     required this.hint,
     required this.isDark,
     this.maxLines = 1,
+    this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bg = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+    final text = isDark ? AppColors.darkText : AppColors.lightText;
+    final sub =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     return TextField(
       controller: controller,
       maxLines: maxLines,
-      style: AppTypography.bodyMedium(
-          isDark ? AppColors.darkText : AppColors.lightText),
+      onChanged: onChanged,
+      style: TextStyle(fontSize: 14, color: text),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: AppTypography.bodyMedium(
-          isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-        ),
+        hintStyle: TextStyle(fontSize: 14, color: sub),
         filled: true,
-        fillColor:
-            isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        fillColor: bg,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
-        ),
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(
-            color: AppColors.primaryPurple.withOpacity(0.5),
-            width: 1,
-          ),
-        ),
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+                color: AppColors.primaryPurple.withOpacity(0.35), width: 1)),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
