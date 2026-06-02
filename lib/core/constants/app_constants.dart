@@ -11,8 +11,8 @@ class AppConstants {
   static const Duration shortAnimationDuration = Duration(milliseconds: 150);
   static const Duration longAnimationDuration = Duration(milliseconds: 600);
 
-  // API (Prepare for future Laravel integration)
-  static const String baseUrl = 'https://api.habitflow.local/api';
+  // API Configuration
+  static const String baseUrl = 'https://habit-api.rattanakmony.com/api/v1';
   static const String apiVersion = 'v1';
 
   // DB

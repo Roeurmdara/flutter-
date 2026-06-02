@@ -6,7 +6,8 @@ import 'package:shimmer/shimmer.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/providers/profile_provider.dart';
-
+import 'followers_screen.dart';
+import 'following_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   final VoidCallback? onNavigateToSettings;
@@ -56,6 +57,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       profileState.avatarVersion,
                     ),
                     const SizedBox(height: 16),
+                    _buildFollowStats(isDark),
+                    const SizedBox(height: 16),
                     _buildQuickActions(isDark),
                   ] else
                     _buildErrorWidget(isDark),
@@ -71,7 +74,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   PreferredSizeWidget _buildAppBar(
     bool isDark,
-  
   ) {
     return AppBar(
       title: const Text('Profile'),
@@ -241,6 +243,104 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // FOLLOW STATS
+  // ─────────────────────────────────────────────────────────────
+
+  Widget _buildFollowStats(bool isDark) {
+    final followersState = ref.watch(followersProvider);
+    final followingState = ref.watch(followingProvider);
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildFollowStatCard(
+            isDark: isDark,
+            label: 'Followers',
+            count: followersState.meta.total,
+            icon: Icons.people_outline_rounded,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FollowersScreen(),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildFollowStatCard(
+            isDark: isDark,
+            label: 'Following',
+            count: followingState.meta.total,
+            icon: Icons.person_add_outlined,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FollowingScreen(),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFollowStatCard({
+    required bool isDark,
+    required String label,
+    required int count,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primaryPurple.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 24,
+                color: AppColors.primaryPurple,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              count.toString(),
+              style: AppTypography.titleMedium(textColor),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: AppTypography.bodySmall(secondaryColor),
+            ),
+          ],
         ),
       ),
     );

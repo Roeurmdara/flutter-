@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/profile_model.dart';
@@ -138,6 +139,45 @@ class UserProfileService {
         error: e.toString(),
         errorCode: 'UNKNOWN_ERROR',
       );
+    }
+  }
+
+  /// Upload an avatar or media file to the server using the media.upload endpoint.
+  /// Returns the uploaded image URL on success, or null on failure.
+  Future<String?> uploadAvatar(File file) async {
+    try {
+      final authToken = await _getAuthToken();
+      if (authToken == null || authToken.isEmpty) return null;
+
+      final fileName = file.path.split(Platform.pathSeparator).last;
+      final form = FormData.fromMap({
+        'media': await MultipartFile.fromFile(file.path, filename: fileName),
+      });
+
+      final response = await _dio.post(
+        'https://habit-api.rattanakmony.com/api/v1/media.upload',
+        data: form,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+            'Content-Type': 'multipart/form-data',
+          },
+          followRedirects: true,
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      if (response.data is Map && (response.data as Map).containsKey('data')) {
+        final data = (response.data as Map)['data'];
+        if (data is Map && (data['url'] != null || data['path'] != null)) {
+          return data['url'] as String? ?? data['path'] as String?;
+        }
+      }
+      return null;
+    } on DioException catch (_) {
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -321,6 +361,56 @@ class UserProfileService {
           total: 0,
           lastPage: 1,
         ),
+        error: e.toString(),
+        errorCode: 'UNKNOWN_ERROR',
+      );
+    }
+  }
+
+  /// Fetch user profile by ID
+  Future<ProfileResponse> getUserProfileById(String userId) async {
+    try {
+      final authToken = await _getAuthToken();
+      if (authToken == null || authToken.isEmpty) {
+        return ProfileResponse(
+          success: false,
+          message: 'A valid Bearer token is required.',
+          status: 401,
+          error: 'AUTH_TOKEN_MISSING',
+          errorCode: 'AUTH_TOKEN_MISSING',
+        );
+      }
+
+      final response = await _dio.get(
+        '$_baseUrl/$userId',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+            'Content-Type': 'application/json',
+          },
+          followRedirects: true,
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      final profileResponse = ProfileResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+
+      return profileResponse;
+    } on DioException catch (e) {
+      return ProfileResponse(
+        success: false,
+        message: e.message ?? 'Failed to fetch user profile',
+        status: e.response?.statusCode ?? 500,
+        error: e.message,
+        errorCode: 'NETWORK_ERROR',
+      );
+    } catch (e) {
+      return ProfileResponse(
+        success: false,
+        message: 'An unexpected error occurred',
+        status: 500,
         error: e.toString(),
         errorCode: 'UNKNOWN_ERROR',
       );

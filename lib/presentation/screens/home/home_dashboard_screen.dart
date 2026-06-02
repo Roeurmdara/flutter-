@@ -5,6 +5,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/providers/habit_provider.dart';
+import '../../../data/providers/auth_provider.dart';
 import '../../../data/models/habit_model.dart';
 import '../../widgets/habit_card_widget.dart';
 import '../../widgets/create_habit_modal.dart';
@@ -35,6 +36,8 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     final habitsForDate = ref.watch(habitsForDateProvider);
     final completionRate = ref.watch(todayCompletionRateProvider);
     final selectedDate = habitState.selectedDate;
+    final authState = ref.watch(authProvider);
+    final userName = authState.user?.username ?? 'User';
 
     final pendingHabits = habitsForDate
         .where((h) => !(habitState.completedStatus[h.id] ?? false))
@@ -67,7 +70,8 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Greeting Card
-              _buildGreetingCard(isDark, completionRate, habitsForDate.length),
+              _buildGreetingCard(
+                  isDark, completionRate, habitsForDate.length, userName),
               const SizedBox(height: 20),
 
               // Date Selector
@@ -139,7 +143,8 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     );
   }
 
-  Widget _buildGreetingCard(bool isDark, int completionRate, int totalHabits) {
+  Widget _buildGreetingCard(
+      bool isDark, int completionRate, int totalHabits, String userName) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -161,7 +166,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Good ${_getGreeting()}, User!',
+            'Good ${_getGreeting()}, ${userName}!',
             style: AppTypography.headlineMedium(Colors.white),
           ),
           const SizedBox(height: 6),
@@ -219,28 +224,56 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
               _showCalendar = !_showCalendar;
             });
           },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.primaryPurple.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.primaryPurple,
-                width: 1,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment
+                .center, // Centers the day and the badge relative to each other
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Big, prominent Day text positioned right in the middle above the badge
+              Text(
+                DateFormat('EEEE').format(selectedDate), // Outputs: "Monday"
+                style: AppTypography.headlineMedium(
+                  // Switched to a larger headline style
+                  isDark ? Colors.white : AppColors.lightText,
+                ).copyWith(
+                  fontWeight: FontWeight
+                      .w800, // Extra bold to look much bigger and dominant
+                  letterSpacing: 0.5,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  DateFormat('MMM dd, yyyy').format(selectedDate),
-                  style: AppTypography.labelLarge(
-                    isDark ? Colors.white : AppColors.lightText,
+              const SizedBox(
+                  height:
+                      2), // Generous spacing to separate the dominant text from the badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                decoration: BoxDecoration(
+                  color:
+                      isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primaryPurple,
+                    width: 1,
                   ),
                 ),
-              ],
-            ),
+                child: Row(
+                  mainAxisSize: MainAxisSize
+                      .min, // Keeps the badge snug around the date text
+                  children: [
+                    const SizedBox(width: 5),
+                    Text(
+                      DateFormat('MMM dd, yyyy').format(selectedDate),
+                      style: AppTypography.labelLarge(
+                        isDark
+                            ? Colors.white70
+                            : AppColors.lightText.withOpacity(
+                                0.8), // Slightly dimmed to keep focus on the day above
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         IconButton(
@@ -362,39 +395,41 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
   }
 
   Widget _buildEmptyState(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-          width: 1,
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min, // Hugs content cleanly
+          children: [
+            // Minimalist illustration centered
+            Image.asset(
+              'assets/images/hi.png',
+              width: 160,
+              height: 160,
+              fit: BoxFit.contain,
+              // Dynamically tints the image to match the dark/light aesthetic softly
+
+              colorBlendMode: BlendMode.modulate,
+            ),
+            const SizedBox(height: 28), // Generous spacing for breathing room
+            Text(
+              'Hi! No habits for this date',
+              style: AppTypography.headlineSmall(
+                isDark ? Colors.white70 : Colors.black54,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Click Add +',
+              style: AppTypography.bodySmall(
+                isDark ? Colors.white38 : Colors.black38,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.check_circle_outline,
-            size: 64,
-            color: AppColors.primaryPurple.withOpacity(0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No habits for this date',
-            style: AppTypography.headlineSmall(
-              isDark ? Colors.white70 : Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Add a new habit to get started!',
-            style: AppTypography.bodySmall(
-              isDark ? Colors.white54 : Colors.black38,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -443,6 +478,8 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                 frequencyConfig: data['frequencyConfig'],
                 startDate: data['startDate'],
                 endDate: data['endDate'],
+                emoji: data['emoji'],
+                colorHex: data['color'],
               );
         },
         onDelete: () {

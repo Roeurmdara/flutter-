@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../data/models/habit_model.dart';
+import '../../../data/models/activity_model.dart';
 import '../../../data/providers/habit_provider.dart';
-import '../../../data/providers/category_providers.dart';
-import './custom_buttons.dart';
-import '../../../data/models/habit_category_model.dart';
+import '../../../data/providers/activity_provider.dart';
+import 'create_habit_form_fields.dart';
+import 'create_habit_pickers.dart';
 
 class CreateHabitModal extends ConsumerStatefulWidget {
   final Habit? editingHabit;
@@ -27,6 +27,8 @@ class CreateHabitModal extends ConsumerStatefulWidget {
 class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
+  late TextEditingController _activityTypeController;
+  late TextEditingController _activityNoteController;
 
   String? _selectedCategoryId;
   String _selectedFrequency = 'daily';
@@ -34,7 +36,12 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
 
-  // Custom color and emoji
+  bool _addActivity = false;
+  bool _showActivityForm = false;
+  DateTime _activitySettlementDate = DateTime.now();
+  List<Activity> _createdActivities = [];
+  Habit? _createdHabit;
+
   Color _customColor = AppColors.primaryPurple;
   String _customEmoji = '✨';
 
@@ -45,73 +52,53 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
         TextEditingController(text: widget.editingHabit?.title ?? '');
     _descriptionController =
         TextEditingController(text: widget.editingHabit?.description ?? '');
+    _activityTypeController = TextEditingController();
+    _activityNoteController = TextEditingController();
+    _createdActivities = [];
     _selectedCategoryId = widget.editingHabit?.categoryId;
     _selectedFrequency = widget.editingHabit?.frequency ?? 'daily';
-    _startDate = _dateOnly(widget.editingHabit?.startDate ?? DateTime.now());
+    _startDate = dateOnly(widget.editingHabit?.startDate ?? DateTime.now());
     _endDate = widget.editingHabit?.endDate != null
-        ? _dateOnly(widget.editingHabit!.endDate!)
+        ? dateOnly(widget.editingHabit!.endDate!)
         : null;
+
+    // Load custom emoji and color if editing existing habit
+    if (widget.editingHabit != null) {
+      if (widget.editingHabit!.emoji != null) {
+        _customEmoji = widget.editingHabit!.emoji!;
+      }
+      if (widget.editingHabit!.colorHex != null) {
+        try {
+          _customColor = Color(int.parse(
+                  widget.editingHabit!.colorHex!.replaceFirst('#', ''),
+                  radix: 16) +
+              0xFF000000);
+        } catch (e) {
+          _customColor = AppColors.primaryPurple;
+        }
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(activitiesNotifierProvider.notifier)
+            .loadActivities(widget.editingHabit!.id, _activitySettlementDate);
+      });
+    }
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _activityTypeController.dispose();
+    _activityNoteController.dispose();
     super.dispose();
   }
-
-  // ── Shared input decoration ─────────────────────────────────────────────────
-  InputDecoration _inputDecoration(bool isDark,
-      {String? hint, Widget? suffix}) {
-    final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(
-        color: isDark ? Colors.white12 : Colors.black12,
-        width: 1,
-      ),
-    );
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(
-        color: isDark ? Colors.white30 : Colors.black26,
-        fontSize: 14,
-      ),
-      filled: true,
-      fillColor: isDark
-          ? Colors.white.withOpacity(0.04)
-          : Colors.black.withOpacity(0.03),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: border,
-      enabledBorder: border,
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(
-          color: AppColors.primaryPurple.withOpacity(0.6),
-          width: 1,
-        ),
-      ),
-      suffixIcon: suffix,
-    );
-  }
-
-  // ── Section label ───────────────────────────────────────────────────────────
-  Widget _label(String text, bool isDark) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.8,
-            color: isDark ? Colors.white38 : Colors.black38,
-          ),
-        ),
-      );
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final activityState = ref.watch(activitiesNotifierProvider);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.72,
@@ -121,15 +108,12 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
         return Container(
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
-              // Drag Handle
+              // ── Drag handle ──────────────────────────────────────────────
               const SizedBox(height: 10),
-
               Container(
                 width: 42,
                 height: 4,
@@ -138,27 +122,22 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                   borderRadius: BorderRadius.circular(100),
                 ),
               ),
-
               const SizedBox(height: 18),
 
-              // Header
+              // ── Header ───────────────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       widget.editingHabit != null ? 'Edit Habit' : 'New Habit',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: isDark ? Colors.white : Colors.black,
                       ),
                     ),
-
-                    // Close button
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Container(
@@ -180,51 +159,35 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 8),
-
               Divider(
                 height: 1,
                 color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
               ),
 
-              // Body
+              // ── Body ─────────────────────────────────────────────────────
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(
-                    20,
-                    18,
-                    20,
-                    28,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // TITLE
-                      _label('TITLE', isDark),
-
-                      const SizedBox(height: 8),
-
+                      buildLabel('TITLE', isDark),
                       TextField(
                         controller: _titleController,
                         style: TextStyle(
                           fontSize: 14,
                           color: isDark ? Colors.white : Colors.black,
                         ),
-                        decoration: _inputDecoration(
-                          isDark,
-                          hint: 'e.g. Morning run',
-                        ),
+                        decoration: buildInputDecoration(isDark,
+                            hint: 'e.g. Morning run'),
                       ),
-
                       const SizedBox(height: 18),
 
                       // DESCRIPTION
-                      _label('DESCRIPTION', isDark),
-
-                      const SizedBox(height: 8),
-
+                      buildLabel('DESCRIPTION', isDark),
                       TextField(
                         controller: _descriptionController,
                         maxLines: 3,
@@ -232,215 +195,97 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                           fontSize: 14,
                           color: isDark ? Colors.white : Colors.black,
                         ),
-                        decoration: _inputDecoration(
-                          isDark,
-                          hint: 'Optional notes...',
-                        ),
+                        decoration: buildInputDecoration(isDark,
+                            hint: 'Optional notes...'),
                       ),
-
                       const SizedBox(height: 18),
 
                       // CATEGORY
-                      _label('CATEGORY', isDark),
-
-                      const SizedBox(height: 8),
-
-                      _buildCategoryDropdown(isDark),
-
+                      buildLabel('CATEGORY', isDark),
+                      CategoryDropdown(
+                        isDark: isDark,
+                        selectedCategoryId: _selectedCategoryId,
+                        onChanged: (value) =>
+                            setState(() => _selectedCategoryId = value),
+                      ),
                       const SizedBox(height: 18),
 
                       // FREQUENCY
-                      _label('FREQUENCY', isDark),
-
-                      const SizedBox(height: 8),
-
-                      _buildFrequencyDropdown(isDark),
-
+                      buildLabel('FREQUENCY', isDark),
+                      FrequencyDropdown(
+                        isDark: isDark,
+                        selectedFrequency: _selectedFrequency,
+                        frequencies: _frequencies,
+                        onChanged: (value) =>
+                            setState(() => _selectedFrequency = value),
+                      ),
                       const SizedBox(height: 18),
 
-                      // CUSTOM COLOR & EMOJI
-                      _label('CUSTOMIZE', isDark),
-
-                      const SizedBox(height: 8),
-
-                      // Color and Emoji Preview
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.04)
-                              : Colors.black.withOpacity(0.03),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isDark ? Colors.white12 : Colors.black12,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            // Color Picker Button
-                            GestureDetector(
-                              onTap: () => _showColorPicker(isDark),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: _customColor,
-                                      border: Border.all(
-                                        color: _customColor.withOpacity(0.5),
-                                        width: 2,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: _customColor.withOpacity(0.3),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.palette_rounded,
-                                        color: Colors.white,
-                                        size: 24,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Color',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark
-                                          ? Colors.white54
-                                          : Colors.black54,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Emoji Picker Button
-                            GestureDetector(
-                              onTap: () => _showEmojiPicker(isDark),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: _customColor.withOpacity(0.15),
-                                      border: Border.all(
-                                        color: _customColor.withOpacity(0.3),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        _customEmoji,
-                                        style: const TextStyle(fontSize: 28),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Emoji',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                      color: isDark
-                                          ? Colors.white54
-                                          : Colors.black54,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Preview
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: _customColor.withOpacity(0.15),
-                                    border: Border.all(
-                                      color: _customColor.withOpacity(0.3),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      _customEmoji,
-                                      style: const TextStyle(fontSize: 28),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Preview',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                    color: isDark
-                                        ? Colors.white54
-                                        : Colors.black54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
+                      // CUSTOMIZE
+                      buildLabel('CUSTOMIZE', isDark),
+                      _buildCustomizeRow(isDark),
                       const SizedBox(height: 18),
 
                       // DATES
                       Row(
                         children: [
                           Expanded(
-                            child: _buildDateField(
-                              isDark,
-                              'START',
-                              _startDate,
-                              (d) {
-                                if (d != null) {
-                                  setState(
-                                    () => _startDate = d,
-                                  );
-                                }
+                            child: HabitDateField(
+                              isDark: isDark,
+                              label: 'START',
+                              date: _startDate,
+                              onChanged: (d) {
+                                if (d != null) setState(() => _startDate = d);
                               },
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _buildDateField(
-                              isDark,
-                              'END',
-                              _endDate,
-                              (d) {
-                                setState(
-                                  () => _endDate = d,
-                                );
-                              },
+                            child: HabitDateField(
+                              isDark: isDark,
+                              label: 'END',
+                              date: _endDate,
+                              onChanged: (d) => setState(() => _endDate = d),
                               isOptional: true,
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 18),
 
-                      const SizedBox(height: 30),
+                      // ACTIVITY TOGGLE
+                      SwitchListTile.adaptive(
+                        value: _addActivity,
+                        onChanged: (v) => setState(() {
+                          _addActivity = v;
+                          if (!v) _showActivityForm = false;
+                        }),
+                        title: Text(
+                          'Add activity for this habit',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.white : Colors.black,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                      ),
 
-                      // CREATE / SAVE BUTTON
+                      if (_addActivity) ...[
+                        const SizedBox(height: 8),
+                        _buildActivityFields(isDark, activityState),
+                      ],
+
+                      // Created activities list
+                      if (_createdActivities.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        ..._createdActivities.map(
+                            (act) => _ActivityCard(act: act, isDark: isDark)),
+                      ],
+
+                      const SizedBox(height: 12),
+
+                      // SAVE / CREATE BUTTON
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -475,9 +320,7 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                             onPressed: widget.onDelete,
                             style: TextButton.styleFrom(
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  12,
-                                ),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                             child: Text(
@@ -502,347 +345,265 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
     );
   }
 
-  // ── Category dropdown ───────────────────────────────────────────────────────
-  Widget _buildCategoryDropdown(bool isDark) {
-    return Consumer(
-      builder: (context, ref, _) {
-        final categoriesAsync = ref.watch(categoriesProvider);
-        return categoriesAsync.when(
-          loading: () => const SizedBox(
-            height: 44,
-            child: Center(
-                child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 1.5))),
+  // ── Customize row ────────────────────────────────────────────────────────────
+  Widget _buildCustomizeRow(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : Colors.black.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? Colors.white12 : Colors.black12,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          GestureDetector(
+            onTap: () => showHabitColorPicker(
+              context: context,
+              isDark: isDark,
+              currentColor: _customColor,
+              onColorSelected: (color) => setState(() => _customColor = color),
+            ),
+            child: _customizeItem(
+              isDark: isDark,
+              label: 'Color',
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _customColor,
+                  border: Border.all(
+                      color: _customColor.withOpacity(0.5), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                        color: _customColor.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2))
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(Icons.palette_rounded,
+                      color: Colors.white, size: 24),
+                ),
+              ),
+            ),
           ),
-          error: (_, __) => Text('Failed to load categories',
-              style: TextStyle(color: AppColors.error, fontSize: 13)),
-          data: (categories) {
-            // Find selected category to show its color in the field
-            HabitCategory? selectedCategory;
-            if (_selectedCategoryId != null) {
-              try {
-                selectedCategory = categories
-                    .firstWhere((cat) => cat.id == _selectedCategoryId);
-              } catch (_) {
-                selectedCategory = null;
-              }
-            }
-
-            Color selectedColor = AppColors.primaryPurple;
-            if (selectedCategory != null &&
-                selectedCategory.colorHex.isNotEmpty) {
-              try {
-                selectedColor = Color(
-                  int.parse(selectedCategory.colorHex.replaceFirst('#', ''),
-                          radix: 16) +
-                      0xFF000000,
-                );
-              } catch (e) {
-                selectedColor = AppColors.primaryPurple;
-              }
-            }
-
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDark ? Colors.white12 : Colors.black12,
-                ),
-              ),
-              child: DropdownButtonFormField<String>(
-                value: _selectedCategoryId,
-                isExpanded: true,
-                itemHeight: 60,
-                icon: Icon(Icons.expand_more,
-                    size: 18, color: isDark ? Colors.white38 : Colors.black38),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: isDark
-                      ? Colors.white.withOpacity(0.04)
-                      : Colors.black.withOpacity(0.03),
-                  border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  prefix: selectedCategory != null
-                      ? Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: selectedColor.withOpacity(0.15),
-                                  border: Border.all(
-                                      color: selectedColor.withOpacity(0.3),
-                                      width: 1),
-                                ),
-                                child: Center(
-                                  child: Text(selectedCategory.icon,
-                                      style: const TextStyle(fontSize: 14)),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : null,
-                ),
-                dropdownColor:
-                    isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                style: TextStyle(
-                    fontSize: 14, color: isDark ? Colors.white : Colors.black),
-                hint: Text('Select category',
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: isDark ? Colors.white30 : Colors.black26)),
-                items: categories.map((cat) {
-                  Color catColor = AppColors.primaryPurple;
-                  try {
-                    catColor = Color(int.parse(
-                            cat.colorHex.replaceFirst('#', ''),
-                            radix: 16) +
-                        0xFF000000);
-                  } catch (e) {
-                    catColor = AppColors.primaryPurple;
-                  }
-
-                  return DropdownMenuItem<String>(
-                    value: cat.id,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(6),
-                        color: catColor.withOpacity(0.08),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: catColor.withOpacity(0.2),
-                              border: Border.all(
-                                  color: catColor.withOpacity(0.4), width: 1),
-                            ),
-                            child: Center(
-                              child: Text(cat.icon,
-                                  style: const TextStyle(fontSize: 16)),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  cat.name,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color:
-                                        isDark ? Colors.white : Colors.black87,
-                                  ),
-                                ),
-                                Text(
-                                  cat.description,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark
-                                        ? Colors.white30
-                                        : Colors.black38,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) =>
-                    setState(() => _selectedCategoryId = value),
-              ),
-            );
-          },
-        );
-      },
+          GestureDetector(
+            onTap: () => showHabitEmojiPicker(
+              context: context,
+              isDark: isDark,
+              currentEmoji: _customEmoji,
+              currentColor: _customColor,
+              onEmojiSelected: (emoji) => setState(() => _customEmoji = emoji),
+            ),
+            child: _customizeItem(
+              isDark: isDark,
+              label: 'Emoji',
+              child: _emojiCircle(50),
+            ),
+          ),
+          _customizeItem(
+            isDark: isDark,
+            label: 'Preview',
+            child: _emojiCircle(50),
+          ),
+        ],
+      ),
     );
   }
 
-// ── Frequency dropdown ──────────────────────────────────────────────────────
-  Widget _buildFrequencyDropdown(bool isDark) {
-    String _getFrequencyEmoji(String freq) {
-      switch (freq.toLowerCase()) {
-        case 'daily':
-          return '📅';
-        case 'weekly':
-          return '📆';
-        case 'monthly':
-          return '📊';
-        default:
-          return '⏰';
-      }
-    }
+  Widget _emojiCircle(double size) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _customColor.withOpacity(0.15),
+          border: Border.all(color: _customColor.withOpacity(0.3), width: 2),
+        ),
+        child: Center(
+          child: Text(_customEmoji, style: const TextStyle(fontSize: 28)),
+        ),
+      );
 
-    return MenuAnchor(
-      builder: (
-        BuildContext context,
-        MenuController controller,
-        Widget? child,
-      ) {
-        return GestureDetector(
-          onTap: () {
-            controller.isOpen ? controller.close() : controller.open();
-          },
-          child: Container(
-            height: 48,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
+  Widget _customizeItem({
+    required bool isDark,
+    required String label,
+    required Widget child,
+  }) =>
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          child,
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white54 : Colors.black54,
             ),
+          ),
+        ],
+      );
+
+  // ── Activity fields ──────────────────────────────────────────────────────────
+  Widget _buildActivityFields(bool isDark, dynamic activityState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // + button — only shown before form is revealed
+        if (!_showActivityForm)
+          GestureDetector(
+            onTap: () => setState(() => _showActivityForm = true),
+            child: Container(
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primaryPurple.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.primaryPurple.withOpacity(0.25),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryPurple.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.add,
+                      size: 14,
+                      color: AppColors.primaryPurple,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Add activity detail',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primaryPurple,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // Inline form — permanently visible after tapping +
+        if (_showActivityForm) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.04)
-                  : Colors.black.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(8),
+                  ? Colors.white.withOpacity(0.03)
+                  : Colors.black.withOpacity(0.02),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isDark ? Colors.white12 : Colors.black12,
               ),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _getFrequencyEmoji(_selectedFrequency),
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _selectedFrequency.capitalize(),
-                    style: TextStyle(
+                buildLabel('ACTIVITY TYPE', isDark),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _activityTypeController,
+                  style: TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : Colors.black,
+                      color: isDark ? Colors.white : Colors.black),
+                  decoration:
+                      buildInputDecoration(isDark, hint: 'e.g. Morning run'),
+                ),
+                const SizedBox(height: 12),
+                buildLabel('SETTLEMENT DATE', isDark),
+                const SizedBox(height: 6),
+                GestureDetector(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _activitySettlementDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setState(() => _activitySettlementDate = picked);
+                      if (widget.editingHabit != null) {
+                        await ref
+                            .read(activitiesNotifierProvider.notifier)
+                            .loadActivities(widget.editingHabit!.id, picked);
+                      }
+                    }
+                  },
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.04)
+                          : Colors.black.withOpacity(0.03),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: isDark ? Colors.white12 : Colors.black12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_today_outlined,
+                            size: 14,
+                            color: AppColors.primaryPurple.withOpacity(0.7)),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_activitySettlementDate.day}/${_activitySettlementDate.month}/${_activitySettlementDate.year}',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? Colors.white : Colors.black),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.expand_more_rounded,
-                  size: 18,
-                  color: isDark ? Colors.white38 : Colors.black38,
+                const SizedBox(height: 12),
+                buildLabel('NOTE', isDark),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _activityNoteController,
+                  maxLines: 2,
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black),
+                  decoration:
+                      buildInputDecoration(isDark, hint: 'Optional note...'),
                 ),
               ],
             ),
           ),
-        );
-      },
-      menuChildren: _frequencies.map((freq) {
-        final emoji = _getFrequencyEmoji(freq);
-        return MenuItemButton(
-          style: MenuItemButton.styleFrom(
-            minimumSize: const Size(
-              160,
-              48,
-            ),
-          ),
-          onPressed: () {
-            setState(() {
-              _selectedFrequency = freq;
-            });
-          },
-          child: Row(
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
-              Text(
-                freq.capitalize(),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
+        ],
 
-  // ── Date field ──────────────────────────────────────────────────────────────
-  Widget _buildDateField(
-    bool isDark,
-    String label,
-    DateTime? date,
-    Function(DateTime?) onChanged, {
-    bool isOptional = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _label(label, isDark),
-        GestureDetector(
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: date ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2100),
-            );
-            if (picked != null) onChanged(picked);
-          },
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withOpacity(0.04)
-                  : Colors.black.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(8),
-              border:
-                  Border.all(color: isDark ? Colors.white12 : Colors.black12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today_outlined,
-                    size: 14, color: AppColors.primaryPurple.withOpacity(0.7)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    date != null
-                        ? '${date.day}/${date.month}/${date.year}'
-                        : 'Select',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: date != null
-                          ? (isDark ? Colors.white : Colors.black)
-                          : (isDark ? Colors.white30 : Colors.black26),
-                    ),
-                  ),
-                ),
-                if (isOptional && date != null)
-                  GestureDetector(
-                    onTap: () => onChanged(null),
-                    child: Icon(Icons.close,
-                        size: 14,
-                        color: isDark ? Colors.white38 : Colors.black38),
-                  ),
-              ],
-            ),
-          ),
-        ),
+        // Existing activities
+        if (widget.editingHabit != null &&
+            activityState.activities.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          buildLabel('EXISTING ACTIVITIES', isDark),
+          const SizedBox(height: 6),
+          ...activityState.activities.reversed
+              .map<Widget>((act) => _ActivityCard(act: act, isDark: isDark))
+              .toList(),
+        ],
       ],
     );
   }
 
-  // ── Submit ──────────────────────────────────────────────────────────────────
+  // ── Submit ───────────────────────────────────────────────────────────────────
   Future<void> _handleSubmit() async {
     if (_titleController.text.trim().isEmpty) {
       _showSnack('Please enter a title');
@@ -858,8 +619,16 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
         'frequencyConfig': [_selectedFrequency],
         'startDate': _startDate,
         'endDate': _endDate,
+        'color':
+            '#${_customColor.value.toRadixString(16).substring(2).toUpperCase()}',
+        'emoji': _customEmoji,
       });
-      Navigator.pop(context);
+
+      if (_addActivity && _activityTypeController.text.trim().isNotEmpty) {
+        await _createActivity(widget.editingHabit!.id);
+      }
+
+      if (mounted) Navigator.pop(context);
       return;
     }
 
@@ -869,7 +638,9 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
     }
 
     try {
-      await ref.read(habitsProvider.notifier).createHabit(
+      final colorHex =
+          '#${_customColor.value.toRadixString(16).substring(2).toUpperCase()}';
+      final newHabit = await ref.read(habitsProvider.notifier).createHabit(
             categoryId: _selectedCategoryId!,
             title: _titleController.text.trim(),
             description: _descriptionController.text.trim(),
@@ -881,13 +652,49 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
             startDate: _startDate,
             endDate: _endDate,
             visibility: 'private',
+            emoji: _customEmoji,
+            colorHex: colorHex,
           );
+      setState(() => _createdHabit = newHabit);
+
+      if (_addActivity && _activityTypeController.text.trim().isNotEmpty) {
+        await _createActivity(newHabit.id);
+        await ref
+            .read(activitiesNotifierProvider.notifier)
+            .loadActivities(newHabit.id, _activitySettlementDate);
+      }
+
       if (mounted) {
-        Navigator.pop(context);
         _showSnack('Habit created');
+        if (!_addActivity) Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) _showSnack('Error: $e');
+    }
+  }
+
+  Future<void> _createActivity(String habitId) async {
+    try {
+      final created =
+          await ref.read(activitiesNotifierProvider.notifier).createActivity(
+                habitId: habitId,
+                activityType: _activityTypeController.text.trim(),
+                value: '1',
+                unit: 'completion',
+                settlementPeriodDate: _activitySettlementDate,
+                note: _activityNoteController.text.trim().isEmpty
+                    ? null
+                    : _activityNoteController.text.trim(),
+              );
+      setState(() {
+        _createdActivities.insert(0, created);
+        _showActivityForm = false;
+        _activityTypeController.clear();
+        _activityNoteController.clear();
+      });
+      if (mounted) _showSnack('Activity created');
+    } catch (e) {
+      if (mounted) _showSnack('Activity creation failed: $e');
     }
   }
 
@@ -896,250 +703,192 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
       SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
     );
   }
+}
 
-  // ── Color Picker ────────────────────────────────────────────────────────────
-  void _showColorPicker(bool isDark) {
-    final colors = [
-      AppColors.primaryPurple,
-      AppColors.accentRed,
-      AppColors.accentOrange,
-      AppColors.accentYellow,
-      AppColors.secondaryGreen,
-      AppColors.secondaryGreenLight,
-      AppColors.accentBlue,
-      AppColors.accentOrange,
-      const Color(0xFFEC4899), // Pink
-      const Color(0xFF8B5CF6), // Purple
-      const Color(0xFF06B6D4), // Cyan
-      const Color(0xFF6366F1), // Indigo
-    ];
+// ── Expandable activity card (existing activities) ────────────────────────────
+class _ActivityCard extends StatefulWidget {
+  final Activity act;
+  final bool isDark;
 
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(20),
-          ),
+  const _ActivityCard({required this.act, required this.isDark, Key? key})
+      : super(key: key);
+
+  @override
+  State<_ActivityCard> createState() => _ActivityCardState();
+}
+
+class _ActivityCardState extends State<_ActivityCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final act = widget.act;
+    final isDark = widget.isDark;
+
+    return Container(
+      key: ValueKey(act.id),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Choose Color',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : Colors.black,
-              ),
-            ),
-            const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-              ),
-              itemCount: colors.length,
-              itemBuilder: (context, index) {
-                final color = colors[index];
-                final isSelected = color.value == _customColor.value;
-
-                return GestureDetector(
-                  onTap: () {
-                    setState(() => _customColor = color);
-                    Navigator.pop(context);
-                  },
-                  child: Container(
+      ),
+      child: Column(
+        children: [
+          // ── Header ────────────────────────────────────────────────────
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryPurple.withOpacity(0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.auto_awesome,
+                      size: 16,
+                      color: AppColors.primaryPurple,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          act.activityType,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: isDark
+                                ? AppColors.darkText
+                                : AppColors.lightText,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${act.settlementPeriodDate.day}/${act.settlementPeriodDate.month}/${act.settlementPeriodDate.year}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: color,
-                      border: isSelected
-                          ? Border.all(
-                              color: Colors.white,
-                              width: 3,
-                            )
-                          : null,
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: color.withOpacity(0.5),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : null,
+                      color: _expanded
+                          ? AppColors.primaryPurple.withOpacity(0.12)
+                          : (isDark
+                              ? Colors.white.withOpacity(0.06)
+                              : Colors.black.withOpacity(0.05)),
+                      border: Border.all(
+                        color: _expanded
+                            ? AppColors.primaryPurple.withOpacity(0.4)
+                            : (isDark ? Colors.white24 : Colors.black12),
+                      ),
                     ),
-                    child: isSelected
-                        ? const Center(
-                            child: Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          )
-                        : const SizedBox.shrink(),
+                    child: AnimatedRotation(
+                      turns: _expanded ? 0.125 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.add,
+                        size: 16,
+                        color: _expanded
+                            ? AppColors.primaryPurple
+                            : (isDark ? Colors.white54 : Colors.black45),
+                      ),
+                    ),
                   ),
-                );
-              },
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+
+          // ── Detail ────────────────────────────────────────────────────
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 200),
+            crossFadeState: _expanded
+                ? CrossFadeState.showFirst
+                : CrossFadeState.showSecond,
+            firstChild: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  ),
+                ),
+              ),
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _detailRow('ACTIVITY', act.activityType, isDark),
+                  const SizedBox(height: 8),
+                  _detailRow(
+                    'DATE',
+                    '${act.settlementPeriodDate.day} / ${act.settlementPeriodDate.month} / ${act.settlementPeriodDate.year}',
+                    isDark,
+                  ),
+                  if ((act.note ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _detailRow('NOTE', act.note!, isDark),
+                  ],
+                ],
+              ),
+            ),
+            secondChild: const SizedBox.shrink(),
+          ),
+        ],
       ),
     );
   }
 
-  // ── Emoji Picker ────────────────────────────────────────────────────────────
-  void _showEmojiPicker(bool isDark) {
-    final emojis = [
-      '✨',
-      '⭐',
-      '🌟',
-      '💫',
-      '🔥',
-      '⚡',
-      '💎',
-      '🎯',
-      '🏆',
-      '🎉',
-      '🎊',
-      '🎈',
-      '💪',
-      '🚀',
-      '🌈',
-      '🎨',
-      '💚',
-      '❤️',
-      '💙',
-      '💛',
-      '🧡',
-      '🤍',
-      '🖤',
-      '💜',
-      '😊',
-      '😍',
-      '🤔',
-      '😎',
-      '🥳',
-      '🚀',
-      '👑',
-      '🎁',
-      '📚',
-      '🎓',
-      '🏃',
-      '🧘',
-      '🏋️',
-      '🤸',
-      '⛹️',
-      '🚴',
-      '🎵',
-      '🎶',
-      '🎤',
-      '🎧',
-      '🎮',
-      '🎲',
-      '🃏',
-      '🎭',
-      '🍎',
-      '🍊',
-      '🍋',
-      '🍌',
-      '🍉',
-      '🥗',
-      '🍱',
-      '☕',
-      '🌺',
-      '🌸',
-      '🌼',
-      '🌻',
-      '🌷',
-      '🌹',
-      '🥀',
-      '🎀',
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(20),
+  Widget _detailRow(String label, String value, bool isDark) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 72,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 0.4,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
           ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Choose Emoji',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : Colors.black,
-              ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
             ),
-            const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 6,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-              ),
-              itemCount: emojis.length,
-              itemBuilder: (context, index) {
-                final emoji = emojis[index];
-                final isSelected = emoji == _customEmoji;
-
-                return GestureDetector(
-                  onTap: () {
-                    setState(() => _customEmoji = emoji);
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: isSelected
-                          ? _customColor.withOpacity(0.2)
-                          : (isDark
-                              ? Colors.white.withOpacity(0.04)
-                              : Colors.black.withOpacity(0.03)),
-                      border: Border.all(
-                        color: isSelected
-                            ? _customColor
-                            : (isDark ? Colors.white12 : Colors.black12),
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        emoji,
-                        style: const TextStyle(fontSize: 28),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
-}
-
-// ── Extensions / helpers ──────────────────────────────────────────────────────
-extension StringExtension on String {
-  String capitalize() => "${this[0].toUpperCase()}${substring(1)}";
-}
-
-DateTime _dateOnly(DateTime date) {
-  final d = date.toLocal();
-  return DateTime(d.year, d.month, d.day);
 }

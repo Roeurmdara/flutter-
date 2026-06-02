@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/exceptions/api_exception.dart';
 import '../../../data/providers/community_provider.dart';
 import '../../../data/providers/category_providers.dart';
 import '../../../data/models/community_model.dart';
@@ -226,18 +230,45 @@ class _CommunityCard extends StatelessWidget {
           children: [
             const SizedBox(width: 12),
 
-            // Emoji in color circle
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                shape: BoxShape.circle,
+            // Cover image (if available) else emoji in color circle
+            if (community.coverImage != null &&
+                community.coverImage!.isNotEmpty)
+              ClipOval(
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  color: color.withOpacity(0.06),
+                  child: Image.network(
+                    community.coverImage!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Center(
+                      child: Text(emoji, style: const TextStyle(fontSize: 18)),
+                    ),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 1.5),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              )
+            else
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(emoji, style: const TextStyle(fontSize: 18)),
+                ),
               ),
-              child: Center(
-                child: Text(emoji, style: const TextStyle(fontSize: 18)),
-              ),
-            ),
             const SizedBox(width: 12),
 
             // Name
@@ -309,6 +340,8 @@ class _CreateCommunityDialogState
     extends ConsumerState<_CreateCommunityDialog> {
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _coverUrlCtrl = TextEditingController();
+  File? _coverImageFile;
   String? _selectedCategoryId;
   bool _isLoading = false;
   Color _color = AppColors.primaryPurple;
@@ -318,6 +351,7 @@ class _CreateCommunityDialogState
   void dispose() {
     _nameCtrl.dispose();
     _descCtrl.dispose();
+    _coverUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -350,6 +384,58 @@ class _CreateCommunityDialogState
                     letterSpacing: -0.3,
                     color: text)),
             const SizedBox(height: 20),
+
+            // Cover image picker / URL
+            Text('Cover Image (optional)',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: sub)),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _coverUrlCtrl,
+                  style: TextStyle(fontSize: 14, color: text),
+                  decoration: InputDecoration(
+                    hintText: 'Image URL',
+                    hintStyle: TextStyle(fontSize: 14, color: sub),
+                    filled: true,
+                    fillColor: bg,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: _pickImageFromPhone,
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryPurple,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10))),
+                child: const Text('Pick'),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            if (_coverImageFile != null)
+              Container(
+                height: 120,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.lightBorder),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(_coverImageFile!, fit: BoxFit.cover),
+                ),
+              ),
+            const SizedBox(height: 14),
 
             // Live preview — mirrors card exactly
             Container(
@@ -512,7 +598,7 @@ class _CreateCommunityDialogState
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    padding: const EdgeInsets.symmetric(vertical: 19),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                       side: BorderSide(
@@ -577,6 +663,10 @@ class _CreateCommunityDialogState
                 name: name,
                 description: _descCtrl.text.trim(),
                 categoryId: _selectedCategoryId!,
+                coverImage: _coverUrlCtrl.text.trim().isEmpty
+                    ? null
+                    : _coverUrlCtrl.text.trim(),
+                coverImageFile: _coverImageFile,
                 customColor: _colorHex,
                 customEmoji: _emoji,
               );
@@ -593,9 +683,47 @@ class _CreateCommunityDialogState
             .showSnackBar(SnackBar(content: Text('$name created!')));
       }
     } catch (e) {
+      String message = 'Error creating community';
+      if (e is ApiException) {
+        try {
+          final data = e.data;
+          Map<String, dynamic>? details;
+          if (data is Map<String, dynamic>) {
+            if (data['error'] is Map && data['error']['details'] != null) {
+              details = Map<String, dynamic>.from(data['error']['details']);
+            } else if (data['details'] is Map) {
+              details = Map<String, dynamic>.from(data['details']);
+            } else if (data['errors'] is Map) {
+              details = Map<String, dynamic>.from(data['errors']);
+            }
+            if (details != null && details.isNotEmpty) {
+              final messages = <String>[];
+              details.forEach((key, value) {
+                if (value is List) {
+                  messages.addAll(value.map((v) => v.toString()));
+                } else {
+                  messages.add(value.toString());
+                }
+              });
+              message = messages.join(' ');
+            } else if (data['message'] != null) {
+              message = data['message'].toString();
+            } else {
+              message = data.toString();
+            }
+          } else {
+            message = e.toString();
+          }
+        } catch (_) {
+          message = e.toString();
+        }
+      } else {
+        message = e.toString();
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+            .showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -739,6 +867,22 @@ class _CreateCommunityDialogState
         ),
       ),
     );
+  }
+
+  Future<void> _pickImageFromPhone() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? xfile =
+          await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (xfile == null) return;
+      setState(() {
+        _coverImageFile = File(xfile.path);
+        // clear URL when a local image is chosen
+        _coverUrlCtrl.text = '';
+      });
+    } catch (e) {
+      // ignore errors silently; user can retry
+    }
   }
 }
 

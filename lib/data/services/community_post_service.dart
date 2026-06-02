@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'dio_client.dart';
 import '../models/community_post_model.dart';
 
@@ -37,23 +40,49 @@ class CommunityPostService {
   }
 
   // Create a new post in a community
+  /// Create a new post in a community. If [imageFile] is provided this will
+  /// send multipart/form-data with the file attached under the 'media'
+  /// field (adjust the field name if your API expects a different key).
   Future<CommunityPost> createPost({
     required String communityId,
     required String title,
     required String body,
     required String contentType,
     bool isPinned = false,
+    File? imageFile,
   }) async {
     try {
-      final response = await dioClient.post(
-        '/communities/$communityId/posts',
-        data: {
+      Response response;
+
+      if (imageFile != null) {
+        final fileName = imageFile.path.split(Platform.pathSeparator).last;
+        final form = FormData.fromMap({
           'title': title,
           'body': body,
           'content_type': contentType,
           'is_pinned': isPinned,
-        },
-      );
+          'media':
+              await MultipartFile.fromFile(imageFile.path, filename: fileName),
+        });
+
+        response = await dioClient.dio.post(
+          '/communities/$communityId/posts',
+          data: form,
+          options: Options(
+            contentType: 'multipart/form-data',
+          ),
+        );
+      } else {
+        response = await dioClient.post(
+          '/communities/$communityId/posts',
+          data: {
+            'title': title,
+            'body': body,
+            'content_type': contentType,
+            'is_pinned': isPinned,
+          },
+        );
+      }
 
       return CommunityPost.fromJson(
           response.data['data'] as Map<String, dynamic>);
@@ -86,20 +115,40 @@ class CommunityPostService {
     required String title,
     required String body,
     bool? isPinned,
+    File? imageFile,
   }) async {
     try {
-      final data = {
-        'title': title,
-        'body': body,
-      };
-      if (isPinned != null) {
-        data['is_pinned'] = isPinned.toString();
-      }
+      Response response;
 
-      final response = await dioClient.put(
-        '/communities/$communityId/posts/$postId',
-        data: data,
-      );
+      if (imageFile != null) {
+        final fileName = imageFile.path.split(Platform.pathSeparator).last;
+        final form = FormData.fromMap({
+          'title': title,
+          'body': body,
+          if (isPinned != null) 'is_pinned': isPinned.toString(),
+          'media':
+              await MultipartFile.fromFile(imageFile.path, filename: fileName),
+        });
+
+        response = await dioClient.dio.put(
+          '/communities/$communityId/posts/$postId',
+          data: form,
+          options: Options(contentType: 'multipart/form-data'),
+        );
+      } else {
+        final data = {
+          'title': title,
+          'body': body,
+        };
+        if (isPinned != null) {
+          data['is_pinned'] = isPinned.toString();
+        }
+
+        response = await dioClient.put(
+          '/communities/$communityId/posts/$postId',
+          data: data,
+        );
+      }
 
       return CommunityPost.fromJson(
           response.data['data'] as Map<String, dynamic>);
@@ -130,6 +179,8 @@ class CommunityPostService {
     int perPage = 10,
   }) async {
     try {
+      // List comments using GET with query parameters only.
+      // POST to this endpoint is for creating comments (requires 'body' field).
       final response = await dioClient.get(
         '/posts/$postId/comments',
         queryParameters: {
@@ -137,6 +188,12 @@ class CommunityPostService {
           'per_page': perPage,
         },
       );
+
+      try {
+        // ignore: avoid_print
+        print(
+            'getPostComments response => status:${response.statusCode} data:${response.data}');
+      } catch (_) {}
 
       return CommentsListResponse.fromJson(
           response.data as Map<String, dynamic>);
@@ -154,12 +211,48 @@ class CommunityPostService {
       final response = await dioClient.post(
         '/posts/$postId/comments',
         data: {
+          // Server expects only the comment body in the POST payload.
           'body': body,
         },
       );
+      // Debug: log full response to help diagnose API shape / errors
+      try {
+        // ignore: avoid_print
+        print(
+            'addComment response => status:${response.statusCode} data:${response.data}');
+      } catch (_) {}
 
-      return CommunityPostComment.fromJson(
-          response.data['data'] as Map<String, dynamic>);
+      // Validate status code
+      if (response.statusCode == null ||
+          response.statusCode! < 200 ||
+          response.statusCode! >= 300) {
+        throw Exception(
+            'Failed to add comment: HTTP ${response.statusCode} - ${response.statusMessage} - ${response.data}');
+      }
+
+      // Support responses where created comment is either the direct data object or wrapped under 'data'
+      final respData =
+          response.data is Map && (response.data as Map).containsKey('data')
+              ? (response.data as Map)['data']
+              : response.data;
+
+      if (respData is Map<String, dynamic>) {
+        try {
+          return CommunityPostComment.fromJson(respData);
+        } catch (e, st) {
+          // Detailed debug info to help trace parsing issues
+          // ignore: avoid_print
+          print('addComment parsing error: $e');
+          // ignore: avoid_print
+          print('respData: $respData');
+          // ignore: avoid_print
+          print(st);
+          rethrow;
+        }
+      } else {
+        throw Exception(
+            'Unexpected response shape when adding comment: ${response.data}');
+      }
     } catch (e) {
       rethrow;
     }
@@ -171,9 +264,29 @@ class CommunityPostService {
     required String commentId,
   }) async {
     try {
-      await dioClient.delete(
+      // Some servers require the comment UUID in the path and/or body.
+      final response = await dioClient.delete(
         '/posts/$postId/comments/$commentId',
+        data: {
+          'comment_uuid': commentId,
+          'commentUuid': commentId,
+          'comment_id': commentId,
+        },
       );
+
+      try {
+        // ignore: avoid_print
+        print(
+            'deleteComment response => status:${response.statusCode} data:${response.data}');
+      } catch (_) {}
+
+      if (response.statusCode == null ||
+          response.statusCode! < 200 ||
+          response.statusCode! >= 300) {
+        throw Exception(
+            'Failed to delete comment: HTTP ${response.statusCode} - ${response.statusMessage} - ${response.data}');
+      }
+
       return true;
     } catch (e) {
       rethrow;

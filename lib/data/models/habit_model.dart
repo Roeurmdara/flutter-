@@ -9,6 +9,8 @@ class Habit {
   final String? category;
   final String? categoryIcon;
   final String? categoryColor;
+  final String? emoji; // custom emoji for habit
+  final String? colorHex; // custom color hex for habit
   final DateTime startDate;
   final DateTime? endDate;
   final int currentStreak;
@@ -27,6 +29,8 @@ class Habit {
     this.category,
     this.categoryIcon,
     this.categoryColor,
+    this.emoji,
+    this.colorHex,
     required this.startDate,
     this.endDate,
     required this.currentStreak,
@@ -54,6 +58,8 @@ class Habit {
       category: categoryJson?['name'] as String?,
       categoryIcon: categoryJson?['icon'] as String?,
       categoryColor: categoryJson?['color_hex'] as String?,
+      emoji: json['emoji'] as String?,
+      colorHex: json['color_hex'] as String?,
       startDate: DateTime.parse(json['start_date'] as String),
       endDate: json['end_date'] != null
           ? DateTime.parse(json['end_date'] as String)
@@ -73,6 +79,8 @@ class Habit {
         'description': description,
         'status': status,
         'frequency_type': frequency,
+        'emoji': emoji,
+        'color_hex': colorHex,
         'start_date': startDate.toIso8601String(),
         'end_date': endDate?.toIso8601String(),
         'created_at': createdAt.toIso8601String(),
@@ -89,6 +97,8 @@ class Habit {
     String? category,
     String? categoryIcon,
     String? categoryColor,
+    String? emoji,
+    String? colorHex,
     DateTime? startDate,
     DateTime? endDate,
     int? currentStreak,
@@ -107,6 +117,8 @@ class Habit {
       category: category ?? this.category,
       categoryIcon: categoryIcon ?? this.categoryIcon,
       categoryColor: categoryColor ?? this.categoryColor,
+      emoji: emoji ?? this.emoji,
+      colorHex: colorHex ?? this.colorHex,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       currentStreak: currentStreak ?? this.currentStreak,

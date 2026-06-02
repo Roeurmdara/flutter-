@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../services/habit_service.dart';
 import '../models/habit_model.dart';
 import 'auth_provider.dart';
@@ -80,8 +81,76 @@ class HabitState {
 class HabitsNotifier extends StateNotifier<HabitState> {
   final HabitService _service;
 
+  static const _kCompletedDatesKey = 'habits_completed_dates_map_v1';
+  static const _kSelectedDateKey = 'habits_selected_date_v1';
+
   HabitsNotifier(this._service) : super(HabitState()) {
-    loadHabits();
+    _init();
+  }
+
+  Future<void> _init() async {
+    await _loadLocalCompletedDates();
+    await loadHabits();
+    // Ensure the app shows today's date on startup so per-day completions are visible
+    try {
+      selectDate(DateTime.now());
+      // ignore: avoid_print
+      print('[Habits] _init - selectedDate: ${state.selectedDate}');
+      // ignore: avoid_print
+      print('[Habits] _init - completedDatesMap: ${state.completedDatesMap}');
+    } catch (_) {}
+  }
+
+  // Load locally persisted completed dates map from SharedPreferences
+  Future<void> _loadLocalCompletedDates() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_kCompletedDatesKey);
+      // Restore selected date if previously saved
+      final selectedDateStr = prefs.getString(_kSelectedDateKey);
+      if (selectedDateStr != null && selectedDateStr.isNotEmpty) {
+        try {
+          final parsed = DateTime.parse(selectedDateStr);
+          state = state.copyWith(selectedDate: _dateOnly(parsed));
+        } catch (_) {}
+      }
+      if (jsonStr == null || jsonStr.isEmpty) return;
+      // Debug: log loaded JSON for troubleshooting persistence issues
+      try {
+        // ignore: avoid_print
+        print('[Habits] _loadLocalCompletedDates - raw: $jsonStr');
+      } catch (_) {}
+
+      final Map<String, dynamic> decoded = Map<String, dynamic>.from(
+          jsonDecode(jsonStr) as Map<String, dynamic>);
+      final Map<String, Set<String>> map = {};
+      decoded.forEach((key, value) {
+        if (value is List) {
+          map[key] = value.map((e) => e.toString()).toSet();
+        }
+      });
+      state = state.copyWith(completedDatesMap: map);
+      // Recompute completedStatus for the currently selected date
+      _updateCompletionStatus(state.habits);
+    } catch (_) {
+      // ignore errors reading local cache
+    }
+  }
+
+  Future<void> _saveLocalCompletedDates() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final serialized =
+          state.completedDatesMap.map((k, v) => MapEntry(k, v.toList()));
+      final jsonStr = jsonEncode(serialized);
+      try {
+        // ignore: avoid_print
+        print('[Habits] _saveLocalCompletedDates - saving: $jsonStr');
+      } catch (_) {}
+      await prefs.setString(_kCompletedDatesKey, jsonStr);
+    } catch (_) {
+      // ignore write errors
+    }
   }
 
   // FIX 1: _formatDate added as an instance method so it's accessible
@@ -100,8 +169,24 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     }
 
     try {
-      final habits = await _service.getAllHabits();
+      final fetchedHabits = await _service.getAllHabits();
+      // Merge any server-reported `today_status` into the local completed dates map
+      // so server-driven completions are respected across restarts.
+      final dateStr = _formatDate(DateTime.now());
+      final mergedMap = Map<String, Set<String>>.from(state.completedDatesMap);
+      for (final habit in fetchedHabits) {
+        if (habit.todayStatus.toLowerCase() == 'completed') {
+          final current = mergedMap[habit.id] ?? <String>{};
+          mergedMap[habit.id] = {...current, dateStr};
+        }
+      }
+
+      // Apply merged map, persist, then update completion status based on selected date
+      state = state.copyWith(completedDatesMap: mergedMap);
+      await _saveLocalCompletedDates();
+      final habits = _applyLocalCompletionState(fetchedHabits);
       _updateCompletionStatus(habits);
+
       try {
         state = state.copyWith(habits: habits, isLoading: false);
       } catch (_) {
@@ -136,8 +221,47 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     state = state.copyWith(completedStatus: completedStatus);
   }
 
+  List<Habit> _applyLocalCompletionState(List<Habit> habits) {
+    // Use the currently selected date (restored on startup) when applying
+    // local completion state so UI matches the calendar selection.
+    final selectedStr = _formatDate(state.selectedDate);
+
+    return habits.map((habit) {
+      final completedDates = state.completedDatesMap[habit.id] ?? {};
+      final isCompletedForSelectedDate = completedDates.contains(selectedStr);
+      final nextTodayStatus =
+          isCompletedForSelectedDate ? 'completed' : habit.todayStatus;
+
+      return habit.todayStatus == nextTodayStatus
+          ? habit
+          : habit.copyWith(todayStatus: nextTodayStatus);
+    }).toList();
+  }
+
+  List<Habit> _updateHabitTodayStatus(
+    String habitId,
+    DateTime date,
+    String todayStatus,
+  ) {
+    // Consider the "today" relative to the currently selected date
+    final isToday = _formatDate(date) == _formatDate(state.selectedDate);
+    if (!isToday) return state.habits;
+
+    return state.habits.map((habit) {
+      return habit.id == habitId
+          ? habit.copyWith(todayStatus: todayStatus)
+          : habit;
+    }).toList();
+  }
+
+  List<Habit> _replaceHabit(Habit updatedHabit) {
+    return state.habits.map((habit) {
+      return habit.id == updatedHabit.id ? updatedHabit : habit;
+    }).toList();
+  }
+
   // Create new habit
-  Future<void> createHabit({
+  Future<Habit> createHabit({
     required String categoryId,
     required String title,
     required String description,
@@ -149,6 +273,8 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     required DateTime startDate,
     DateTime? endDate,
     required String visibility,
+    String? emoji,
+    String? colorHex,
   }) async {
     state = state.copyWith(isUpdating: true, error: null);
     try {
@@ -164,6 +290,8 @@ class HabitsNotifier extends StateNotifier<HabitState> {
         startDate: startDate,
         endDate: endDate,
         visibility: visibility,
+        emoji: emoji,
+        colorHex: colorHex,
       );
 
       final updatedHabits = [...state.habits, newHabit];
@@ -172,11 +300,13 @@ class HabitsNotifier extends StateNotifier<HabitState> {
         habits: updatedHabits,
         isUpdating: false,
       );
+      return newHabit;
     } catch (e) {
       state = state.copyWith(
         isUpdating: false,
         error: e.toString(),
       );
+      rethrow;
     }
   }
 
@@ -191,6 +321,8 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     DateTime? startDate,
     DateTime? endDate,
     String? status,
+    String? emoji,
+    String? colorHex,
   }) async {
     state = state.copyWith(isUpdating: true, error: null);
     try {
@@ -204,6 +336,8 @@ class HabitsNotifier extends StateNotifier<HabitState> {
         startDate: startDate,
         endDate: endDate,
         status: status,
+        emoji: emoji,
+        colorHex: colorHex,
       );
 
       final updatedHabits = state.habits.map((habit) {
@@ -225,62 +359,81 @@ class HabitsNotifier extends StateNotifier<HabitState> {
 
   // Mark habit as done for specific date only (does NOT affect other days)
   Future<void> markHabitAsDone(String habitId, DateTime date) async {
+    // Optimistic local update: persist immediately so UI and restarts reflect change
     state = state.copyWith(isUpdating: true, error: null);
+    final dateStr = _formatDate(date);
+
+    // Update local completion tracking map
+    final updatedDatesMap =
+        Map<String, Set<String>>.from(state.completedDatesMap);
+    final currentDates = updatedDatesMap[habitId] ?? {};
+    updatedDatesMap[habitId] = {...currentDates, dateStr};
+
+    final completedStatus = Map<String, bool>.from(state.completedStatus);
+    completedStatus[habitId] = true;
+
+    // Apply local state and persist before calling remote API
+    state = state.copyWith(
+      habits: _updateHabitTodayStatus(habitId, date, 'completed'),
+      completedDatesMap: updatedDatesMap,
+      completedStatus: completedStatus,
+      isUpdating: false,
+    );
+    await _saveLocalCompletedDates();
+
     try {
-      await _service.markHabitAsDone(habitId, date);
-
-      final dateStr = _formatDate(date);
-
-      // Update local completion tracking map
-      final updatedDatesMap =
-          Map<String, Set<String>>.from(state.completedDatesMap);
-      final currentDates = updatedDatesMap[habitId] ?? {};
-      updatedDatesMap[habitId] = {...currentDates, dateStr};
-
-      final completedStatus = Map<String, bool>.from(state.completedStatus);
-      completedStatus[habitId] = true;
-
-      state = state.copyWith(
-        completedDatesMap: updatedDatesMap,
-        completedStatus: completedStatus,
-        isUpdating: false,
-      );
+      final updatedHabit = await _service.markHabitAsDone(habitId, date);
+      if (updatedHabit != null) {
+        state = state.copyWith(habits: _replaceHabit(updatedHabit));
+      } else {
+        try {
+          // ignore: avoid_print
+          print(
+              '[Habits] markHabitAsDone - server returned no habit for $habitId');
+        } catch (_) {}
+      }
     } catch (e) {
-      state = state.copyWith(
-        isUpdating: false,
-        error: e.toString(),
-      );
+      // Preserve local change but record error for UI
+      state = state.copyWith(error: e.toString());
     }
   }
 
   // Unmark habit as done for specific date only (does NOT affect other days)
   Future<void> unmarkHabitAsDone(String habitId, DateTime date) async {
+    // Optimistic local unmark: update and persist immediately
     state = state.copyWith(isUpdating: true, error: null);
+    final dateStr = _formatDate(date);
+
+    final updatedDatesMap =
+        Map<String, Set<String>>.from(state.completedDatesMap);
+    final currentDates = updatedDatesMap[habitId] ?? {};
+    updatedDatesMap[habitId] = currentDates.where((d) => d != dateStr).toSet();
+
+    final completedStatus = Map<String, bool>.from(state.completedStatus);
+    completedStatus[habitId] = false;
+
+    state = state.copyWith(
+      habits: _updateHabitTodayStatus(habitId, date, 'pending'),
+      completedDatesMap: updatedDatesMap,
+      completedStatus: completedStatus,
+      isUpdating: false,
+    );
+    await _saveLocalCompletedDates();
+
     try {
-      await _service.unmarkHabitAsDone(habitId, date);
-
-      final dateStr = _formatDate(date);
-
-      // Update local completion tracking map
-      final updatedDatesMap =
-          Map<String, Set<String>>.from(state.completedDatesMap);
-      final currentDates = updatedDatesMap[habitId] ?? {};
-      updatedDatesMap[habitId] =
-          currentDates.where((d) => d != dateStr).toSet();
-
-      final completedStatus = Map<String, bool>.from(state.completedStatus);
-      completedStatus[habitId] = false;
-
-      state = state.copyWith(
-        completedDatesMap: updatedDatesMap,
-        completedStatus: completedStatus,
-        isUpdating: false,
-      );
+      final updatedHabit = await _service.unmarkHabitAsDone(habitId, date);
+      if (updatedHabit != null) {
+        state = state.copyWith(habits: _replaceHabit(updatedHabit));
+      } else {
+        try {
+          // ignore: avoid_print
+          print(
+              '[Habits] unmarkHabitAsDone - server returned no habit for $habitId');
+        } catch (_) {}
+      }
     } catch (e) {
-      state = state.copyWith(
-        isUpdating: false,
-        error: e.toString(),
-      );
+      // Preserve local change but notify via error
+      state = state.copyWith(error: e.toString());
     }
   }
 
@@ -322,6 +475,12 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       selectedDate: selectedDate,
       completedStatus: completedStatus,
     );
+    // persist selected date
+    try {
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setString(_kSelectedDateKey, selectedDate.toIso8601String());
+      });
+    } catch (_) {}
   }
 
   // Get habits for selected date

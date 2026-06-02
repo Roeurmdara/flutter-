@@ -69,7 +69,7 @@ class ActivitiesNotifier extends StateNotifier<ActivityState> {
   }
 
   // Create new activity
-  Future<void> createActivity({
+  Future<Activity> createActivity({
     required String habitId,
     required String activityType,
     required String value,
@@ -92,11 +92,13 @@ class ActivitiesNotifier extends StateNotifier<ActivityState> {
         activities: [...state.activities, newActivity],
         isUpdating: false,
       );
+      return newActivity;
     } catch (e) {
       state = state.copyWith(
         isUpdating: false,
         error: e.toString(),
       );
+      rethrow;
     }
   }
 

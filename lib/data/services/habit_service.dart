@@ -21,6 +21,8 @@ class HabitService {
     required DateTime startDate,
     DateTime? endDate,
     required String visibility,
+    String? emoji,
+    String? colorHex,
   }) async {
     try {
       final response = await _dio.post(
@@ -38,6 +40,8 @@ class HabitService {
           'start_date': startDate.toIso8601String(),
           'end_date': endDate?.toIso8601String(),
           'visibility': visibility,
+          if (emoji != null) 'emoji': emoji,
+          if (colorHex != null) 'color_hex': colorHex,
         },
       );
 
@@ -127,6 +131,8 @@ class HabitService {
     DateTime? startDate,
     DateTime? endDate,
     String? status,
+    String? emoji,
+    String? colorHex,
   }) async {
     try {
       final data = <String, dynamic>{};
@@ -138,6 +144,8 @@ class HabitService {
       if (startDate != null) data['start_date'] = startDate.toIso8601String();
       if (endDate != null) data['end_date'] = endDate.toIso8601String();
       if (status != null) data['status'] = status;
+      if (emoji != null) data['emoji'] = emoji;
+      if (colorHex != null) data['color_hex'] = colorHex;
 
       final response = await _dio.put(
         '$_baseUrl/habits/$habitId',
@@ -153,8 +161,8 @@ class HabitService {
     }
   }
 
-  // Mark habit as done
-  Future<void> markHabitAsDone(String habitId, DateTime date) async {
+  // Mark habit as done - returns updated Habit when available
+  Future<Habit?> markHabitAsDone(String habitId, DateTime date) async {
     try {
       final response = await _dio.post(
         '$_baseUrl/habits/$habitId/mark-done',
@@ -163,17 +171,27 @@ class HabitService {
         },
       );
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Failed to mark habit as done');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data is Map && response.data['data'] != null
+            ? response.data['data'] as Map<String, dynamic>
+            : null;
+        if (data != null) return Habit.fromJson(data);
+        // If the endpoint did not return the habit, fetch it
+        return await getHabit(habitId);
       }
+
+      // Treat 204 as success but no body
+      if (response.statusCode == 204) {
+        return await getHabit(habitId);
+      }
+
+      throw Exception('Failed to mark habit as done');
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode;
-      if (statusCode == 400 ||
-          statusCode == 404 ||
-          statusCode == 405 ||
-          statusCode == 422) {
-        await updateHabit(habitId, status: 'completed');
-        return;
+      // If the endpoint is not found, treat as non-fatal: the app will
+      // keep optimistic local state and persist it. Re-throw other errors.
+      if (statusCode == 404) {
+        return null;
       }
       rethrow;
     } catch (e) {
@@ -181,8 +199,8 @@ class HabitService {
     }
   }
 
-  // Unmark habit as done
-  Future<void> unmarkHabitAsDone(String habitId, DateTime date) async {
+  // Unmark habit as done - returns updated Habit when available
+  Future<Habit?> unmarkHabitAsDone(String habitId, DateTime date) async {
     try {
       final response = await _dio.delete(
         '$_baseUrl/habits/$habitId/mark-done',
@@ -191,19 +209,23 @@ class HabitService {
         },
       );
 
-      if (response.statusCode != 200 &&
-          response.statusCode != 201 &&
-          response.statusCode != 204) {
-        throw Exception('Failed to unmark habit');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data is Map && response.data['data'] != null
+            ? response.data['data'] as Map<String, dynamic>
+            : null;
+        if (data != null) return Habit.fromJson(data);
+        return await getHabit(habitId);
       }
+
+      if (response.statusCode == 204) {
+        return await getHabit(habitId);
+      }
+
+      throw Exception('Failed to unmark habit');
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode;
-      if (statusCode == 400 ||
-          statusCode == 404 ||
-          statusCode == 405 ||
-          statusCode == 422) {
-        await updateHabit(habitId, status: 'active');
-        return;
+      if (statusCode == 404) {
+        return null;
       }
       rethrow;
     } catch (e) {
@@ -398,7 +420,9 @@ class HabitService {
     try {
       final response = await _dio.delete('$_baseUrl/habits/$habitId');
 
-      if (response.statusCode != 200) {
+      if (response.statusCode != 200 &&
+          response.statusCode != 201 &&
+          response.statusCode != 204) {
         throw Exception('Failed to delete habit');
       }
     } catch (e) {

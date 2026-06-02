@@ -1,13 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/community_model.dart';
 import '../models/community_post_model.dart';
 import '../models/habit_category_model.dart';
+import '../models/profile_model.dart';
 import '../services/community_service.dart';
 import '../services/community_post_service.dart';
 import '../services/habit_category_service.dart';
+import '../services/profile_service.dart';
 import '../services/dio_client.dart';
 import '../services/secure_storage_service.dart';
 import 'session_provider.dart';
+import 'profile_provider.dart';
 
 // ─── Service providers ────────────────────────────────────────
 final dioClientProvider = Provider<DioClient>((ref) {
@@ -25,6 +30,8 @@ final communityPostServiceProvider = Provider<CommunityPostService>((ref) {
 final habitCategoryServiceProvider = Provider<HabitCategoryService>((ref) {
   return HabitCategoryService();
 });
+
+// using userProfileServiceProvider from profile_provider.dart
 
 // ─── Habit categories ─────────────────────────────────────────
 final habitCategoriesProvider =
@@ -47,6 +54,13 @@ final communityDetailProvider =
     FutureProvider.family<Community, String>((ref, communityId) async {
   return ref.watch(communityServiceProvider).getCommunityById(communityId);
 });
+
+// ─── User profile by ID ───────────────────────────────────────
+final userProfileByIdProvider = FutureProvider.family<ProfileResponse, String>(
+  (ref, userId) async {
+    return ref.watch(userProfileServiceProvider).getUserProfileById(userId);
+  },
+);
 
 // ─── Community members ────────────────────────────────────────
 final communityMembersProvider = FutureProvider.family<CommunityMembersResponse,
@@ -131,6 +145,8 @@ class CreateCommunityNotifier extends StateNotifier<AsyncValue<Community?>> {
     required String description,
     required String categoryId,
     String? coverImage,
+    // If provided, this local file will be uploaded as the cover image.
+    File? coverImageFile,
     String joinType = 'open',
   }) async {
     state = const AsyncValue.loading();
@@ -140,6 +156,7 @@ class CreateCommunityNotifier extends StateNotifier<AsyncValue<Community?>> {
         description: description,
         categoryId: categoryId,
         coverImage: coverImage,
+        coverImageFile: coverImageFile,
         joinType: joinType,
       );
       state = AsyncValue.data(community);
@@ -197,6 +214,7 @@ class PostOperationsNotifier extends StateNotifier<AsyncValue<void>> {
     required String title,
     required String body,
     bool isPinned = false,
+    File? imageFile,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -206,6 +224,7 @@ class PostOperationsNotifier extends StateNotifier<AsyncValue<void>> {
         body: body,
         contentType: 'post',
         isPinned: isPinned,
+        imageFile: imageFile,
       );
       _ref.invalidate(communityPostsProvider);
       state = const AsyncValue.data(null);
@@ -221,6 +240,7 @@ class PostOperationsNotifier extends StateNotifier<AsyncValue<void>> {
     required String title,
     required String body,
     bool? isPinned,
+    File? imageFile,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -230,6 +250,7 @@ class PostOperationsNotifier extends StateNotifier<AsyncValue<void>> {
         title: title,
         body: body,
         isPinned: isPinned,
+        imageFile: imageFile,
       );
       _ref.invalidate(communityPostsProvider);
       state = const AsyncValue.data(null);
@@ -259,7 +280,9 @@ class PostOperationsNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       await _service.addComment(postId: postId, body: body);
-      _ref.invalidate(postCommentsProvider);
+      _ref.invalidate(postCommentsProvider(
+        CommentPaginationParams(postId: postId),
+      ));
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -274,7 +297,9 @@ class PostOperationsNotifier extends StateNotifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     try {
       await _service.deleteComment(postId: postId, commentId: commentId);
-      _ref.invalidate(postCommentsProvider);
+      _ref.invalidate(postCommentsProvider(
+        CommentPaginationParams(postId: postId),
+      ));
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

@@ -5,9 +5,8 @@ import '../../../core/theme/app_typography.dart';
 import '../../../data/models/community_model.dart';
 import '../../../data/providers/community_provider.dart';
 import '../../../data/providers/session_provider.dart';
-import 'community_posts_feed_screen.dart';
-import 'community_screen.dart'
-    show communityColor, communityEmoji; // reuse helpers
+import 'community_detail_screen.dart';
+import 'community_screen.dart' show communityColor, communityEmoji;
 
 // ─── Community Search Screen ──────────────────────────────────────────────────
 
@@ -21,11 +20,26 @@ class CommunitySearchScreen extends ConsumerStatefulWidget {
 
 class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
   final _ctrl = TextEditingController();
+  bool _isNavigating = false; // 👈 guard flag
 
   @override
   void dispose() {
     _ctrl.dispose();
     super.dispose();
+  }
+
+  void _navigateTo(Community c, bool isJoined) {
+    if (_isNavigating) return; // 👈 prevent double push
+    _isNavigating = true;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CommunityDetailScreen(
+          community: c,
+          isJoined: isJoined,
+        ),
+      ),
+    ).then((_) => _isNavigating = false); // 👈 reset after returning
   }
 
   @override
@@ -44,7 +58,7 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
         backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        toolbarHeight: 64,
+        toolbarHeight: 60,
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios_new_rounded,
@@ -53,25 +67,21 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Search',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.darkText : AppColors.lightText,
-              ),
-            ),
-          ],
+        title: Text(
+          'Search',
+          style: TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
+            letterSpacing: -0.3,
+          ),
         ),
       ),
       body: Column(children: [
         // ── Search bar ──
         Container(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
           child: TextField(
             controller: _ctrl,
             onChanged: (_) => setState(() {}),
@@ -86,14 +96,14 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
                   color: isDark
                       ? AppColors.darkTextSecondary
                       : AppColors.lightTextSecondary,
-                  size: 20),
+                  size: 22),
               filled: true,
               fillColor:
                   isDark ? AppColors.darkBackground : AppColors.lightBackground,
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(vertical: 11),
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
             ),
           ),
         ),
@@ -103,7 +113,7 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
           child: allAsync.when(
             loading: () => Center(
                 child: CircularProgressIndicator(
-                    color: AppColors.primaryPurple, strokeWidth: 2)),
+                    color: AppColors.primaryPurple, strokeWidth: 2.5)),
             error: (_, __) => Center(
                 child: Text('Error loading communities',
                     style: AppTypography.bodyMedium(
@@ -130,7 +140,7 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
               }
 
               return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                 itemCount: list.length,
                 itemBuilder: (_, i) {
                   final c = list[i];
@@ -139,12 +149,7 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
                     community: c,
                     isDark: isDark,
                     isJoined: isJoined,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CommunityDetailScreen(
-                              community: c, isJoined: isJoined),
-                        )),
+                    onTap: () => _navigateTo(c, isJoined), // 👈 guarded
                     onJoin: () =>
                         ref.read(sessionProvider.notifier).joinCommunity(c.id),
                     onLeave: () =>
@@ -182,288 +187,111 @@ class _SearchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = communityColor(community); // ← uses custom color if set
-    final emoji = communityEmoji(community); // ← uses custom emoji if set
+    final color = communityColor(community);
+    final emoji = communityEmoji(community);
+
+    final actionColor =
+        isJoined ? const Color(0xFFE53935) : AppColors.primaryPurple;
 
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque, // 👈 prevent bubbling issues
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(12),
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isJoined ? color.withOpacity(0.3) : color.withOpacity(0.15),
-            width: isJoined ? 1.5 : 1,
+            color: isJoined
+                ? actionColor.withOpacity(0.2)
+                : color.withOpacity(0.12),
+            width: 1,
           ),
         ),
         child: Row(children: [
-          // Emoji badge
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-                shape: BoxShape.circle, color: color.withOpacity(0.12)),
-            child: Center(
-                child: Text(emoji, style: const TextStyle(fontSize: 20))),
+          // Cover image (if available) else emoji badge
+          if (community.coverImage != null && community.coverImage!.isNotEmpty)
+            ClipOval(
+              child: Container(
+                width: 44,
+                height: 44,
+                color: color.withOpacity(0.06),
+                child: Image.network(
+                  community.coverImage!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Center(
+                    child: Text(emoji, style: const TextStyle(fontSize: 22)),
+                  ),
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 1.5),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            )
+          else
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                  shape: BoxShape.circle, color: color.withOpacity(0.1)),
+              child: Center(
+                  child: Text(emoji, style: const TextStyle(fontSize: 22))),
+            ),
+          const SizedBox(width: 14),
+
+          // Name + member count
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  community.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodyMedium(
+                          isDark ? AppColors.darkText : AppColors.lightText)
+                      .copyWith(fontWeight: FontWeight.w600, fontSize: 15),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_fmt(community.memberCount)} members',
+                  style: AppTypography.bodySmall(isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary),
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 12),
 
-          // Name + description
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(
-                  child: Text(community.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.bodyMedium(
-                              isDark ? AppColors.darkText : AppColors.lightText)
-                          .copyWith(fontWeight: FontWeight.w600)),
-                ),
-                Text('👥 ${_fmt(community.memberCount)}',
-                    style:
-                        TextStyle(fontSize: 11, color: color.withOpacity(0.8))),
-              ]),
-              const SizedBox(height: 3),
-              Text(community.description,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodySmall(isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary)),
-            ]),
-          ),
-          const SizedBox(width: 10),
-
-          // Join / Leave button
+          // Join / Leave button — absorbs tap so it doesn't trigger onTap
           GestureDetector(
-            onTap: isJoined ? onLeave : onJoin,
+            onTap: () => isJoined ? onLeave() : onJoin(), // 👈 isolated
+            behavior: HitTestBehavior.opaque, // 👈 absorb the tap here
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color: isJoined
-                    ? color.withOpacity(0.08)
-                    : color.withOpacity(0.12),
-                border: Border.all(color: color.withOpacity(0.25)),
+                color: actionColor.withOpacity(0.08),
+                border: Border.all(color: actionColor.withOpacity(0.2)),
               ),
               child: Text(
-                isJoined ? '✓ Joined' : '+ Join',
+                isJoined ? 'Leave' : 'Join',
                 style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w600, color: color),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: actionColor),
               ),
             ),
           ),
-        ]),
-      ),
-    );
-  }
-}
-
-// ─── Community Detail Screen ──────────────────────────────────────────────────
-
-class CommunityDetailScreen extends ConsumerStatefulWidget {
-  final Community community;
-  final bool isJoined;
-
-  const CommunityDetailScreen({
-    Key? key,
-    required this.community,
-    required this.isJoined,
-  }) : super(key: key);
-
-  @override
-  ConsumerState<CommunityDetailScreen> createState() =>
-      _CommunityDetailScreenState();
-}
-
-class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tab;
-
-  @override
-  void initState() {
-    super.initState();
-    _tab = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tab.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isJoined = ref
-        .watch(sessionProvider)
-        .joinedCommunityIds
-        .contains(widget.community.id);
-    final color = communityColor(widget.community);
-    final emoji = communityEmoji(widget.community);
-
-    return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor:
-            isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              size: 18,
-              color: isDark ? AppColors.darkText : AppColors.lightText),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Column(children: [
-        // ── Header ──
-        Container(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-          child: Column(children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withOpacity(0.13),
-                border: Border.all(color: color.withOpacity(0.3), width: 2),
-              ),
-              child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 28))),
-            ),
-            const SizedBox(height: 10),
-            Text(widget.community.name,
-                style: AppTypography.headlineLarge(
-                        isDark ? AppColors.darkText : AppColors.lightText)
-                    .copyWith(fontSize: 17)),
-            const SizedBox(height: 4),
-            Text('${_fmtCount(widget.community.memberCount)} members',
-                style: AppTypography.bodySmall(isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary)
-                    .copyWith(fontSize: 12)),
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: isJoined
-                  ? () => ref
-                      .read(sessionProvider.notifier)
-                      .leaveCommunity(widget.community.id)
-                  : () => ref
-                      .read(sessionProvider.notifier)
-                      .joinCommunity(widget.community.id),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color:
-                      isJoined ? Colors.transparent : color.withOpacity(0.12),
-                  border: Border.all(
-                    color: isJoined
-                        ? (isDark ? Colors.white12 : Colors.black12)
-                        : color.withOpacity(0.35),
-                  ),
-                ),
-                child: Text(
-                  isJoined ? 'Leave' : 'Join',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: isJoined
-                        ? (isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary)
-                        : color,
-                  ),
-                ),
-              ),
-            ),
-          ]),
-        ),
-
-        // ── Tabs ──
-        Container(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          child: TabBar(
-            controller: _tab,
-            labelColor: AppColors.primaryPurple,
-            unselectedLabelColor: isDark
-                ? AppColors.darkTextSecondary
-                : AppColors.lightTextSecondary,
-            indicatorColor: AppColors.primaryPurple,
-            indicatorSize: TabBarIndicatorSize.tab,
-            labelStyle: AppTypography.bodyMedium(AppColors.primaryPurple)
-                .copyWith(fontSize: 13),
-            tabs: const [Tab(text: 'About'), Tab(text: 'Feed')],
-          ),
-        ),
-
-        // ── Tab content ──
-        Expanded(
-          child: TabBarView(controller: _tab, children: [
-            _AboutTab(community: widget.community, isDark: isDark),
-            CommunityPostsFeedScreen(
-              communityId: widget.community.id,
-              communityName: widget.community.name,
-              showAppBar: false,
-            ),
-          ]),
-        ),
-      ]),
-    );
-  }
-
-  String _fmtCount(int n) => n >= 1000
-      ? '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}k'
-      : '$n';
-}
-
-// ─── About Tab ────────────────────────────────────────────────────────────────
-
-class _AboutTab extends StatelessWidget {
-  final Community community;
-  final bool isDark;
-  const _AboutTab({required this.community, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    final text = isDark ? AppColors.darkText : AppColors.lightText;
-    final sub =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.06)
-                  : Colors.black.withOpacity(0.06)),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('About',
-              style: AppTypography.bodyMedium(text)
-                  .copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
-          Text(community.description,
-              style: AppTypography.bodySmall(sub).copyWith(height: 1.6)),
-          const SizedBox(height: 12),
-          Row(children: [
-            Icon(Icons.people_rounded, size: 14, color: sub),
-            const SizedBox(width: 6),
-            Text('${community.memberCount} members',
-                style: AppTypography.bodySmall(sub).copyWith(fontSize: 12)),
-          ]),
         ]),
       ),
     );

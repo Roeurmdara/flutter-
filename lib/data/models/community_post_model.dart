@@ -30,21 +30,28 @@ class CommunityPost {
   });
 
   factory CommunityPost.fromJson(Map<String, dynamic> json) {
+    final createdAt = json['created_at'] != null
+        ? DateTime.parse(json['created_at'].toString())
+        : DateTime.now();
+    final updatedAt = json['updated_at'] != null
+        ? DateTime.parse(json['updated_at'].toString())
+        : createdAt;
+
     return CommunityPost(
-      id: json['id'] as String,
-      communityId: json['community_id'] as String,
-      authorId: json['author_id'] as String,
-      contentType: json['content_type'] as String,
-      title: json['title'] as String,
-      body: json['body'] as String,
+      id: json['id']?.toString() ?? '',
+      communityId: json['community_id']?.toString() ?? '',
+      authorId: json['author_id']?.toString() ?? '',
+      contentType: json['content_type']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      body: json['body']?.toString() ?? '',
       isPinned: json['is_pinned'] as bool? ?? false,
-      status: json['status'] as String,
-      likeCount: json['like_count'] as int? ?? 0,
-      commentCount: json['comment_count'] as int? ?? 0,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      status: json['status']?.toString() ?? '',
+      likeCount: (json['like_count'] as num?)?.toInt() ?? 0,
+      commentCount: (json['comment_count'] as num?)?.toInt() ?? 0,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
       deletedAt: json['deleted_at'] != null
-          ? DateTime.parse(json['deleted_at'] as String)
+          ? DateTime.parse(json['deleted_at'].toString())
           : null,
     );
   }
@@ -90,17 +97,24 @@ class CommunityPostComment {
   });
 
   factory CommunityPostComment.fromJson(Map<String, dynamic> json) {
+    final createdAt = json['created_at'] != null
+        ? DateTime.parse(json['created_at'].toString())
+        : DateTime.now();
+    final updatedAt = json['updated_at'] != null
+        ? DateTime.parse(json['updated_at'].toString())
+        : createdAt;
+
     return CommunityPostComment(
-      id: json['id'] as String,
-      postId: json['post_id'] as String,
-      authorId: json['author_id'] as String,
-      body: json['body'] as String,
-      status: json['status'] as String,
-      likeCount: json['like_count'] as int? ?? 0,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      id: json['id']?.toString() ?? '',
+      postId: json['post_id']?.toString() ?? '',
+      authorId: json['author_id']?.toString() ?? '',
+      body: json['body']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      likeCount: (json['like_count'] as num?)?.toInt() ?? 0,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
       deletedAt: json['deleted_at'] != null
-          ? DateTime.parse(json['deleted_at'] as String)
+          ? DateTime.parse(json['deleted_at'].toString())
           : null,
     );
   }

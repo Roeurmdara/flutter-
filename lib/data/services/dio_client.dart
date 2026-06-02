@@ -45,6 +45,21 @@ class DioClient {
         },
       ),
     );
+
+    // Add logging interceptor for debugging network requests
+    _dio.interceptors.add(
+      LogInterceptor(
+        requestHeader: true,
+        requestBody: true,
+        responseHeader: true,
+        responseBody: true,
+        error: true,
+        logPrint: (obj) {
+          // ignore: avoid_print
+          print(obj);
+        },
+      ),
+    );
   }
 
   /// Get the Dio instance for custom requests

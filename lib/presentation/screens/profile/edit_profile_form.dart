@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/providers/profile_provider.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 class _T {
@@ -133,7 +134,23 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
         _pickedImageFile = File(picked.path);
         _previewAvatarUrl = null;
       });
-      // TODO: upload file and set _avatarUrlController.text = uploadedUrl
+      // Upload immediately and set the avatar URL for saving
+      try {
+        final notifier = ref.read(profileProvider.notifier);
+        final uploaded = await notifier.uploadAvatarFile(_pickedImageFile!);
+        if (uploaded != null && mounted) {
+          setState(() {
+            _avatarUrlController.text = uploaded;
+            _previewAvatarUrl = uploaded;
+            _pickedImageFile = null; // clear local preview since we use URL
+          });
+          _snack('Image uploaded');
+        } else {
+          _snack('Upload failed');
+        }
+      } catch (e) {
+        _snack('Upload failed: $e');
+      }
     } catch (e) {
       if (!mounted) return;
       _snack('Could not pick image: $e');
@@ -385,7 +402,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
                 backgroundColor: _T.cancelBg(context),
                 foregroundColor: _T.cancelText(context),
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 20),
+                padding: const EdgeInsets.symmetric(vertical: 21),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

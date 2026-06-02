@@ -8,13 +8,12 @@ import '../../../data/providers/session_provider.dart';
 
 import 'home_dashboard_screen.dart';
 import '../../widgets/create_habit_modal.dart';
-import '../categories/categories_screen.dart';
 import '../community/community_screen.dart';
 import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
 import '../profile/edit_profile_form.dart';
 import '../../../data/providers/profile_provider.dart';
-
+import '../categories/categories_screen.dart';
 class HomeScreen extends ConsumerStatefulWidget {
   final Function(bool isDark) onThemeToggle;
   final bool isDarkMode;

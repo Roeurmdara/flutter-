@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/habit_model.dart';
 import '../../../data/providers/activity_provider.dart';
+import '../../../data/providers/community_provider.dart';
 
 class HabitDetailScreen extends ConsumerStatefulWidget {
   final Habit habit;
@@ -25,7 +26,19 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   late TextEditingController _valueController;
   late TextEditingController _unitController;
   late TextEditingController _noteController;
+  // Post operations controllers (debug / helper UI)
+  late TextEditingController _communityIdController;
+  late TextEditingController _postIdController;
+  late TextEditingController _postTitleController;
+  late TextEditingController _postBodyController;
+  bool _postIsPinned = false;
+
+  late TextEditingController _commentBodyController;
+  late TextEditingController _commentIdController;
   bool _showAddActivityForm = false;
+
+  // Community posts UI state
+  late TextEditingController _quickCommentController;
 
   @override
   void initState() {
@@ -34,6 +47,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     _valueController = TextEditingController();
     _unitController = TextEditingController();
     _noteController = TextEditingController();
+    _communityIdController = TextEditingController();
+    _postIdController = TextEditingController();
+    _postTitleController = TextEditingController();
+    _postBodyController = TextEditingController();
+    _commentBodyController = TextEditingController();
+    _commentIdController = TextEditingController();
+    _quickCommentController = TextEditingController();
 
     // Load activities for this habit
     Future.microtask(() {
@@ -50,6 +70,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     _valueController.dispose();
     _unitController.dispose();
     _noteController.dispose();
+    _communityIdController.dispose();
+    _postIdController.dispose();
+    _postTitleController.dispose();
+    _postBodyController.dispose();
+    _commentBodyController.dispose();
+    _commentIdController.dispose();
+    _quickCommentController.dispose();
     super.dispose();
   }
 
@@ -58,6 +85,66 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     _valueController.clear();
     _unitController.clear();
     _noteController.clear();
+  }
+
+  void _showCommentDialog(String postId, String postTitle) {
+    _quickCommentController.clear();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Add Comment to "$postTitle"'),
+        content: TextField(
+          controller: _quickCommentController,
+          decoration: const InputDecoration(
+            hintText: 'Enter your comment...',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final body = _quickCommentController.text.trim();
+              if (body.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Comment cannot be empty')),
+                );
+                return;
+              }
+              try {
+                await ref.read(postOperationsProvider.notifier).addComment(
+                      postId: postId,
+                      body: body,
+                    );
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Comment added!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Post Comment'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _createActivity() async {
@@ -240,6 +327,26 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 ],
               ),
             ),
+
+            // Community Posts Section (for quick commenting)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Community Posts',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildCommunityPostsSection(isDark, ref),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -333,6 +440,245 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   'Best Streak',
                   '${widget.habit.bestStreak}',
                   isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Post operations helper (for testing update/delete/comments)
+          _buildPostOperationsSection(isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostOperationsSection(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Post Operations',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildTextField(
+            controller: _communityIdController,
+            label: 'Community ID',
+            hint: 'community id',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 8),
+          _buildTextField(
+            controller: _postIdController,
+            label: 'Post ID',
+            hint: 'post id',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 8),
+          _buildTextField(
+            controller: _postTitleController,
+            label: 'Post Title',
+            hint: 'title',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 8),
+          _buildTextField(
+            controller: _postBodyController,
+            label: 'Post Body',
+            hint: 'body',
+            isDark: isDark,
+          ),
+          Row(
+            children: [
+              Checkbox(
+                value: _postIsPinned,
+                onChanged: (v) => setState(() => _postIsPinned = v ?? false),
+              ),
+              const SizedBox(width: 4),
+              const Text('Pinned'),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final cid = _communityIdController.text.trim();
+                    final pid = _postIdController.text.trim();
+                    final title = _postTitleController.text.trim();
+                    final body = _postBodyController.text.trim();
+                    if (cid.isEmpty || pid.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Community and Post IDs required')),
+                      );
+                      return;
+                    }
+                    try {
+                      await ref
+                          .read(postOperationsProvider.notifier)
+                          .updatePost(
+                            communityId: cid,
+                            postId: pid,
+                            title: title.isEmpty ? 'Updated' : title,
+                            body: body.isEmpty ? 'Updated body' : body,
+                            isPinned: _postIsPinned,
+                          );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Post updated'),
+                            backgroundColor: Colors.green),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('Update failed: $e'),
+                            backgroundColor: Colors.red),
+                      );
+                    }
+                  },
+                  child: const Text('Update Post'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () async {
+                    final cid = _communityIdController.text.trim();
+                    final pid = _postIdController.text.trim();
+                    if (cid.isEmpty || pid.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Community and Post IDs required')),
+                      );
+                      return;
+                    }
+                    try {
+                      await ref
+                          .read(postOperationsProvider.notifier)
+                          .deletePost(
+                            communityId: cid,
+                            postId: pid,
+                          );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Post deleted'),
+                            backgroundColor: Colors.green),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('Delete failed: $e'),
+                            backgroundColor: Colors.red),
+                      );
+                    }
+                  },
+                  child: const Text('Delete Post'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildTextField(
+            controller: _commentBodyController,
+            label: 'Comment Body',
+            hint: 'comment text',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 8),
+          _buildTextField(
+            controller: _commentIdController,
+            label: 'Comment ID (for delete)',
+            hint: 'comment id',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final pid = _postIdController.text.trim();
+                    final body = _commentBodyController.text.trim();
+                    if (pid.isEmpty || body.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Post ID and comment body required')),
+                      );
+                      return;
+                    }
+                    try {
+                      await ref
+                          .read(postOperationsProvider.notifier)
+                          .addComment(
+                            postId: pid,
+                            body: body,
+                          );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Comment added'),
+                            backgroundColor: Colors.green),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('Add comment failed: $e'),
+                            backgroundColor: Colors.red),
+                      );
+                    }
+                  },
+                  child: const Text('Add Comment'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () async {
+                    final pid = _postIdController.text.trim();
+                    final cid = _commentIdController.text.trim();
+                    if (pid.isEmpty || cid.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Post ID and Comment ID required')),
+                      );
+                      return;
+                    }
+                    try {
+                      await ref
+                          .read(postOperationsProvider.notifier)
+                          .deleteComment(
+                            postId: pid,
+                            commentId: cid,
+                          );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Comment deleted'),
+                            backgroundColor: Colors.green),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('Delete comment failed: $e'),
+                            backgroundColor: Colors.red),
+                      );
+                    }
+                  },
+                  child: const Text('Delete Comment'),
                 ),
               ),
             ],
@@ -531,6 +877,187 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     );
   }
 
+  Widget _buildCommunityPostsSection(bool isDark, WidgetRef ref) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTextField(
+          controller: _communityIdController,
+          label: 'Community ID',
+          hint: 'Enter community ID to view posts',
+          isDark: isDark,
+        ),
+        const SizedBox(height: 16),
+        if (_communityIdController.text.isNotEmpty)
+          _buildPostsList(_communityIdController.text, isDark, ref)
+        else
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              ),
+            ),
+            child: Text(
+              'Enter a Community ID above to view posts',
+              style: TextStyle(
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.lightTextSecondary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildPostsList(String communityId, bool isDark, WidgetRef ref) {
+    return ref
+        .watch(communityPostsProvider(
+            PostPaginationParams(communityId: communityId)))
+        .when(
+          loading: () => _buildLoadingState(isDark),
+          error: (error, st) => _buildErrorState(error.toString(), isDark),
+          data: (postsResponse) {
+            if (postsResponse.data.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkSurface : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color:
+                        isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  ),
+                ),
+                child: Text(
+                  'No posts in this community',
+                  style: TextStyle(
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: postsResponse.data.map((post) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color:
+                          isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  post.title,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? AppColors.darkText
+                                        : AppColors.lightText,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  post.body,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? AppColors.darkTextSecondary
+                                        : AppColors.lightTextSecondary,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            children: [
+                              GestureDetector(
+                                onTap: () =>
+                                    _showCommentDialog(post.id, post.title),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF6366F1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Icon(
+                                    Icons.comment,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                post.commentCount.toString(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.lightTextSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'ID: ${post.id.substring(0, 8)}...',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                          Text(
+                            '${post.likeCount} likes',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        );
+  }
+
   Widget _buildActivityCard(
     dynamic activity,
     bool isDark,
@@ -563,8 +1090,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
               }
             },
             child: Container(
-              width: 24,
-              height: 24,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color:
                     isCompleted ? const Color(0xFF6366F1) : Colors.transparent,
