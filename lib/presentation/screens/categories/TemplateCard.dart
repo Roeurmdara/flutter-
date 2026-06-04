@@ -1,5 +1,8 @@
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/providers/habit_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TemplateCard
@@ -44,159 +47,124 @@ class _TemplateCardState extends State<TemplateCard> {
     );
   }
 
-  void _toggleAdd(BuildContext context) {
-    setState(() => _added = !_added);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _added
-              ? '${widget.template.title} added to your habits'
-              : '${widget.template.title} removed',
-          style: const TextStyle(fontSize: 13),
-        ),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      ),
-    );
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final freq = widget.template.suggestedFrequency as String? ?? 'daily';
-    final days = widget.template.durationDays as int? ?? 1;
-    final freqLabel = freq[0].toUpperCase() + freq.substring(1);
+Widget build(BuildContext context) {
+  final freq = widget.template.suggestedFrequency as String? ?? 'daily';
+  final days = widget.template.durationDays as int? ?? 1;
+  final freqLabel = freq[0].toUpperCase() + freq.substring(1);
+  final isDark = widget.isDark;
 
-    return GestureDetector(
-      onTap: () => _showDetail(context),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 148,
-        margin: const EdgeInsets.only(right: 10),
-        padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
-        decoration: BoxDecoration(
-          color: widget.isDark ? AppColors.darkSurface : Colors.white,
-          border: Border.all(
-            color: _added
-                ? const Color(0xFF63993B).withOpacity(0.8)
-                : widget.isDark
-                    ? AppColors.darkBorder
-                    : AppColors.lightBorder,
-            width: _added ? 1.5 : 0.5,
+  final Color surface = isDark ? AppColors.darkSurface : Colors.white;
+  final Color textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
+  final Color textSecondary =
+      isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+  final Color borderColor = _added
+      ? const Color(0xFF63993B).withOpacity(0.7)
+      : isDark
+          ? AppColors.darkBorder
+          : AppColors.lightBorder;
+
+  return AnimatedContainer(
+    duration: const Duration(milliseconds: 180),
+    width: 152,
+    margin: const EdgeInsets.only(right: 10),
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: surface,
+      border: Border.all(color: borderColor, width: _added ? 1.5 : 0.5),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Title ────────────────────────────────────────────────────
+        Text(
+          widget.template.title as String,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            height: 1.25,
+            color: textPrimary,
           ),
-          borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(height: 6),
+
+        // ── Frequency row: clock icon + label ────────────────────────
+        Row(
           children: [
-            // Frequency badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(
-                color: widget.categoryColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(
-                freqLabel,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.3,
-                  color: widget.categoryColor,
-                ),
-              ),
+            Icon(
+              Icons.schedule_rounded,
+              size: 14,
+              color: textSecondary,
             ),
-            const SizedBox(height: 9),
-
-            // Title
+            const SizedBox(width: 4),
             Text(
-              widget.template.title as String,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              '$freqLabel · $days d',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                height: 1.35,
-                color: widget.isDark ? AppColors.darkText : AppColors.lightText,
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: textSecondary,
               ),
-            ),
-            const SizedBox(height: 5),
-
-            // Description
-            Expanded(
-              child: Text(
-                widget.template.description as String? ?? '',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  height: 1.45,
-                  color: widget.isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Footer
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '$days days',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: (widget.isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary)
-                        .withOpacity(0.6),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => _toggleAdd(context),
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.transparent,
-                      border: Border.all(
-                        color: _added
-                            ? const Color(0xFF63993B).withOpacity(0.7)
-                            : widget.isDark
-                                ? AppColors.darkBorder
-                                : AppColors.lightBorder,
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Icon(
-                      _added ? Icons.check : Icons.add,
-                      size: 13,
-                      color: _added
-                          ? const Color(0xFF63993B)
-                          : widget.isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         ),
-      ),
-    );
-  }
+
+        const Spacer(),
+
+        // ── Bottom row: icon circle + arrow circle ───────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // Category icon with colored circle bg
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: widget.categoryColor.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  widget.categoryIcon,
+                  style: const TextStyle(fontSize: 22),
+                ),
+              ),
+            ),
+
+            // Arrow detail button — dark circle
+            GestureDetector(
+              onTap: () => _showDetail(context),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+                child: Icon(
+                  Icons.arrow_upward_rounded,
+                  size: 18,
+                  color: isDark ? Colors.black : Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TemplateDetailSheet
 // ─────────────────────────────────────────────────────────────────────────────
-class TemplateDetailSheet extends StatefulWidget {
+class TemplateDetailSheet extends ConsumerStatefulWidget {
   final dynamic template;
   final Color categoryColor;
   final String categoryName;
@@ -217,377 +185,526 @@ class TemplateDetailSheet extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<TemplateDetailSheet> createState() => _TemplateDetailSheetState();
+  ConsumerState<TemplateDetailSheet> createState() =>
+      _TemplateDetailSheetState();
 }
 
-class _TemplateDetailSheetState extends State<TemplateDetailSheet> {
-  late bool _added;
+class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
+  late TextEditingController _titleController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _tipsController;
+  bool _isCreating = false;
 
   @override
   void initState() {
     super.initState();
-    _added = widget.isAdded;
+    _titleController =
+        TextEditingController(text: widget.template.title as String? ?? '');
+    _descriptionController = TextEditingController(
+        text: widget.template.description as String? ?? '');
+    // tips is List — join for editing, split back on save if needed
+    final tips = widget.template.tips as List<dynamic>? ?? [];
+    _tipsController =
+        TextEditingController(text: tips.map((t) => t.toString()).join('\n'));
   }
 
-  void _handleToggle() {
-    setState(() => _added = !_added);
-    widget.onToggle();
-    if (_added) Navigator.pop(context);
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _tipsController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleCreate() async {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a title')),
+      );
+      return;
+    }
+
+    setState(() => _isCreating = true);
+    try {
+      final frequency =
+          widget.template.suggestedFrequency as String? ?? 'daily';
+
+      await ref.read(habitsProvider.notifier).createHabit(
+            categoryId: widget.template.categoryId as String,
+            title: _titleController.text.trim(),
+            description: _descriptionController.text.trim(),
+            frequencyType: frequency,
+            frequencyConfig: [frequency],
+            goalType: 'binary',
+            targetValue: 1,
+            targetUnit: 'completion',
+            startDate: DateTime.now(),
+            endDate: null,
+            visibility: 'private',
+            emoji: widget.template.emoji as String? ?? widget.categoryIcon,
+            colorHex: widget.template.colorHex as String? ??
+                '#${widget.categoryColor.value.toRadixString(16).substring(2).toUpperCase()}',
+          );
+
+      widget.onToggle();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('${_titleController.text.trim()} added to your habits'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8)),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCreating = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
     final template = widget.template;
+
+    // Read-only from API
     final freq = template.suggestedFrequency as String? ?? 'daily';
     final days = template.durationDays as int? ?? 1;
     final freqLabel = freq[0].toUpperCase() + freq.substring(1);
-    final title = template.title as String;
-    final description = template.description as String? ?? '';
-    final tips = template.tips as List<dynamic>? ?? [];
     final benefits = template.benefits as List<dynamic>? ?? [];
+    final hasTips =
+        (template.tips as List<dynamic>? ?? []).isNotEmpty;
 
-    final bg = isDark ? AppColors.darkSurface : Colors.white;
-    final textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
-    final textSecondary =
+    final Color bg = isDark ? AppColors.darkSurface : Colors.white;
+    final Color textPrimary =
+        isDark ? AppColors.darkText : AppColors.lightText;
+    final Color textSecondary =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-    final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final Color divider =
+        isDark ? Colors.white10 : Colors.black.withOpacity(0.06);
+    final Color inputFill = isDark
+        ? Colors.white.withOpacity(0.04)
+        : Colors.black.withOpacity(0.03);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border.all(color: border, width: 0.5),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          const SizedBox(height: 12),
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.88,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          const SizedBox(height: 20),
+          child: Column(
+            children: [
+              // ── Drag handle ────────────────────────────────────────────
+              const SizedBox(height: 10),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
+              const SizedBox(height: 16),
 
-          // Scrollable content
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Category chip
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 4),
+              // ── Header ─────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Create from Template',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: textPrimary,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
-                          color: widget.categoryColor.withOpacity(0.10),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: widget.categoryColor.withOpacity(0.25),
-                            width: 0.5,
+                          color: isDark
+                              ? Colors.white10
+                              : Colors.black.withOpacity(0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Divider(height: 1, color: divider),
+
+              // ── Body ───────────────────────────────────────────────────
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // TEMPLATE INFO
+                      _buildLabel('TEMPLATE', isDark),
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: widget.categoryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color:
+                                    widget.categoryColor.withOpacity(0.25),
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                widget.categoryIcon,
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.categoryName,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.categoryColor,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  template.title as String,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // HABIT TITLE — editable
+                      _buildLabel('HABIT TITLE', isDark),
+                      TextField(
+                        controller: _titleController,
+                        enabled: !_isCreating,
+                        style: TextStyle(fontSize: 14, color: textPrimary),
+                        decoration: _buildInputDecoration(
+                          isDark,
+                          hint: 'e.g. Morning run',
+                          inputFill: inputFill,
+                          divider: divider,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // DESCRIPTION — editable, pre-filled from API
+                      _buildLabel('DESCRIPTION', isDark),
+                      TextField(
+                        controller: _descriptionController,
+                        enabled: !_isCreating,
+                        maxLines: 3,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: textPrimary,
+                          height: 1.5,
+                        ),
+                        decoration: _buildInputDecoration(
+                          isDark,
+                          hint: 'Optional notes...',
+                          inputFill: inputFill,
+                          divider: divider,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // FREQUENCY & DURATION — read-only from API
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('FREQUENCY', isDark),
+                                _buildReadOnlyBox(
+                                  label: freqLabel,
+                                  textPrimary: textPrimary,
+                                  inputFill: inputFill,
+                                  divider: divider,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('DURATION', isDark),
+                                _buildReadOnlyBox(
+                                  label: '$days days',
+                                  textPrimary: textPrimary,
+                                  inputFill: inputFill,
+                                  divider: divider,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+
+                      // BENEFITS — read-only from API
+                      if (benefits.isNotEmpty) ...[
+                        _buildLabel('BENEFITS', isDark),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: inputFill,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: divider, width: 0.5),
+                          ),
+                          child: Column(
+                            children: benefits.map((b) {
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(top: 5),
+                                      child: Container(
+                                        width: 4,
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                          color: widget.categoryColor
+                                              .withOpacity(0.5),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        b.toString(),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          height: 1.5,
+                                          color: textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        const SizedBox(height: 18),
+                      ],
+
+                      // TIPS — editable, pre-filled from API
+                      if (hasTips) ...[
+                        _buildLabel('TIPS', isDark),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(widget.categoryIcon,
-                                style: const TextStyle(fontSize: 12)),
-                            const SizedBox(width: 5),
-                            Text(
-                              widget.categoryName,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: widget.categoryColor,
+                            Padding(
+                              padding: const EdgeInsets.only(top: 11),
+                              child: const Text('💡',
+                                  style: TextStyle(fontSize: 16)),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _tipsController,
+                                enabled: !_isCreating,
+                                maxLines: 3,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: textPrimary,
+                                  height: 1.5,
+                                ),
+                                decoration: _buildInputDecoration(
+                                  isDark,
+                                  hint: 'Add a tip...',
+                                  inputFill: inputFill,
+                                  divider: divider,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: widget.categoryColor.withOpacity(0.10),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          freqLabel,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: widget.categoryColor,
+                        const SizedBox(height: 18),
+                      ],
+
+                      const SizedBox(height: 4),
+
+                      // ADD TO HABITS button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: FilledButton(
+                          onPressed: _isCreating ? null : _handleCreate,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.primaryPurple,
+                            disabledBackgroundColor:
+                                AppColors.primaryPurple.withOpacity(0.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
+                          child: _isCreating
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor:
+                                        AlwaysStoppedAnimation<Color>(
+                                            Colors.white),
+                                  ),
+                                )
+                              : const Text(
+                                  'Add to Habits',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
 
-                  // Title
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w500,
-                      height: 1.25,
-                      color: textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Description
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.6,
-                      color: textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Stats row
-                  Row(
-                    children: [
-                      _StatChip(
-                        label: 'Duration',
-                        value: '$days days',
-                        color: widget.categoryColor,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 10),
-                      _StatChip(
-                        label: 'Frequency',
-                        value: freqLabel,
-                        color: widget.categoryColor,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 10),
-                      _StatChip(
-                        label: 'Effort',
-                        value: _effortLabel(days),
-                        color: widget.categoryColor,
-                        isDark: isDark,
-                      ),
-                    ],
-                  ),
-
-                  // Benefits
-                  if (benefits.isNotEmpty) ...[
-                    const SizedBox(height: 28),
-                    _SectionLabel(
-                        label: 'Benefits', textSecondary: textSecondary),
-                    const SizedBox(height: 12),
-                    ...benefits.map((b) => _BulletRow(
-                          text: b.toString(),
-                          color: widget.categoryColor,
-                          textPrimary: textPrimary,
-                        )),
-                  ],
-
-                  // Tips
-                  if (tips.isNotEmpty) ...[
-                    const SizedBox(height: 28),
-                    _SectionLabel(
-                        label: 'Tips', textSecondary: textSecondary),
-                    const SizedBox(height: 12),
-                    ...tips.map((t) => _BulletRow(
-                          text: t.toString(),
-                          color: widget.categoryColor,
-                          textPrimary: textPrimary,
-                        )),
-                  ],
-
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
-          ),
-
-          // Action button
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-                24, 12, 24, MediaQuery.of(context).padding.bottom + 20),
-            child: GestureDetector(
-              onTap: _handleToggle,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: double.infinity,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: _added ? Colors.transparent : widget.categoryColor,
-                  border: Border.all(
-                    color: _added
-                        ? const Color(0xFF63993B).withOpacity(0.6)
-                        : widget.categoryColor,
-                    width: _added ? 1.0 : 0,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _added ? Icons.check : Icons.add,
-                        size: 16,
-                        color: _added ? const Color(0xFF63993B) : Colors.white,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _added ? 'Added to habits' : 'Add habit',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color:
-                              _added ? const Color(0xFF63993B) : Colors.white,
-                        ),
-                      ),
+                      SizedBox(
+                          height:
+                              MediaQuery.of(context).padding.bottom + 8),
                     ],
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  String _effortLabel(int days) {
-    if (days <= 14) return 'Light';
-    if (days <= 30) return 'Moderate';
-    return 'Committed';
-  }
-}
+  // ── Sub-builders ────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Small reusable widgets (local to this file)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _StatChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  final bool isDark;
-
-  const _StatChip({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.07),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.18), width: 0.5),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: color.withOpacity(0.7),
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  final Color textSecondary;
-
-  const _SectionLabel({required this.label, required this.textSecondary});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 0.08,
-        color: textSecondary,
-      ),
-    );
-  }
-}
-
-class _BulletRow extends StatelessWidget {
-  final String text;
-  final Color color;
-  final Color textPrimary;
-
-  const _BulletRow({
-    required this.text,
-    required this.color,
-    required this.textPrimary,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildLabel(String label, bool isDark) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Container(
-              width: 5,
-              height: 5,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.6),
-                shape: BoxShape.circle,
-              ),
-            ),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
+          color: isDark ? Colors.white54 : Colors.black45,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyBox({
+    required String label,
+    required Color textPrimary,
+    required Color inputFill,
+    required Color divider,
+  }) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: inputFill,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: divider, width: 0.5),
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: textPrimary,
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.55,
-                color: textPrimary,
-              ),
-            ),
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(
+    bool isDark, {
+    required String hint,
+    required Color inputFill,
+    required Color divider,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(
+        fontSize: 14,
+        color: isDark ? Colors.white30 : Colors.black26,
+      ),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      filled: true,
+      fillColor: inputFill,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: divider),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: divider),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: isDark ? Colors.white38 : Colors.black26,
+        ),
       ),
     );
   }

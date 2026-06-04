@@ -1,3 +1,4 @@
 {
-  "cmake.sourceDirectory": "C:/flutter001/linux"
+  "cmake.sourceDirectory": "C:/flutter001/linux",
+  "java.project.explorer.showNonJavaResources": false
 }

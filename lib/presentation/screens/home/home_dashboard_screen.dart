@@ -35,6 +35,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     final habitState = ref.watch(habitsProvider);
     final habitsForDate = ref.watch(habitsForDateProvider);
     final completionRate = ref.watch(todayCompletionRateProvider);
+    final currentStreak = ref.watch(currentStreakProvider);
     final selectedDate = habitState.selectedDate;
     final authState = ref.watch(authProvider);
     final userName = authState.user?.username ?? 'User';
@@ -45,7 +46,6 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     final doneHabits = habitsForDate
         .where((h) => habitState.completedStatus[h.id] ?? false)
         .toList();
-
     return Scaffold(
       appBar: AppBar(
         title: Image.asset(
@@ -53,12 +53,6 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           height: 50,
         ),
         centerTitle: false,
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_outlined),
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -70,8 +64,8 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Greeting Card
-              _buildGreetingCard(
-                  isDark, completionRate, habitsForDate.length, userName),
+              _buildGreetingCard(isDark, completionRate, habitsForDate.length,
+                  userName, currentStreak),
               const SizedBox(height: 20),
 
               // Date Selector
@@ -143,8 +137,8 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     );
   }
 
-  Widget _buildGreetingCard(
-      bool isDark, int completionRate, int totalHabits, String userName) {
+  Widget _buildGreetingCard(bool isDark, int completionRate, int totalHabits,
+      String userName, int streak) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -162,45 +156,132 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           width: 1.2,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            'Good ${_getGreeting()}, ${userName}!',
-            style: AppTypography.headlineMedium(Colors.white),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Keep your streaks alive today',
-            style: AppTypography.bodyMedium(
-              Colors.white.withOpacity(0.82),
+          // Left Side: Main content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Good ${_getGreeting()}, $userName!',
+                  style: AppTypography.headlineMedium(Colors.white),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Keep streaks alive today',
+                  style: AppTypography.bodyMedium(
+                    Colors.white.withOpacity(0.82),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Row(
+                  children: [
+                    _buildGlassChip(' $totalHabits Habits Doday',
+                        AppColors.primaryPurpleDark),
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 18),
-          Row(
+
+          const SizedBox(width: 10),
+
+          // Right Side: Flame image centered inside the circular progress ring
+          Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildGlassChip('🔥 7 Day Streak', AppColors.primaryPurple),
-              const SizedBox(width: 10),
-              _buildGlassChip(
-                  '✅ $totalHabits Habits', AppColors.primaryPurpleDark),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: completionRate / 100,
-              minHeight: 8,
-              backgroundColor: Colors.white.withOpacity(0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                AppColors.secondaryGreen,
+              SizedBox(
+                height: 110,
+                width: 110,
+                child: Stack(
+                  alignment: Alignment
+                      .center, // Strictly aligns all stack children to the center
+                  children: [
+                    // Background Track Ring
+                    Positioned.fill(
+                      child: CircularProgressIndicator(
+                        value: 1.0,
+                        strokeWidth: 5,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.white.withOpacity(0.15),
+                        ),
+                      ),
+                    ),
+                    // Foreground Progress Ring
+                    Positioned.fill(
+                      child: CircularProgressIndicator(
+                        value: completionRate / 100,
+                        strokeWidth: 5,
+                        strokeCap: StrokeCap.round,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primaryPurple.withOpacity(0.9),
+                        ),
+                      ),
+                    ),
+                    // Perfectly Centered Image with Streak Badge
+                    // Perfectly Centered Image with Streak Badge
+                    Builder(
+                      builder: (context) {
+                        final config = _getFlameConfig(streak);
+                        return Align(
+                          alignment: config['alignment'] as Alignment,
+                          child: Stack(
+                            children: [
+                              SizedBox(
+                                height: config['size'] as double,
+                                width: config['size'] as double,
+                                child: Transform.rotate(
+                                  angle: config['angle'] as double,
+                                  child: Image.asset(
+                                    _getStreakGif(streak),
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                              // Streak Badge at top-right
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryPurple,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '🔥 $streak',
+                                    style:
+                                        AppTypography.labelSmall(Colors.white)
+                                            .copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Completion: $completionRate%',
-            style: AppTypography.bodySmall(Colors.white.withOpacity(0.8)),
+              const SizedBox(height: 5),
+              Text(
+                '$completionRate%',
+                style: AppTypography.bodySmall(Colors.white.withOpacity(0.9))
+                    .copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
         ],
       ),
@@ -518,5 +599,33 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     if (hour < 12) return 'Morning';
     if (hour < 17) return 'Afternoon';
     return 'Evening';
+  }
+
+  String _getStreakGif(int streak) {
+    if (streak >= 20) return 'assets/images/fire-flames.gif';
+    if (streak >= 10) return 'assets/images/flame02.gif';
+    return 'assets/images/flame.gif';
+  }
+
+  Map<String, dynamic> _getFlameConfig(int streak) {
+    if (streak >= 20) {
+      return {
+        'alignment': const Alignment(0.2, 0.0), // ← adjust for legendary flame
+        'size': 120.0, // ← adjust size
+        'angle': 0.0, // ← adjust tilt
+      };
+    } else if (streak >= 10) {
+      return {
+        'alignment': const Alignment(0.2, 0.1), // ← adjust for epic flame
+        'size': 120.0,
+        'angle': 0.0,
+      };
+    } else {
+      return {
+        'alignment': const Alignment(-1.3, 0.1), // ← your original flame
+        'size': 100.0,
+        'angle': 0.1,
+      };
+    }
   }
 }

@@ -60,7 +60,7 @@ class CommunityPostService {
           'title': title,
           'body': body,
           'content_type': contentType,
-          'is_pinned': isPinned,
+          'is_pinned': isPinned.toString(), // Convert boolean to string
           'media':
               await MultipartFile.fromFile(imageFile.path, filename: fileName),
         });
@@ -70,6 +70,7 @@ class CommunityPostService {
           data: form,
           options: Options(
             contentType: 'multipart/form-data',
+            validateStatus: (status) => status != null && status < 500,
           ),
         );
       } else {
@@ -84,11 +85,46 @@ class CommunityPostService {
         );
       }
 
-      return CommunityPost.fromJson(
-          response.data['data'] as Map<String, dynamic>);
+      // Validate response status
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        final responseData = response.data;
+        if (responseData is Map<String, dynamic> &&
+            responseData.containsKey('data')) {
+          return CommunityPost.fromJson(
+              responseData['data'] as Map<String, dynamic>);
+        } else {
+          throw Exception('Invalid response structure from server');
+        }
+      } else {
+        final errorMessage = _extractErrorMessage(response);
+        throw Exception('Failed to create post: $errorMessage');
+      }
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// Helper method to extract error message from API response
+  String _extractErrorMessage(Response response) {
+    try {
+      if (response.data is Map<String, dynamic>) {
+        final data = response.data as Map<String, dynamic>;
+        if (data.containsKey('message')) {
+          return data['message'] as String;
+        }
+        if (data.containsKey('error')) {
+          final error = data['error'];
+          if (error is Map<String, dynamic> && error.containsKey('message')) {
+            return error['message'] as String;
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore error extraction errors
+    }
+    return 'Unknown error (HTTP ${response.statusCode})';
   }
 
   // Get a single post by ID
@@ -101,8 +137,22 @@ class CommunityPostService {
         '/communities/$communityId/posts/$postId',
       );
 
-      return CommunityPost.fromJson(
-          response.data['data'] as Map<String, dynamic>);
+      // Validate response status
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        final responseData = response.data;
+        if (responseData is Map<String, dynamic> &&
+            responseData.containsKey('data')) {
+          return CommunityPost.fromJson(
+              responseData['data'] as Map<String, dynamic>);
+        } else {
+          throw Exception('Invalid response structure from server');
+        }
+      } else {
+        final errorMessage = _extractErrorMessage(response);
+        throw Exception('Failed to fetch post: $errorMessage');
+      }
     } catch (e) {
       rethrow;
     }
@@ -133,7 +183,10 @@ class CommunityPostService {
         response = await dioClient.dio.put(
           '/communities/$communityId/posts/$postId',
           data: form,
-          options: Options(contentType: 'multipart/form-data'),
+          options: Options(
+            contentType: 'multipart/form-data',
+            validateStatus: (status) => status != null && status < 500,
+          ),
         );
       } else {
         final data = {
@@ -150,8 +203,22 @@ class CommunityPostService {
         );
       }
 
-      return CommunityPost.fromJson(
-          response.data['data'] as Map<String, dynamic>);
+      // Validate response status
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        final responseData = response.data;
+        if (responseData is Map<String, dynamic> &&
+            responseData.containsKey('data')) {
+          return CommunityPost.fromJson(
+              responseData['data'] as Map<String, dynamic>);
+        } else {
+          throw Exception('Invalid response structure from server');
+        }
+      } else {
+        final errorMessage = _extractErrorMessage(response);
+        throw Exception('Failed to update post: $errorMessage');
+      }
     } catch (e) {
       rethrow;
     }

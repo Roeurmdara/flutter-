@@ -145,8 +145,6 @@ class CreateCommunityNotifier extends StateNotifier<AsyncValue<Community?>> {
     required String description,
     required String categoryId,
     String? coverImage,
-    // If provided, this local file will be uploaded as the cover image.
-    File? coverImageFile,
     String joinType = 'open',
   }) async {
     state = const AsyncValue.loading();
@@ -156,7 +154,6 @@ class CreateCommunityNotifier extends StateNotifier<AsyncValue<Community?>> {
         description: description,
         categoryId: categoryId,
         coverImage: coverImage,
-        coverImageFile: coverImageFile,
         joinType: joinType,
       );
       state = AsyncValue.data(community);

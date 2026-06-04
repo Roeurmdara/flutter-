@@ -45,6 +45,8 @@ class HabitState {
       completedStatus; // habitId -> isCompleted for selected date
   final Map<String, Set<String>>
       completedDatesMap; // habitId -> Set of completed dates (local tracking)
+  final int
+      currentUserStreak; // User's current streak (days with all habits completed)
 
   HabitState({
     this.habits = const [],
@@ -54,6 +56,7 @@ class HabitState {
     DateTime? selectedDate,
     this.completedStatus = const {},
     this.completedDatesMap = const {},
+    this.currentUserStreak = 0,
   }) : selectedDate = selectedDate ?? DateTime.now();
 
   HabitState copyWith({
@@ -64,6 +67,7 @@ class HabitState {
     DateTime? selectedDate,
     Map<String, bool>? completedStatus,
     Map<String, Set<String>>? completedDatesMap,
+    int? currentUserStreak,
   }) {
     return HabitState(
       habits: habits ?? this.habits,
@@ -73,6 +77,7 @@ class HabitState {
       selectedDate: selectedDate ?? this.selectedDate,
       completedStatus: completedStatus ?? this.completedStatus,
       completedDatesMap: completedDatesMap ?? this.completedDatesMap,
+      currentUserStreak: currentUserStreak ?? this.currentUserStreak,
     );
   }
 }
@@ -83,6 +88,8 @@ class HabitsNotifier extends StateNotifier<HabitState> {
 
   static const _kCompletedDatesKey = 'habits_completed_dates_map_v1';
   static const _kSelectedDateKey = 'habits_selected_date_v1';
+  static const _kCurrentStreakKey = 'habits_current_streak_v1';
+  static const _kLastStreakUpdateKey = 'habits_last_streak_update_v1';
 
   HabitsNotifier(this._service) : super(HabitState()) {
     _init();
@@ -90,6 +97,7 @@ class HabitsNotifier extends StateNotifier<HabitState> {
 
   Future<void> _init() async {
     await _loadLocalCompletedDates();
+    await _loadLocalStreak();
     await loadHabits();
     // Ensure the app shows today's date on startup so per-day completions are visible
     try {
@@ -98,6 +106,8 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       print('[Habits] _init - selectedDate: ${state.selectedDate}');
       // ignore: avoid_print
       print('[Habits] _init - completedDatesMap: ${state.completedDatesMap}');
+      // ignore: avoid_print
+      print('[Habits] _init - currentUserStreak: ${state.currentUserStreak}');
     } catch (_) {}
   }
 
@@ -150,6 +160,89 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       await prefs.setString(_kCompletedDatesKey, jsonStr);
     } catch (_) {
       // ignore write errors
+    }
+  }
+
+  // Load locally persisted streak from SharedPreferences
+  Future<void> _loadLocalStreak() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final streak = prefs.getInt(_kCurrentStreakKey) ?? 0;
+      state = state.copyWith(currentUserStreak: streak);
+      // ignore: avoid_print
+      print('[Habits] _loadLocalStreak - loaded: $streak');
+    } catch (_) {
+      // ignore errors reading local cache
+    }
+  }
+
+  // Save locally persisted streak to SharedPreferences
+  Future<void> _saveLocalStreak() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_kCurrentStreakKey, state.currentUserStreak);
+      try {
+        // ignore: avoid_print
+        print('[Habits] _saveLocalStreak - saved: ${state.currentUserStreak}');
+      } catch (_) {}
+    } catch (_) {
+      // ignore write errors
+    }
+  }
+
+  /// Calculate the current user streak based on completed habits
+  /// Streak counts consecutive days where ALL habits for that day were completed
+  /// Works backwards from today
+  void _updateStreak() {
+    if (state.habits.isEmpty) {
+      state = state.copyWith(currentUserStreak: 0);
+      return;
+    }
+
+    int currentStreak = 0;
+    DateTime checkDate = _dateOnly(DateTime.now())
+        .subtract(const Duration(days: 1)); // Start from yesterday
+
+    // Work backwards from yesterday to count consecutive days with all habits completed
+    while (true) {
+      final dateStr = _formatDate(checkDate);
+
+      // Get habits that should be completed on this date
+      final habitsForDate = state.habits.where((habit) {
+        if (!_isWithinDateRange(habit, checkDate)) return false;
+        switch (habit.frequency.toLowerCase()) {
+          case 'daily':
+            return true;
+          case 'weekly':
+            return checkDate.weekday == habit.startDate.weekday;
+          case 'monthly':
+            return checkDate.day == habit.startDate.day;
+          default:
+            return true;
+        }
+      }).toList();
+
+      // If no habits for this date, end streak
+      if (habitsForDate.isEmpty) break;
+
+      // Check if all habits are completed for this date
+      final allCompleted = habitsForDate.every((habit) {
+        final completedDates = state.completedDatesMap[habit.id] ?? {};
+        return completedDates.contains(dateStr);
+      });
+
+      if (allCompleted) {
+        currentStreak++;
+        checkDate = checkDate.subtract(const Duration(days: 1));
+      } else {
+        // Break in the streak, stop counting
+        break;
+      }
+    }
+
+    if (currentStreak != state.currentUserStreak) {
+      state = state.copyWith(currentUserStreak: currentStreak);
+      _saveLocalStreak();
     }
   }
 
@@ -380,6 +473,7 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       isUpdating: false,
     );
     await _saveLocalCompletedDates();
+    _updateStreak(); // Update streak after marking habit as done
 
     try {
       final updatedHabit = await _service.markHabitAsDone(habitId, date);
@@ -419,6 +513,7 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       isUpdating: false,
     );
     await _saveLocalCompletedDates();
+    _updateStreak(); // Update streak after unmarking habit
 
     try {
       final updatedHabit = await _service.unmarkHabitAsDone(habitId, date);
@@ -556,4 +651,10 @@ final todayCompletionRateProvider = Provider<int>((ref) {
       .length;
 
   return ((completedCount / habitsForToday.length) * 100).toInt();
+});
+
+// Computed: Get current user streak
+final currentStreakProvider = Provider<int>((ref) {
+  final habitState = ref.watch(habitsProvider);
+  return habitState.currentUserStreak;
 });

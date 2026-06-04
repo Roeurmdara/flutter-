@@ -14,6 +14,7 @@ import '../settings/settings_screen.dart';
 import '../profile/edit_profile_form.dart';
 import '../../../data/providers/profile_provider.dart';
 import '../categories/categories_screen.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   final Function(bool isDark) onThemeToggle;
   final bool isDarkMode;
@@ -92,14 +93,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       bottomNavigationBar: _buildBottomNavBar(isDark),
       floatingActionButton: _currentTabIndex == 0
           ? SizedBox(
-              width: 48,
-              height: 48,
+              width: 55,
+              height: 55,
               child: FloatingActionButton(
                 onPressed: () => _showCreateHabitModal(context),
                 backgroundColor: AppColors.primaryPurple,
                 elevation: 4,
                 shape: const CircleBorder(),
-                child: const Icon(Icons.add, size: 20),
+                child: const Icon(
+                  Icons.add,
+                  size: 20,
+                  color: Colors.white, // <-- Added color here
+                ),
               ),
             )
           : null,

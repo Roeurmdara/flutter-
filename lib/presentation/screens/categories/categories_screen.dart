@@ -10,49 +10,233 @@ import 'api_template_card.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // CategoriesScreen
 // ─────────────────────────────────────────────────────────────────────────────
-class CategoriesScreen extends ConsumerWidget {
+class CategoriesScreen extends ConsumerStatefulWidget {
   const CategoriesScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CategoriesScreen> createState() => _CategoriesScreenState();
+}
+
+class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final categoriesAsync = ref.watch(categoriesProvider);
 
     return Scaffold(
-  // Updated to use AppColors.lightBackground to match the community screen exactly
-  backgroundColor:
-      isDark ? AppColors.darkBackground : AppColors.lightBackground,
-  appBar: AppBar(
-    backgroundColor:
-        isDark ? AppColors.darkSurface : Colors.white,
-    elevation: 0,
-    scrolledUnderElevation: 0, // Keeps background solid when scrolling
-    toolbarHeight: 60, // Matched with the community screen for consistency
-    title: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: AppBar(
+        backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        toolbarHeight: 60,
+        title: Text(
           'Discover habits',
           style: TextStyle(
-            fontSize: 19, // Matched sizing
-            fontWeight: FontWeight.w600, // Matched font weight
+            fontSize: 19,
+            fontWeight: FontWeight.w600,
             color: isDark ? AppColors.darkText : AppColors.lightText,
             letterSpacing: -0.3,
           ),
         ),
-      ],
-    ),
-    // Removed the harsh divider completely to match the cleaner community screen style
-  ),
-  body: categoriesAsync.when(
-    loading: () => _buildLoadingState(isDark),
-    error: (error, stack) =>
-        _buildErrorState(error.toString(), isDark, ref),
-    data: (categories) => categories.isEmpty
-        ? _buildEmptyState(isDark)
-        : _buildCategoriesList(categories, isDark, ref),
-  ),
-);
+      ),
+      body: Column(
+        children: [
+          // ── Search bar ──────────────────────────────────────────────────
+          Container(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? AppColors.darkText : AppColors.lightText,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Search templates...',
+                hintStyle: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  size: 18,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+                suffixIcon: _query.isNotEmpty
+                    ? GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          setState(() => _query = '');
+                        },
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: isDark ? Colors.white38 : Colors.black38,
+                        ),
+                      )
+                    : null,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                filled: true,
+                fillColor: isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.black.withOpacity(0.04),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    width: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ── Body ────────────────────────────────────────────────────────
+          Expanded(
+            child: categoriesAsync.when(
+              loading: () => _buildLoadingState(isDark),
+              error: (error, stack) =>
+                  _buildErrorState(error.toString(), isDark, ref),
+              data: (categories) {
+                if (categories.isEmpty) return _buildEmptyState(isDark);
+                // Always watch all category templates so they're cached
+                for (final cat in categories) {
+                  ref.watch(templatesByCategoryProvider(cat.id as String));
+                }
+                if (_query.isNotEmpty) {
+                  return _buildSearchResults(categories, isDark);
+                }
+                return _buildCategoriesList(categories, isDark, ref);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Search results ─────────────────────────────────────────────────────────
+  Widget _buildSearchResults(List<dynamic> categories, bool isDark) {
+    final results = <_SearchResult>[];
+
+    for (final category in categories) {
+      final categoryId = category.id as String;
+      final color = _hexToColor(category.colorHex as String);
+      final name = category.name as String;
+      final icon = category.icon as String? ?? '📌';
+
+      final templatesAsync = ref.watch(templatesByCategoryProvider(categoryId));
+
+      // Only use data that is already loaded — skip loading/error states
+      if (templatesAsync is AsyncData) {
+        final templates = templatesAsync.value as List<dynamic>;
+        for (final t in templates) {
+          final template = t as HabitTemplate;
+          final matchesTitle = template.title.toLowerCase().contains(_query);
+          final matchesDesc =
+              template.description.toLowerCase().contains(_query);
+          final matchesCategory = name.toLowerCase().contains(_query);
+          final matchesTags =
+              template.tags.any((tag) => tag.toLowerCase().contains(_query));
+
+          if (matchesTitle || matchesDesc || matchesCategory || matchesTags) {
+            results.add(_SearchResult(
+              template: template,
+              categoryColor: color,
+              categoryName: name,
+              categoryIcon: icon,
+            ));
+          }
+        }
+      }
+    }
+
+    if (results.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 36,
+              color: (isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary)
+                  .withOpacity(0.4),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No templates found',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.darkText : AppColors.lightText,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Try a different keyword',
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.lightTextSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+      itemCount: results.length,
+      itemBuilder: (context, i) {
+        final r = results[i];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: APITemplateCard(
+            template: r.template,
+            categoryColor: r.categoryColor,
+            categoryName: r.categoryName,
+            categoryIcon: r.categoryIcon,
+            isDark: isDark,
+          ),
+        );
+      },
+    );
+  }
+
+  Color _hexToColor(String hex) {
+    final buffer = StringBuffer();
+    if (hex.length == 6 || hex.length == 7) {
+      buffer.write('ff');
+      buffer.write(hex.replaceFirst('#', ''));
+    } else {
+      buffer.write(hex.replaceFirst('#', ''));
+    }
+    return Color(int.parse(buffer.toString(), radix: 16));
   }
 
   // ── Loading state ──────────────────────────────────────────────────────────
@@ -61,58 +245,55 @@ class CategoriesScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 28),
       itemCount: 3,
       separatorBuilder: (_, __) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
         child: Divider(
           height: 0.5,
           thickness: 0.5,
           color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
       ),
-      itemBuilder: (context, index) => Padding(
-        padding: const EdgeInsets.only(bottom: 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
+      itemBuilder: (context, index) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Shimmer.fromColors(
+              baseColor: isDark ? AppColors.darkBorder : Colors.grey[300]!,
+              highlightColor:
+                  isDark ? AppColors.darkSurface : Colors.grey[100]!,
+              child: Container(
+                height: 30,
+                width: 110,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 168,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Shimmer.fromColors(
+              itemCount: 3,
+              itemBuilder: (_, __) => Shimmer.fromColors(
                 baseColor: isDark ? AppColors.darkBorder : Colors.grey[300]!,
                 highlightColor:
                     isDark ? AppColors.darkSurface : Colors.grey[100]!,
                 child: Container(
-                  height: 30,
-                  width: 110,
+                  width: 148,
+                  margin: const EdgeInsets.only(right: 10),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 14),
-            SizedBox(
-              height: 168,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: 3,
-                itemBuilder: (_, __) => Shimmer.fromColors(
-                  baseColor: isDark ? AppColors.darkBorder : Colors.grey[300]!,
-                  highlightColor:
-                      isDark ? AppColors.darkSurface : Colors.grey[100]!,
-                  child: Container(
-                    width: 148,
-                    margin: const EdgeInsets.only(right: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -218,8 +399,23 @@ class CategoriesScreen extends ConsumerWidget {
   }
 }
 
+// ── Helper model ──────────────────────────────────────────────────────────────
+class _SearchResult {
+  final HabitTemplate template;
+  final Color categoryColor;
+  final String categoryName;
+  final String categoryIcon;
+
+  const _SearchResult({
+    required this.template,
+    required this.categoryColor,
+    required this.categoryName,
+    required this.categoryIcon,
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// CategorySection
+// CategorySection  (unchanged)
 // ─────────────────────────────────────────────────────────────────────────────
 class CategorySection extends ConsumerWidget {
   final dynamic category;
@@ -245,13 +441,13 @@ class CategorySection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoryId = category.id as String;
-    final apiTemplatesAsync = ref.watch(templatesByCategoryProvider(categoryId));
+    final apiTemplatesAsync =
+        ref.watch(templatesByCategoryProvider(categoryId));
     final categoryColor = _hexToColor(category.colorHex as String);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Label ────────────────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
           child: Row(
@@ -288,14 +484,11 @@ class CategorySection extends ConsumerWidget {
             ],
           ),
         ),
-
-        // ── Templates row ─────────────────────────────────────────────────────
         apiTemplatesAsync.when(
           loading: () => _buildShimmer(isDark),
           error: (error, stackTrace) => Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
