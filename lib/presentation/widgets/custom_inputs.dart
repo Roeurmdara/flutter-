@@ -19,7 +19,7 @@ class CustomTextField extends StatefulWidget {
   final bool readOnly;
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.label,
     this.hint,
     required this.controller,
@@ -33,7 +33,7 @@ class CustomTextField extends StatefulWidget {
     this.maxLines = 1,
     this.minLines,
     this.readOnly = false,
-  }) : super(key: key);
+  });
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -162,7 +162,7 @@ class HabitProgressCard extends StatelessWidget {
   final VoidCallback onPress;
 
   const HabitProgressCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.icon,
     required this.progress,
@@ -170,7 +170,7 @@ class HabitProgressCard extends StatelessWidget {
     required this.isCompletedToday,
     required this.onTap,
     required this.onPress,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -320,13 +320,13 @@ class EmptyState extends StatelessWidget {
   final VoidCallback? onButtonPressed;
 
   const EmptyState({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     required this.description,
     this.buttonLabel,
     this.onButtonPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

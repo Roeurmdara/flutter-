@@ -14,10 +14,10 @@ class CommunityDetailScreen extends ConsumerStatefulWidget {
   final bool isJoined;
 
   const CommunityDetailScreen({
-    Key? key,
+    super.key,
     required this.community,
     required this.isJoined,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<CommunityDetailScreen> createState() =>
@@ -50,7 +50,21 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
       await ref
           .read(communityOperationsProvider.notifier)
           .joinCommunity(widget.community.id);
-      ref.invalidate(communitiesProvider);
+      ref.invalidate(
+        communitiesProvider(
+          const CommunityPaginationParams(page: 1, perPage: 100),
+        ),
+      );
+      ref.invalidate(communityDetailProvider(widget.community.id));
+      ref.invalidate(
+        communityPostsProvider(
+          PostPaginationParams(
+            communityId: widget.community.id,
+            page: 1,
+            perPage: 10,
+          ),
+        ),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -129,8 +143,21 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
       await ref
           .read(communityOperationsProvider.notifier)
           .leaveCommunity(widget.community.id);
-      ref.invalidate(communitiesProvider);
-      ref.invalidate(communityPostsProvider);
+      ref.invalidate(
+        communitiesProvider(
+          const CommunityPaginationParams(page: 1, perPage: 100),
+        ),
+      );
+      ref.invalidate(communityDetailProvider(widget.community.id));
+      ref.invalidate(
+        communityPostsProvider(
+          PostPaginationParams(
+            communityId: widget.community.id,
+            page: 1,
+            perPage: 10,
+          ),
+        ),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -254,11 +281,18 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
                     onJoin: _joinCommunity,
                     onLeave: _confirmLeaveCommunity,
                   ),
-                  CommunityPostsFeedScreen(
-                    communityId: widget.community.id,
-                    communityName: widget.community.name,
-                    showAppBar: false,
-                  ),
+                  isJoined
+                      ? CommunityPostsFeedScreen(
+                          communityId: widget.community.id,
+                          communityName: widget.community.name,
+                          showAppBar: false,
+                          canCreatePosts: isJoined,
+                        )
+                      : _LockedFeedTab(
+                          isDark: isDark,
+                          canJoin: widget.community.isActive,
+                          onJoin: _joinCommunity,
+                        ),
                 ]),
               ),
             ]),
@@ -271,6 +305,64 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
   String _fmtCount(int n) => n >= 1000
       ? '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}k'
       : '$n';
+}
+
+class _LockedFeedTab extends StatelessWidget {
+  final bool isDark;
+  final bool canJoin;
+  final VoidCallback onJoin;
+
+  const _LockedFeedTab({
+    required this.isDark,
+    required this.canJoin,
+    required this.onJoin,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final subColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.lock_outline_rounded,
+              color: subColor,
+              size: 34,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Join to view posts',
+              style: AppTypography.titleMedium(textColor),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Community posts are only available to members.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySmall(subColor),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: canJoin ? onJoin : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryPurple,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Join community'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ─── About Tab ────────────────────────────────────────────────────────────────
@@ -349,7 +441,7 @@ class _AboutTab extends ConsumerWidget {
               child: creatorAsync.when(
                 data: (response) => Text(
                   response.data?.username ?? 'Unknown',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.primaryPurple,
                     fontWeight: FontWeight.w500,
@@ -364,7 +456,7 @@ class _AboutTab extends ConsumerWidget {
                   community.createdBy.length > 20
                       ? '${community.createdBy.substring(0, 20)}...'
                       : community.createdBy,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.primaryPurple,
                     fontWeight: FontWeight.w500,
@@ -468,7 +560,7 @@ class _AboutTab extends ConsumerWidget {
                               const SizedBox(height: 6),
                               Text(
                                 '@${response.data!.username}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.primaryPurple,
                                   fontWeight: FontWeight.w500,

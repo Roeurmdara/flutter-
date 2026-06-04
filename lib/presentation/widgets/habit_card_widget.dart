@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../data/models/habit_model.dart';
 
-class HabitCardWidget extends StatelessWidget {
+class HabitCardWidget extends StatefulWidget {
   final Habit habit;
   final bool isCompleted;
   final VoidCallback onToggle;
@@ -12,18 +12,54 @@ class HabitCardWidget extends StatelessWidget {
   final VoidCallback? onViewDetails;
 
   const HabitCardWidget({
-    Key? key,
+    super.key,
     required this.habit,
     required this.isCompleted,
     required this.onToggle,
     required this.onEdit,
     required this.onDelete,
     this.onViewDetails,
-  }) : super(key: key);
+  });
+
+  @override
+  State<HabitCardWidget> createState() => _HabitCardWidgetState();
+}
+
+class _HabitCardWidgetState extends State<HabitCardWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _checkAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+      value: widget.isCompleted ? 1.0 : 0.0,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant HabitCardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isCompleted != oldWidget.isCompleted) {
+      if (widget.isCompleted) {
+        _checkAnim.forward();
+      } else {
+        _checkAnim.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _checkAnim.dispose();
+    super.dispose();
+  }
 
   Color _getCategoryColor() {
     // Use habit's custom color if available, otherwise use category color
-    final colorHex = habit.colorHex ?? habit.categoryColor;
+    final colorHex = widget.habit.colorHex ?? widget.habit.categoryColor;
     if (colorHex != null) {
       try {
         return Color(
@@ -37,7 +73,7 @@ class HabitCardWidget extends StatelessWidget {
 
   String _getEmojiForCard() {
     // Use habit's custom emoji if available, otherwise use category emoji
-    return habit.emoji ?? habit.categoryIcon ?? '✨';
+    return widget.habit.emoji ?? widget.habit.categoryIcon ?? '✨';
   }
 
   @override
@@ -48,30 +84,65 @@ class HabitCardWidget extends StatelessWidget {
 
     return GestureDetector(
       onLongPress: () => _showHabitOptions(context),
-      onTap: onEdit, // ← this opens detail screen
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      onTap: widget.onEdit, // ← this opens detail screen
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(14),
+          color: widget.isCompleted
+              ? (isDark
+                  ? AppColors.darkSurfaceElevated.withOpacity(0.6)
+                  : AppColors.successSoft.withOpacity(0.3))
+              : (isDark ? AppColors.darkSurface : AppColors.lightSurface),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isCompleted
-                ? (isDark ? AppColors.darkBorder : AppColors.lightBorder)
-                : categoryColor.withOpacity(0.3),
-            width: isCompleted ? 1 : 1.5,
+            color: widget.isCompleted
+                ? (isDark ? AppColors.darkBorder : AppColors.success.withOpacity(0.2))
+                : (isDark ? AppColors.darkBorder : categoryColor.withOpacity(0.15)),
+            width: 1,
           ),
+          boxShadow: widget.isCompleted
+              ? []
+              : [
+                  BoxShadow(
+                    color: isDark ? Colors.black12 : AppColors.shadowLight,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Row(
           children: [
+            // Left accent strip
+            Container(
+              width: 3,
+              height: 36,
+              decoration: BoxDecoration(
+                color: widget.isCompleted
+                    ? AppColors.success.withOpacity(0.5)
+                    : categoryColor.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 12),
+
             // Emoji badge
             Container(
-              width: 30,
-              height: 30,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: categoryColor.withOpacity(0.15),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    categoryColor.withOpacity(0.15),
+                    categoryColor.withOpacity(0.08),
+                  ],
+                ),
                 border: Border.all(
-                  color: categoryColor.withOpacity(0.3),
+                  color: categoryColor.withOpacity(0.2),
                   width: 1.5,
                 ),
               ),
@@ -80,23 +151,44 @@ class HabitCardWidget extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
 
-            // Habit name — no GestureDetector wrapper
+            // Habit name + category
             Expanded(
-              child: Text(
-                habit.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.labelLarge(
-                  isCompleted
-                      ? (isDark ? Colors.white38 : Colors.black26)
-                      : (isDark ? Colors.white : Colors.black87),
-                ).copyWith(
-                  decoration: isCompleted
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.habit.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: widget.isCompleted
+                          ? (isDark ? Colors.white38 : Colors.black26)
+                          : (isDark ? AppColors.darkText : AppColors.lightText),
+                      decoration: widget.isCompleted
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                      decorationColor: isDark ? Colors.white24 : Colors.black12,
+                    ),
+                  ),
+                  if (widget.habit.category != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.habit.category!,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: widget.isCompleted
+                            ? (isDark ? Colors.white24 : Colors.black12)
+                            : categoryColor.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
 
@@ -105,35 +197,44 @@ class HabitCardWidget extends StatelessWidget {
             // Toggle — stopPropagation so it doesn't trigger onViewDetails
             GestureDetector(
               onTap: () {
-                onToggle();
+                widget.onToggle();
               },
               behavior: HitTestBehavior.opaque,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isCompleted
-                      ? AppColors.primaryPurple.withOpacity(0.2)
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: isCompleted
-                        ? AppColors.primaryPurple.withOpacity(0.9)
-                        : categoryColor.withOpacity(0.3),
-                    width: 2,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 1.0, end: 1.15)
+                    .animate(CurvedAnimation(
+                  parent: _checkAnim,
+                  curve: Curves.easeOutBack,
+                )),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.isCompleted
+                        ? AppColors.success.withOpacity(0.15)
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: widget.isCompleted
+                          ? AppColors.success
+                          : (isDark
+                              ? AppColors.darkBorder
+                              : categoryColor.withOpacity(0.3)),
+                      width: 2,
+                    ),
                   ),
+                  child: widget.isCompleted
+                      ? const Center(
+                          child: Icon(
+                            Icons.check_rounded,
+                            color: AppColors.success,
+                            size: 18,
+                          ),
+                        )
+                      : const SizedBox.shrink(),
                 ),
-                child: isCompleted
-                    ? const Center(
-                        child: Icon(
-                          Icons.check_rounded,
-                          color: AppColors.primaryPurple,
-                          size: 18,
-                        ),
-                      )
-                    : const SizedBox.shrink(),
               ),
             ),
           ],
@@ -157,7 +258,7 @@ class HabitCardWidget extends StatelessWidget {
               title: const Text('Edit Habit'),
               onTap: () {
                 Navigator.pop(context);
-                onEdit();
+                widget.onEdit();
               },
             ),
             ListTile(
@@ -165,7 +266,7 @@ class HabitCardWidget extends StatelessWidget {
               title: const Text('Delete Habit'),
               onTap: () {
                 Navigator.pop(context);
-                onDelete();
+                widget.onDelete();
               },
             ),
           ],

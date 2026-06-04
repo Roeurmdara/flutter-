@@ -12,10 +12,10 @@ class HabitDetailScreen extends ConsumerStatefulWidget {
   final DateTime selectedDate;
 
   const HabitDetailScreen({
-    Key? key,
+    super.key,
     required this.habit,
     required this.selectedDate,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<HabitDetailScreen> createState() => _HabitDetailScreenState();
@@ -1213,7 +1213,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Error Loading Activities',
             style: TextStyle(
               fontSize: 14,

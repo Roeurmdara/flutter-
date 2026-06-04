@@ -8,7 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../data/providers/profile_provider.dart';
 
 class FollowersScreen extends ConsumerStatefulWidget {
-  const FollowersScreen({Key? key}) : super(key: key);
+  const FollowersScreen({super.key});
 
   @override
   ConsumerState<FollowersScreen> createState() => _FollowersScreenState();
@@ -166,9 +166,9 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
                           baseColor: const Color(0xFFE0E0E0),
                           highlightColor: const Color(0xFFF5F5F5),
                           child: Container(
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              color: const Color(0xFFE0E0E0),
+                              color: Color(0xFFE0E0E0),
                             ),
                           ),
                         );
@@ -213,7 +213,7 @@ class _FollowersScreenState extends ConsumerState<FollowersScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: IconButton(
-              icon: Icon(
+              icon: const Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 16,
                 color: AppColors.primaryPurple,

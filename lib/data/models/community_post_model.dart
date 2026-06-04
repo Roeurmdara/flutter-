@@ -9,6 +9,9 @@ class CommunityPost {
   final String status;
   final int likeCount;
   final int commentCount;
+  final String? imageUrl;
+  final String? authorUsername;
+  final String? authorAvatarUrl;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -24,6 +27,9 @@ class CommunityPost {
     required this.status,
     required this.likeCount,
     required this.commentCount,
+    this.imageUrl,
+    this.authorUsername,
+    this.authorAvatarUrl,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -36,6 +42,9 @@ class CommunityPost {
     final updatedAt = json['updated_at'] != null
         ? DateTime.parse(json['updated_at'].toString())
         : createdAt;
+    final authorJson = json['author'] is Map<String, dynamic>
+        ? json['author'] as Map<String, dynamic>
+        : null;
 
     return CommunityPost(
       id: json['id']?.toString() ?? '',
@@ -48,6 +57,9 @@ class CommunityPost {
       status: json['status']?.toString() ?? '',
       likeCount: (json['like_count'] as num?)?.toInt() ?? 0,
       commentCount: (json['comment_count'] as num?)?.toInt() ?? 0,
+      imageUrl: json['image_url']?.toString(),
+      authorUsername: authorJson?['username']?.toString(),
+      authorAvatarUrl: authorJson?['avatar_url']?.toString(),
       createdAt: createdAt,
       updatedAt: updatedAt,
       deletedAt: json['deleted_at'] != null
@@ -67,6 +79,11 @@ class CommunityPost {
         'status': status,
         'like_count': likeCount,
         'comment_count': commentCount,
+        'image_url': imageUrl,
+        'author': {
+          if (authorUsername != null) 'username': authorUsername,
+          if (authorAvatarUrl != null) 'avatar_url': authorAvatarUrl,
+        },
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
         'deleted_at': deletedAt?.toIso8601String(),

@@ -13,6 +13,9 @@ class Community {
   final DateTime updatedAt;
   final String? customColor; // hex string e.g. "FF7C3AED"
   final String? customEmoji;
+  final bool? isMember;
+  final String? membershipStatus;
+  final String? membershipRole;
 
   Community({
     required this.id,
@@ -28,31 +31,49 @@ class Community {
     required this.updatedAt,
     this.customColor,
     this.customEmoji,
+    this.isMember,
+    this.membershipStatus,
+    this.membershipRole,
   });
 
   bool get isActive => status.toLowerCase() == 'active';
 
   factory Community.fromJson(Map<String, dynamic> json) {
-    final coverImage = _validImageUrl(json['cover_image'] as String?);
+    final coverImage = _validImageUrl(_stringValue(json['cover_image']));
+    final membership = json['membership'] is Map<String, dynamic>
+        ? json['membership'] as Map<String, dynamic>
+        : null;
 
     return Community(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      categoryId: json['category_id'] as String? ?? '',
+      id: _stringValue(json['id']) ?? '',
+      name: _stringValue(json['name']) ?? '',
+      description: _stringValue(json['description']) ?? '',
+      categoryId: _stringValue(json['category_id']) ?? '',
       coverImage: coverImage,
-      joinType: json['join_type'] as String? ?? 'open',
-      status: json['status'] as String? ?? 'active',
-      createdBy: json['created_by'] as String? ?? '',
-      memberCount: json['member_count'] as int? ?? 0,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : DateTime.now(),
-      customColor: json['custom_color'] as String?,
-      customEmoji: json['custom_emoji'] as String?,
+      joinType: _stringValue(json['join_type']) ?? 'open',
+      status: _stringValue(json['status']) ?? 'active',
+      createdBy: _stringValue(json['created_by']) ?? '',
+      memberCount: _intValue(json['member_count']) ?? 0,
+      createdAt: _dateValue(json['created_at']) ?? DateTime.now(),
+      updatedAt: _dateValue(json['updated_at']) ?? DateTime.now(),
+      customColor: _stringValue(json['custom_color']),
+      customEmoji: _stringValue(json['custom_emoji']),
+      isMember: _boolValue(
+        json['is_member'] ??
+            json['is_joined'] ??
+            json['joined'] ??
+            json['isJoined'] ??
+            membership?['is_member'],
+      ),
+      membershipStatus: _stringValue(
+        json['membership_status'] ??
+            json['member_status'] ??
+            json['current_user_membership_status'] ??
+            membership?['status'],
+      ),
+      membershipRole: _stringValue(
+        json['membership_role'] ?? json['member_role'] ?? membership?['role'],
+      ),
     );
   }
 
@@ -84,6 +105,34 @@ class Community {
       'updated_at': updatedAt.toIso8601String(),
       if (customColor != null) 'custom_color': customColor,
       if (customEmoji != null) 'custom_emoji': customEmoji,
+      if (isMember != null) 'is_member': isMember,
+      if (membershipStatus != null) 'membership_status': membershipStatus,
+      if (membershipRole != null) 'membership_role': membershipRole,
     };
+  }
+
+  static String? _stringValue(Object? value) {
+    if (value == null) return null;
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
+  }
+
+  static int? _intValue(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  static bool? _boolValue(Object? value) {
+    if (value is bool) return value;
+    final text = value?.toString().toLowerCase().trim();
+    if (text == 'true' || text == '1') return true;
+    if (text == 'false' || text == '0') return false;
+    return null;
+  }
+
+  static DateTime? _dateValue(Object? value) {
+    final text = _stringValue(value);
+    return text == null ? null : DateTime.tryParse(text);
   }
 }

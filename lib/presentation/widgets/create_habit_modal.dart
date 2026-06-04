@@ -14,11 +14,11 @@ class CreateHabitModal extends ConsumerStatefulWidget {
   final VoidCallback? onDelete;
 
   const CreateHabitModal({
-    Key? key,
+    super.key,
     this.editingHabit,
     this.onSubmit,
     this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<CreateHabitModal> createState() => _CreateHabitModalState();
@@ -323,7 +323,7 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: Text(
+                            child: const Text(
                               'Delete Habit',
                               style: TextStyle(
                                 fontSize: 13,
@@ -479,14 +479,14 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                       color: AppColors.primaryPurple.withOpacity(0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.add,
                       size: 14,
                       color: AppColors.primaryPurple,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
+                  const Text(
                     'Add activity detail',
                     style: TextStyle(
                       fontSize: 13,
@@ -716,8 +716,7 @@ class _ActivityCard extends StatefulWidget {
   final Activity act;
   final bool isDark;
 
-  const _ActivityCard({required this.act, required this.isDark, Key? key})
-      : super(key: key);
+  const _ActivityCard({required this.act, required this.isDark, super.key});
 
   @override
   State<_ActivityCard> createState() => _ActivityCardState();
@@ -758,7 +757,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                       color: AppColors.primaryPurple.withOpacity(0.10),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.auto_awesome,
                       size: 16,
                       color: AppColors.primaryPurple,

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import '../../core/exceptions/api_exception.dart';
 import 'dio_client.dart';
 import '../models/community_post_model.dart';
 
@@ -30,9 +31,7 @@ class CommunityPostService {
           response.statusCode! < 300) {
         return PostListResponse.fromJson(response.data as Map<String, dynamic>);
       } else {
-        throw Exception(
-          'Failed to load posts: HTTP ${response.statusCode} - ${response.statusMessage}',
-        );
+        throw ApiException(response.statusCode, response.data);
       }
     } catch (e) {
       rethrow;
@@ -60,8 +59,9 @@ class CommunityPostService {
           'title': title,
           'body': body,
           'content_type': contentType,
-          'is_pinned': isPinned.toString(), // Convert boolean to string
-          'media':
+          'is_pinned': isPinned ? '1' : '0',
+          // API expects the file under the 'file' field (same as /media/upload)
+          'file':
               await MultipartFile.fromFile(imageFile.path, filename: fileName),
         });
 
@@ -111,14 +111,29 @@ class CommunityPostService {
     try {
       if (response.data is Map<String, dynamic>) {
         final data = response.data as Map<String, dynamic>;
-        if (data.containsKey('message')) {
-          return data['message'] as String;
-        }
         if (data.containsKey('error')) {
           final error = data['error'];
-          if (error is Map<String, dynamic> && error.containsKey('message')) {
-            return error['message'] as String;
+          if (error is Map<String, dynamic>) {
+            final details = error['details'];
+            if (details is Map<String, dynamic>) {
+              final messages = <String>[];
+              for (final entry in details.entries) {
+                final value = entry.value;
+                if (value is List && value.isNotEmpty) {
+                  messages.add('${entry.key}: ${value.join(', ')}');
+                } else if (value != null) {
+                  messages.add('${entry.key}: $value');
+                }
+              }
+              if (messages.isNotEmpty) return messages.join('\n');
+            }
+            if (error.containsKey('message')) {
+              return error['message'] as String;
+            }
           }
+        }
+        if (data.containsKey('message')) {
+          return data['message'] as String;
         }
       }
     } catch (e) {
@@ -175,8 +190,9 @@ class CommunityPostService {
         final form = FormData.fromMap({
           'title': title,
           'body': body,
-          if (isPinned != null) 'is_pinned': isPinned.toString(),
-          'media':
+          if (isPinned != null) 'is_pinned': isPinned ? '1' : '0',
+          // Use 'file' key for multipart uploads so backend recognizes the file
+          'file':
               await MultipartFile.fromFile(imageFile.path, filename: fileName),
         });
 

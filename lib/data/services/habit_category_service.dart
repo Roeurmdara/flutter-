@@ -3,14 +3,16 @@ import 'dart:io';
 import 'dart:async';
 import '../models/habit_category_model.dart';
 import '../models/discover_template_model.dart';
+import 'secure_storage_service.dart';
 
 class HabitCategoryService {
   static const String _baseUrl =
       'https://habit-api.rattanakmony.com/api/v1/categories';
 
   final Dio _dio;
+  final SecureStorageService _secureStorage;
 
-  HabitCategoryService({Dio? dio})
+  HabitCategoryService({Dio? dio, SecureStorageService? secureStorage})
       : _dio = dio ??
             Dio(
               BaseOptions(
@@ -22,7 +24,8 @@ class HabitCategoryService {
                   'Accept': 'application/json',
                 },
               ),
-            ) {
+            ),
+        _secureStorage = secureStorage ?? SecureStorageService() {
     // Add additional logging interceptor
     _dio.interceptors.add(
       InterceptorsWrapper(
@@ -91,7 +94,6 @@ class HabitCategoryService {
   }
 
   /// Fetch templates for a specific category
-  /// Returns empty list if fetch fails (instead of throwing)
   Future<List<DiscoverTemplate>> getCategoryTemplates(String categoryId) async {
     try {
       const templatesUrl =
@@ -109,7 +111,7 @@ class HabitCategoryService {
           'page': 1,
           'per_page': 100,
         },
-        options: Options(
+        options: await _authOptions(
           contentType: Headers.jsonContentType,
           followRedirects: true,
           validateStatus: (status) => status != null && status < 500,
@@ -136,34 +138,25 @@ class HabitCategoryService {
       } else {
         print(
             '[HabitCategoryService] ✗ Bad status code: ${response.statusCode}');
-        print(
-            '[HabitCategoryService] ========== RETURNING EMPTY LIST ==========');
-        return []; // Return empty instead of throwing
+        throw Exception(_extractResponseMessage(response));
       }
     } on SocketException catch (e) {
       print('[HabitCategoryService] ✗ SocketException: ${e.message}');
-      print(
-          '[HabitCategoryService] ========== RETURNING EMPTY LIST ==========');
-      return []; // Return empty instead of throwing
+      throw Exception('Network error: No internet connection - ${e.message}');
     } on TimeoutException catch (e) {
       print('[HabitCategoryService] ✗ TimeoutException: ${e.message}');
-      print(
-          '[HabitCategoryService] ========== RETURNING EMPTY LIST ==========');
-      return []; // Return empty instead of throwing
+      throw Exception('Connection timeout: Server took too long to respond');
     } on DioException catch (e) {
       print('[HabitCategoryService] ========== DIO EXCEPTION ==========');
       print('[HabitCategoryService] Type: ${e.type}');
       print('[HabitCategoryService] Message: ${e.message}');
       print('[HabitCategoryService] Status Code: ${e.response?.statusCode}');
       print('[HabitCategoryService] Error: ${e.error}');
-      print(
-          '[HabitCategoryService] ========== RETURNING EMPTY LIST ==========');
-      return []; // Return empty instead of throwing
+      final String errorMessage = _getDetailedErrorMessage(e);
+      throw Exception(errorMessage);
     } catch (e) {
       print('[HabitCategoryService] ✗ Unexpected error: $e');
-      print(
-          '[HabitCategoryService] ========== RETURNING EMPTY LIST ==========');
-      return []; // Return empty instead of throwing
+      throw Exception('Error fetching templates: $e');
     }
   }
 
@@ -174,7 +167,7 @@ class HabitCategoryService {
       const testUrl =
           'https://habit-api.rattanakmony.com/api/v1/templates?page=1&per_page=1';
 
-      final response = await _dio.get(testUrl);
+      final response = await _dio.get(testUrl, options: await _authOptions());
       print(
           '[HabitCategoryService] Test response status: ${response.statusCode}');
 
@@ -183,6 +176,37 @@ class HabitCategoryService {
       print('[HabitCategoryService] Test failed: $e');
       return false;
     }
+  }
+
+  Future<Options> _authOptions({
+    String? contentType,
+    bool? followRedirects,
+    ValidateStatus? validateStatus,
+  }) async {
+    final headers = <String, dynamic>{};
+    final token = await _secureStorage.getAccessToken();
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    return Options(
+      headers: headers,
+      contentType: contentType,
+      followRedirects: followRedirects,
+      validateStatus: validateStatus,
+    );
+  }
+
+  String _extractResponseMessage(Response response) {
+    final data = response.data;
+    if (data is Map) {
+      final error = data['error'];
+      if (error is Map && error['message'] != null) {
+        return error['message'].toString();
+      }
+      if (data['message'] != null) return data['message'].toString();
+    }
+    return 'Request failed: HTTP ${response.statusCode}';
   }
 
   /// Helper method to get detailed error messages

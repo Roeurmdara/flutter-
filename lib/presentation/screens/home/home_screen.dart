@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/providers/auth_provider.dart';
@@ -21,18 +22,22 @@ class HomeScreen extends ConsumerStatefulWidget {
   final Future<void> Function() onLogout;
 
   const HomeScreen({
-    Key? key,
+    super.key,
     required this.onThemeToggle,
     required this.isDarkMode,
     required this.onLogout,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with TickerProviderStateMixin {
   int _currentTabIndex = 0;
+
+  late final AnimationController _fabAnimCtrl;
+  late final Animation<double> _fabScale;
 
   late final List<NavBarItem> _navItems = [
     NavBarItem(
@@ -60,6 +65,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _fabAnimCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _fabScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fabAnimCtrl, curve: Curves.easeOutBack),
+    );
+    _fabAnimCtrl.forward();
+
     Future.microtask(() {
       ref.read(authProvider.notifier).checkAuthStatus();
       // Sync user's communities from API on app startup
@@ -70,16 +84,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _fabAnimCtrl.dispose();
+    super.dispose();
+  }
+
   Widget _buildSvgIcon(String path, Color color) {
     return SvgPicture.asset(
       path,
-      width: 28,
-      height: 28,
+      width: 24,
+      height: 24,
       colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
       placeholderBuilder: (context) => Icon(
         Icons.calendar_today,
         color: color,
-        size: 28,
+        size: 24,
       ),
     );
   }
@@ -92,18 +112,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: _buildBody(),
       bottomNavigationBar: _buildBottomNavBar(isDark),
       floatingActionButton: _currentTabIndex == 0
-          ? SizedBox(
-              width: 55,
-              height: 55,
-              child: FloatingActionButton(
-                onPressed: () => _showCreateHabitModal(context),
-                backgroundColor: AppColors.primaryPurple,
-                elevation: 4,
-                shape: const CircleBorder(),
-                child: const Icon(
-                  Icons.add,
-                  size: 20,
-                  color: Colors.white, // <-- Added color here
+          ? ScaleTransition(
+              scale: _fabScale,
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: AppColors.heroGradient,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryPurple.withOpacity(0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(28),
+                    onTap: () => _showCreateHabitModal(context),
+                    child: const Icon(Icons.add_rounded,
+                        size: 26, color: Colors.white),
+                  ),
                 ),
               ),
             )
@@ -177,51 +213,84 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildBottomNavBar(bool isDark) {
+    final bgColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final inactiveColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    const navContentHeight = 72.0;
+
     return Container(
-      height: 64,
+      height: navContentHeight + bottomInset,
       decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        color: bgColor,
+        border: Border(top: BorderSide(color: borderColor, width: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black26 : AppColors.shadowLight,
+            blurRadius: 12,
+            offset: const Offset(0, -4),
           ),
-        ),
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: _navItems.map((item) {
-          final isActive = _currentTabIndex == item.index;
-          return GestureDetector(
-            onTap: () => setState(() => _currentTabIndex = item.index),
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildSvgIcon(
-                    item.iconPath,
-                    isActive ? const Color.fromARGB(255, 9, 8, 9) : Colors.grey,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item.label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                      color: isActive
-                          ? const Color.fromARGB(255, 0, 0, 0)
-                          : (isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary),
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: _navItems.map((item) {
+            final isActive = _currentTabIndex == item.index;
+            return GestureDetector(
+              onTap: () => setState(() => _currentTabIndex = item.index),
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: 72,
+                height: navContentHeight,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Active indicator pill
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      width: isActive ? 48 : 0,
+                      height: 3,
+                      margin: const EdgeInsets.only(bottom: 4),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? AppColors.primaryPurple
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
-                ],
+                    // Icon with scale animation
+                    AnimatedScale(
+                      scale: isActive ? 1.1 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: _buildSvgIcon(
+                        item.iconPath,
+                        isActive ? AppColors.primaryPurple : inactiveColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    // Label
+                    Text(
+                      item.label,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight:
+                            isActive ? FontWeight.w600 : FontWeight.w500,
+                        color:
+                            isActive ? AppColors.primaryPurple : inactiveColor,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }

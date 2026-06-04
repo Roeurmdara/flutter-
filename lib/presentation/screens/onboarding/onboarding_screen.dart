@@ -1,26 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-// ─── Palette (matches login screen) ───────────────────────────────────────────
-class _C {
-  static const bg = Color(0xFFF7F5F0);
-  static const ink = Color(0xFF1A1A18);
-  static const inkSoft = Color(0xFF6B6860);
-  static const accent =  Color(0xFF7C3AED);    // forest green
-  static const white = Color(0xFFFFFFFF);
-  static const divider = Color(0xFFDDD9D0);
-}
-
-TextStyle _t(double size, FontWeight w, Color c,
-    {double? letterSpacing, double? height}) =>
-    TextStyle(
-      fontSize: size,
-      fontWeight: w,
-      color: c,
-      letterSpacing: letterSpacing,
-      height: height,
-      fontFamily: 'Georgia',
-    );
+import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_colors.dart';
 
 // ─── Data model ───────────────────────────────────────────────────────────────
 class _PageData {
@@ -72,8 +53,7 @@ const _pages = [
 class OnboardingScreen extends StatefulWidget {
   final Future<void> Function() onCompleted;
 
-  const OnboardingScreen({Key? key, required this.onCompleted})
-      : super(key: key);
+  const OnboardingScreen({super.key, required this.onCompleted});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -133,7 +113,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _C.ink,
+      backgroundColor: const Color(0xFF0E0B1A),
       body: Stack(
         children: [
           // ── Full-bleed paged background images ──
@@ -141,7 +121,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             controller: _controller,
             onPageChanged: _onPageChanged,
             itemCount: _pages.length,
-            itemBuilder: (_, i) => _BgImage(url: _pages[i].imagePath),
+            itemBuilder: (_, i) => _BgImage(path: _pages[i].imagePath),
           ),
 
           // ── Dark gradient scrim (bottom half) ──
@@ -151,11 +131,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  stops: const [0.3, 0.95, 2.0],
+                  stops: const [0.25, 0.55, 0.85],
                   colors: [
                     Colors.transparent,
-                    _C.ink.withOpacity(0.15),
-                    _C.ink.withOpacity(0.15),
+                    const Color(0xFF0E0B1A).withOpacity(0.5),
+                    const Color(0xFF0E0B1A).withOpacity(0.92),
                   ],
                 ),
               ),
@@ -171,10 +151,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Logo mark
-                  Container(
+                  SizedBox(
                     width: 36,
                     height: 36,
-              
                   ),
                   // Skip
                   if (_current < _pages.length - 1)
@@ -182,16 +161,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       onTap: _skip,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 7),
+                            horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: _C.white.withOpacity(0.12),
+                          color: Colors.white.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: _C.accent.withOpacity(0.2), width: 1),
+                              color: Colors.white.withOpacity(0.15), width: 1),
                         ),
                         child: Text('Skip',
-                            style: _t(13, FontWeight.w500,
-                                _C.accent.withOpacity(0.85))),
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withOpacity(0.8),
+                            )),
                       ),
                     ),
                 ],
@@ -219,20 +201,26 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         position: _slideAnim,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                              horizontal: 12, vertical: 5),
                           decoration: BoxDecoration(
-                            color: _C.accent.withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(4),
+                            gradient: const LinearGradient(
+                              colors: AppColors.heroGradient,
+                            ),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             _pages[_current].tag,
-                            style: _t(11, FontWeight.w600, _C.white,
-                                letterSpacing: 1.2),
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 1.0,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
                     // Title
                     FadeTransition(
@@ -241,24 +229,32 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         position: _slideAnim,
                         child: Text(
                           _pages[_current].title,
-                          style: _t(38, FontWeight.w700, _C.white,
-                              height: 1.12),
+                          style: GoogleFonts.poppins(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.12,
+                            letterSpacing: -0.5,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
                     // Description
                     FadeTransition(
                       opacity: _fadeAnim,
                       child: Text(
                         _pages[_current].description,
-                        style: _t(15, FontWeight.w400,
-                            _C.white.withOpacity(0.72),
-                            height: 1.55),
+                        style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withOpacity(0.7),
+                          height: 1.55,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 40),
 
                     // Dots + button row
                     Row(
@@ -284,25 +280,21 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 }
 
-// ─── Background image with fade between pages ─────────────────────────────────
+// ─── Background image ─────────────────────────────────────────────────────────
 class _BgImage extends StatelessWidget {
-  final String url;
+  final String path;
 
-  const _BgImage({required this.url});
+  const _BgImage({required this.path});
 
   @override
   Widget build(BuildContext context) {
-    return Image.network(
-      url,
+    return Image.asset(
+      path,
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      loadingBuilder: (_, child, progress) {
-        if (progress == null) return child;
-        return Container(color: const Color(0xFF1A1A18));
-      },
       errorBuilder: (_, __, ___) =>
-          Container(color: const Color(0xFF2A2A28)),
+          Container(color: const Color(0xFF1A1628)),
     );
   }
 }
@@ -326,7 +318,10 @@ class _Dots extends StatelessWidget {
           width: active ? 28 : 7,
           height: 7,
           decoration: BoxDecoration(
-            color: active ? _C.accent : _C.white.withOpacity(0.35),
+            gradient: active
+                ? const LinearGradient(colors: AppColors.heroGradient)
+                : null,
+            color: active ? null : Colors.white.withOpacity(0.25),
             borderRadius: BorderRadius.circular(4),
           ),
         );
@@ -349,20 +344,36 @@ class _NextButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: EdgeInsets.symmetric(
-          horizontal: isLast ? 24 : 0,
-          vertical: isLast ? 14 : 0,
+          horizontal: isLast ? 28 : 0,
+          vertical: isLast ? 16 : 0,
         ),
-        width: isLast ? null : 52,
-        height: isLast ? null : 52,
+        width: isLast ? null : 56,
+        height: isLast ? null : 56,
         decoration: BoxDecoration(
-          color: _C.accent,
-          borderRadius: BorderRadius.circular(isLast ? 12 : 26),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: AppColors.heroGradient,
+          ),
+          borderRadius: BorderRadius.circular(isLast ? 16 : 28),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryPurple.withOpacity(0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: isLast
             ? Text('Get Started',
-                style: _t(15, FontWeight.w600, _C.white, letterSpacing: 0.2))
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: 0.2,
+                ))
             : const Icon(Icons.arrow_forward_rounded,
-                color: _C.white, size: 22),
+                color: Colors.white, size: 22),
       ),
     );
   }

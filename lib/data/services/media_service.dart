@@ -77,7 +77,7 @@ class MediaService {
   /// Upload image to the API
   /// [imageFile] - The image file to upload (from image_picker)
   /// [context] - The context for storage path (avatar or post)
-  /// [userId] - Optional user ID for post context (for community posts)
+  /// [userId] - Deprecated; the media API only accepts file and context.
   /// Returns [MediaUploadResponse] with upload result
   Future<MediaUploadResponse> uploadImage({
     required XFile imageFile,
@@ -126,13 +126,6 @@ class MediaService {
         MapEntry('context', context.toApiValue()),
       );
 
-      // Add user ID for post context if provided
-      if (userId != null && context == MediaContext.post) {
-        formData.fields.add(
-          MapEntry('user_id', userId),
-        );
-      }
-
       // Make the API call
       final response = await _dio.post<Map<String, dynamic>>(
         _mediaEndpoint,
@@ -157,7 +150,7 @@ class MediaService {
       } else {
         return MediaUploadResponse(
           success: false,
-          message: response.data?['message'] ?? 'Upload failed',
+          message: _extractErrorMessage(response.data),
           status: response.statusCode ?? 500,
         );
       }
@@ -231,5 +224,43 @@ class MediaService {
         status: 500,
       );
     }
+  }
+
+  String _extractErrorMessage(Map<String, dynamic>? data) {
+    if (data == null) return 'Upload failed';
+
+    final errors = _fieldErrorMessage(data['errors']);
+    if (errors != null) return errors;
+
+    final details = _fieldErrorMessage(data['details']);
+    if (details != null) return details;
+
+    final error = data['error'];
+    if (error is Map<String, dynamic>) {
+      final errorDetails = _fieldErrorMessage(error['details']);
+      if (errorDetails != null) return errorDetails;
+
+      final errorMessage = error['message'];
+      if (errorMessage != null) return errorMessage.toString();
+    }
+
+    final message = data['message'];
+    return message?.toString() ?? 'Upload failed';
+  }
+
+  String? _fieldErrorMessage(Object? value) {
+    if (value is! Map || value.isEmpty) return null;
+
+    final messages = <String>[];
+    for (final entry in value.entries) {
+      final fieldValue = entry.value;
+      if (fieldValue is List && fieldValue.isNotEmpty) {
+        messages.add('${entry.key}: ${fieldValue.join(', ')}');
+      } else if (fieldValue != null) {
+        messages.add('${entry.key}: $fieldValue');
+      }
+    }
+
+    return messages.isEmpty ? null : messages.join('\n');
   }
 }

@@ -10,8 +10,8 @@ class MediaUploadData {
 
   factory MediaUploadData.fromJson(Map<String, dynamic> json) {
     return MediaUploadData(
-      url: json['url'] as String? ?? '',
-      path: json['path'] as String? ?? '',
+      url: _stringValue(json['url']) ?? '',
+      path: _stringValue(json['path']) ?? '',
     );
   }
 
@@ -31,6 +31,11 @@ class MediaUploadData {
       path: path ?? this.path,
     );
   }
+}
+
+String? _stringValue(Object? value) {
+  if (value is String) return value;
+  return null;
 }
 
 class MediaUploadResponse {
@@ -106,6 +111,12 @@ enum MediaContext {
   community; // For community cover images
 
   String toApiValue() {
-    return name.toLowerCase();
+    return switch (this) {
+      MediaContext.avatar => 'avatar',
+      MediaContext.post => 'post',
+      // The media API currently accepts only avatar/post. Community covers use
+      // the avatar bucket and the returned URL is saved on the community.
+      MediaContext.community => 'avatar',
+    };
   }
 }

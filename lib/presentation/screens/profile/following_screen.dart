@@ -8,7 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../data/providers/profile_provider.dart';
 
 class FollowingScreen extends ConsumerStatefulWidget {
-  const FollowingScreen({Key? key}) : super(key: key);
+  const FollowingScreen({super.key});
 
   @override
   ConsumerState<FollowingScreen> createState() => _FollowingScreenState();
@@ -166,9 +166,9 @@ class _FollowingScreenState extends ConsumerState<FollowingScreen> {
                           baseColor: const Color(0xFFE0E0E0),
                           highlightColor: const Color(0xFFF5F5F5),
                           child: Container(
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              color: const Color(0xFFE0E0E0),
+                              color: Color(0xFFE0E0E0),
                             ),
                           ),
                         );

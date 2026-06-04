@@ -59,7 +59,7 @@ class TemplateHabitCard extends StatefulWidget {
   final ValueChanged<bool>? onToggle;
 
   const TemplateHabitCard({
-    Key? key,
+    super.key,
     required this.template,
     required this.categoryColor,
     required this.categoryName,
@@ -67,7 +67,7 @@ class TemplateHabitCard extends StatefulWidget {
     required this.isDark,
     this.isAdded,
     this.onToggle,
-  }) : super(key: key);
+  });
 
   @override
   State<TemplateHabitCard> createState() => _TemplateHabitCardState();

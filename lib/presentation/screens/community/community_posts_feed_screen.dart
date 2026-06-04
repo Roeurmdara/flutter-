@@ -1,11 +1,14 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/exceptions/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/community_post_model.dart';
 import '../../../data/providers/community_provider.dart';
+import '../../../data/providers/session_provider.dart';
 import 'community_post_card.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -13,13 +16,15 @@ class CommunityPostsFeedScreen extends ConsumerStatefulWidget {
   final String communityId;
   final String communityName;
   final bool showAppBar;
+  final bool? canCreatePosts;
 
   const CommunityPostsFeedScreen({
-    Key? key,
+    super.key,
     required this.communityId,
     required this.communityName,
     this.showAppBar = true,
-  }) : super(key: key);
+    this.canCreatePosts,
+  });
 
   @override
   ConsumerState<CommunityPostsFeedScreen> createState() =>
@@ -52,6 +57,10 @@ class _CommunityPostsFeedScreenState
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canCreatePosts = widget.canCreatePosts ??
+        ref.watch(sessionProvider).joinedCommunityIds.contains(
+              widget.communityId,
+            );
 
     // Fetch posts
     final postsAsync = ref.watch(
@@ -70,27 +79,29 @@ class _CommunityPostsFeedScreenState
         data: (response) => Stack(
           children: [
             _buildFeed(context, response),
-            // Small floating button for embedded feed
-            Positioned(
-              right: 16,
-              bottom: 12,
-              child: GestureDetector(
-                onTap: () => _showCreatePostDialog(context),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryPurple,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withOpacity(0.12), blurRadius: 6),
-                    ],
+            if (canCreatePosts)
+              Positioned(
+                right: 16,
+                bottom: 12,
+                child: GestureDetector(
+                  onTap: () => _showCreatePostDialog(context),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryPurple,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 6),
+                      ],
+                    ),
+                    child:
+                        const Icon(Icons.edit, color: Colors.white, size: 20),
                   ),
-                  child: const Icon(Icons.edit, color: Colors.white, size: 20),
                 ),
               ),
-            ),
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -220,16 +231,18 @@ class _CommunityPostsFeedScreenState
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showCreatePostDialog(context),
-          backgroundColor: AppColors.primaryPurple,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          mini: true,
-          child: const Icon(Icons.edit, size: 20, color: Colors.white),
-        ),
+        floatingActionButton: canCreatePosts
+            ? FloatingActionButton(
+                onPressed: () => _showCreatePostDialog(context),
+                backgroundColor: AppColors.primaryPurple,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                mini: true,
+                child: const Icon(Icons.edit, size: 20, color: Colors.white),
+              )
+            : null,
       ),
     );
   }
@@ -254,7 +267,7 @@ class _CommunityPostsFeedScreenState
           onCommentsTap: () => _showCommentsDialog(context, posts[index]),
           onEditTap: () => _showEditPostDialog(context, posts[index]),
           onDeleteTap: () => _showDeleteConfirmation(context, posts[index]),
-          onAuthorTap: (authorId) => _showAuthorProfile(context, authorId),
+          onAuthorTap: (_) => _showAuthorProfile(context, posts[index]),
         );
       },
     );
@@ -293,9 +306,24 @@ class _CommunityPostsFeedScreenState
     final muted =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
     final message = error.toString();
-    final isAccessDenied = message.contains('403') ||
+    final statusCode = error is ApiException ? error.statusCode : null;
+    final isAuthExpired = statusCode == 401 ||
+        message.contains('AUTH_TOKEN_INVALID') ||
+        message.toLowerCase().contains('access token has expired');
+    final isAccessDenied = statusCode == 403 ||
+        message.contains('403') ||
         message.contains('COMMUNITY_ACCESS_DENIED') ||
         message.contains('active community member');
+    final title = isAuthExpired
+        ? 'Session expired'
+        : isAccessDenied
+            ? 'Join to view posts'
+            : 'Failed to load posts';
+    final detail = isAuthExpired
+        ? 'Please log in again to refresh your access.'
+        : isAccessDenied
+            ? 'Only active community members can access this feed.'
+            : message;
 
     return Center(
       child: Padding(
@@ -304,29 +332,39 @@ class _CommunityPostsFeedScreenState
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              isAccessDenied ? Icons.lock_outline : Icons.error_outline,
+              isAuthExpired || isAccessDenied
+                  ? Icons.lock_outline
+                  : Icons.error_outline,
               size: 36,
-              color: isAccessDenied ? muted.withOpacity(0.5) : Colors.red[300],
+              color: isAuthExpired || isAccessDenied
+                  ? muted.withOpacity(0.5)
+                  : Colors.red[300],
             ),
             const SizedBox(height: 12),
             Text(
-              isAccessDenied ? 'Join to view posts' : 'Failed to load posts',
+              title,
               style: AppTypography.headlineSmall(
                 isDark ? AppColors.darkText : AppColors.lightText,
               ).copyWith(fontSize: 15, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 4),
             Text(
-              isAccessDenied
-                  ? 'Only active community members can access this feed.'
-                  : message,
+              detail,
               textAlign: TextAlign.center,
               style: AppTypography.bodySmall(muted).copyWith(fontSize: 12),
             ),
-            if (!isAccessDenied) ...[
+            if (!isAccessDenied && !isAuthExpired) ...[
               const SizedBox(height: 20),
               OutlinedButton.icon(
-                onPressed: () => ref.invalidate(communityPostsProvider),
+                onPressed: () => ref.invalidate(
+                  communityPostsProvider(
+                    PostPaginationParams(
+                      communityId: widget.communityId,
+                      page: _currentPage,
+                      perPage: 10,
+                    ),
+                  ),
+                ),
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Retry', style: TextStyle(fontSize: 13)),
                 style: OutlinedButton.styleFrom(
@@ -387,10 +425,73 @@ class _CommunityPostsFeedScreenState
   // ── Dialogs ────────────────────────────────────────────────────
 
   void _showCreatePostDialog(BuildContext context) {
+    final canCreatePosts = widget.canCreatePosts ??
+        ref.read(sessionProvider).joinedCommunityIds.contains(
+              widget.communityId,
+            );
+    if (!canCreatePosts) {
+      _showJoinRequiredDialog(context);
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (_) => _PostDialog(communityId: widget.communityId),
     );
+  }
+
+  Future<void> _showJoinRequiredDialog(BuildContext context) async {
+    final shouldJoin = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Join community?'),
+        content: Text(
+          'Join ${widget.communityName} to create posts and view the feed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryPurple,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Join'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldJoin != true || !mounted) return;
+
+    try {
+      await ref
+          .read(communityOperationsProvider.notifier)
+          .joinCommunity(widget.communityId);
+      ref.invalidate(communityDetailProvider(widget.communityId));
+      ref.invalidate(communityPostsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Joined ${widget.communityName}'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.primaryPurple,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to join: $e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    }
   }
 
   void _showEditPostDialog(BuildContext context, CommunityPost post) {
@@ -446,13 +547,23 @@ class _CommunityPostsFeedScreenState
     );
   }
 
-  void _showAuthorProfile(BuildContext context, String authorId) {
+  void _showAuthorProfile(BuildContext context, CommunityPost post) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authorId = post.authorId;
+    final embeddedUsername = post.authorUsername;
+    final embeddedAvatar = post.authorAvatarUrl;
+
     showModalBottomSheet(
       context: context,
       builder: (context) => Consumer(
         builder: (context, ref, child) {
           final userAsync = ref.watch(userProfileByIdProvider(authorId));
+          final profile = userAsync.valueOrNull?.data;
+          final username = profile?.username ?? embeddedUsername;
+          final avatarUrl = profile?.avatarUrl ?? embeddedAvatar;
+          final displayName = username == null || username.trim().isEmpty
+              ? 'Unknown member'
+              : username.trim();
 
           return Container(
             padding: const EdgeInsets.all(20),
@@ -467,174 +578,77 @@ class _CommunityPostsFeedScreenState
                   ).copyWith(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 16),
-                userAsync.when(
-                  data: (profileResponse) {
-                    final profile = profileResponse.data;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Display name
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color:
-                                isDark ? AppColors.darkSurface : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.darkBorder
-                                  : AppColors.lightBorder,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Name',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.lightTextSecondary,
-                                ),
+                Row(
+                  children: [
+                    ClipOval(
+                      child: SizedBox(
+                        width: 52,
+                        height: 52,
+                        child: avatarUrl == null || avatarUrl.trim().isEmpty
+                            ? _AuthorInitial(displayName)
+                            : Image.network(
+                                avatarUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _AuthorInitial(displayName),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                profile?.username ?? 'Unknown',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? AppColors.darkText
-                                      : AppColors.lightText,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // Username
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color:
-                                isDark ? AppColors.darkSurface : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.darkBorder
-                                  : AppColors.lightBorder,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Username',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.lightTextSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '@${profile?.username ?? 'unknown'}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.primaryPurple,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        // User ID
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color:
-                                isDark ? AppColors.darkSurface : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.darkBorder
-                                  : AppColors.lightBorder,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'User ID',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.lightTextSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              SelectableText(
-                                authorId,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontFamily: 'monospace',
-                                  color: isDark
-                                      ? AppColors.darkText
-                                      : AppColors.lightText,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: CircularProgressIndicator(),
-                  ),
-                  error: (error, _) => Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface : Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.darkBorder
-                            : AppColors.lightBorder,
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'User ID',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.lightTextSecondary,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? AppColors.darkText
+                                  : AppColors.lightText,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        SelectableText(
-                          authorId,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'monospace',
-                            color: isDark
-                                ? AppColors.darkText
-                                : AppColors.lightText,
+                          const SizedBox(height: 4),
+                          Text(
+                            '@${username ?? 'unknown'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.primaryPurple,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _AuthorInfoTile(
+                  label: 'User ID',
+                  value: authorId,
+                  selectable: true,
+                  isDark: isDark,
+                ),
+                if (userAsync.isLoading && embeddedUsername == null) ...[
+                  const SizedBox(height: 12),
+                  const LinearProgressIndicator(minHeight: 2),
+                ],
+                if (userAsync.hasError && embeddedUsername == null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'Profile details are unavailable right now.',
+                    style: AppTypography.bodySmall(
+                      isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
                     ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -657,6 +671,89 @@ class _CommunityPostsFeedScreenState
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _AuthorInitial extends StatelessWidget {
+  final String name;
+
+  const _AuthorInitial(this.name);
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    return Container(
+      color: AppColors.primaryPurple.withOpacity(0.12),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: AppColors.primaryPurple,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthorInfoTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool selectable;
+  final bool isDark;
+
+  const _AuthorInfoTile({
+    required this.label,
+    required this.value,
+    required this.isDark,
+    this.selectable = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final labelColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final valueColor = isDark ? AppColors.darkText : AppColors.lightText;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, color: labelColor),
+          ),
+          const SizedBox(height: 6),
+          selectable
+              ? SelectableText(
+                  value,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    color: valueColor,
+                  ),
+                )
+              : Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: valueColor,
+                  ),
+                ),
+        ],
       ),
     );
   }
@@ -730,7 +827,7 @@ class _AboutTab extends StatelessWidget {
                 community.createdBy.length > 30
                     ? '${community.createdBy.substring(0, 30)}...'
                     : community.createdBy,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.primaryPurple,
                   fontFamily: 'monospace',
@@ -763,6 +860,8 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
   bool _isLoading = false;
   late bool _isPinned;
   File? _selectedImage;
+  Uint8List? _selectedImagePreview;
+  String? _selectedImageName;
 
   bool get _isEditing => widget.post != null;
 
@@ -781,6 +880,42 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _selectedImage = File(picked.path);
+        _selectedImagePreview = bytes;
+        _selectedImageName = picked.name;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick image: $e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red.shade600,
+        ),
+      );
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _selectedImage = null;
+      _selectedImagePreview = null;
+      _selectedImageName = null;
+    });
+  }
+
   Future<void> _submit() async {
     if (_titleController.text.trim().isEmpty ||
         _bodyController.text.trim().isEmpty) {
@@ -795,42 +930,53 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
 
     setState(() => _isLoading = true);
 
-    if (_isEditing) {
-      await ref.read(postOperationsProvider.notifier).updatePost(
-            communityId: widget.communityId,
-            postId: widget.post!.id,
-            title: _titleController.text.trim(),
-            body: _bodyController.text.trim(),
-            isPinned: _isPinned,
-            imageFile: _selectedImage,
-          );
-    } else {
-      await ref.read(postOperationsProvider.notifier).createPost(
-            communityId: widget.communityId,
-            title: _titleController.text.trim(),
-            body: _bodyController.text.trim(),
-            isPinned: _isPinned,
-            imageFile: _selectedImage,
-          );
-    }
+    try {
+      if (_isEditing) {
+        await ref.read(postOperationsProvider.notifier).updatePost(
+              communityId: widget.communityId,
+              postId: widget.post!.id,
+              title: _titleController.text.trim(),
+              body: _bodyController.text.trim(),
+              isPinned: _isPinned,
+              imageFile: _selectedImage,
+            );
+      } else {
+        await ref.read(postOperationsProvider.notifier).createPost(
+              communityId: widget.communityId,
+              title: _titleController.text.trim(),
+              body: _bodyController.text.trim(),
+              isPinned: _isPinned,
+              imageFile: _selectedImage,
+            );
+      }
 
-    setState(() => _isLoading = false);
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-      
-          content: Text(
-            _isEditing
-                ? 'Post updated successfully'
-                : 'Post created successfully',
-            style: const TextStyle(color: Colors.white),
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isEditing
+                  ? 'Post updated successfully'
+                  : 'Post created successfully',
+              style: const TextStyle(color: Colors.white),
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.primaryPurple,
           ),
-          behavior: SnackBarBehavior.floating,
-      
-          backgroundColor: AppColors.primaryPurple,
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red.shade600,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -854,33 +1000,57 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Image Section (Now at the Top) ──
-            if (_selectedImage != null) ...[
+            if (_selectedImagePreview != null) ...[
               Stack(
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
-                      _selectedImage!,
+                    child: Image.memory(
+                      _selectedImagePreview!,
                       width: double.infinity,
-                      height: 150,
+                      height: 170,
                       fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    left: 10,
+                    bottom: 10,
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 210),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.58),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        _selectedImageName ?? 'Selected image',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   if (!_isLoading)
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedImage = null),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
+                      child: Row(
+                        children: [
+                          _ImageActionButton(
+                            icon: Icons.edit_outlined,
+                            onTap: _pickImage,
                           ),
-                          child: const Icon(Icons.close,
-                              size: 16, color: Colors.white),
-                        ),
+                          const SizedBox(width: 8),
+                          _ImageActionButton(
+                            icon: Icons.close,
+                            onTap: _removeImage,
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -888,18 +1058,7 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
               const SizedBox(height: 20),
             ] else ...[
               GestureDetector(
-                onTap: _isLoading
-                    ? null
-                    : () async {
-                        final picker = ImagePicker();
-                        final XFile? picked = await picker.pickImage(
-                          source: ImageSource.gallery,
-                          imageQuality: 85,
-                        );
-                        if (picked != null) {
-                          setState(() => _selectedImage = File(picked.path));
-                        }
-                      },
+                onTap: _isLoading ? null : _pickImage,
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 20),
@@ -918,7 +1077,7 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
                           size: 20, color: sub),
                       const SizedBox(width: 8),
                       Text(
-                        'Add cover image',
+                        'Add post image',
                         style: TextStyle(
                             color: sub,
                             fontSize: 14,
@@ -1057,6 +1216,31 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ImageActionButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _ImageActionButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.58),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 16, color: Colors.white),
       ),
     );
   }
@@ -1253,7 +1437,7 @@ class _CommentsDialogState extends ConsumerState<_CommentsDialog> {
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: _addComment,
-                  icon: Icon(Icons.arrow_upward,
+                  icon: const Icon(Icons.arrow_upward,
                       size: 18, color: AppColors.primaryPurple),
                   padding: const EdgeInsets.all(8),
                   constraints: const BoxConstraints(),

@@ -10,13 +10,16 @@ import 'auth_provider.dart';
 final templateServiceProvider = Provider((ref) {
   final dio = Dio();
   final authState = ref.watch(authProvider);
+  final secureStorage = ref.watch(secureStorageProvider);
   final token = authState.user?.token ?? '';
 
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        if (token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
+        final activeToken =
+            token.isNotEmpty ? token : await secureStorage.getAccessToken();
+        if (activeToken != null && activeToken.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $activeToken';
         }
         return handler.next(options);
       },

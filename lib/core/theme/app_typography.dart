@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// Typography Configuration
+/// Typography Configuration — uses Google Fonts for reliable rendering
 class AppTypography {
   static TextStyle _poppins({
     required double fontSize,
@@ -9,8 +10,7 @@ class AppTypography {
     required double height,
     required double letterSpacing,
   }) {
-    return TextStyle(
-      fontFamily: 'Poppins',
+    return GoogleFonts.poppins(
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,
@@ -26,8 +26,7 @@ class AppTypography {
     required double height,
     required double letterSpacing,
   }) {
-    return TextStyle(
-      fontFamily: 'Inter',
+    return GoogleFonts.inter(
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,

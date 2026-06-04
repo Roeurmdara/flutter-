@@ -36,13 +36,14 @@ class AuthState {
     bool? isLoading,
     bool? isAuthenticated,
     UserAuthInfo? user,
+    bool clearUser = false,
     String? error,
     String? errorCode,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
-      user: user ?? this.user,
+      user: clearUser ? null : user ?? this.user,
       error: error,
       errorCode: errorCode ?? this.errorCode,
     );
@@ -112,7 +113,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           error: null,
         );
 
-        await _saveAuthData(userWithToken, token);
+        await _saveAuthData(
+          userWithToken,
+          token,
+          refreshToken: response.data!.refreshToken,
+        );
         return true;
       } else {
         state = state.copyWith(
@@ -162,7 +167,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           error: null,
         );
 
-        await _saveAuthData(userWithToken, token);
+        await _saveAuthData(
+          userWithToken,
+          token,
+          refreshToken: response.data!.refreshToken,
+        );
         return true;
       } else {
         state = state.copyWith(
@@ -186,11 +195,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     state = state.copyWith(
       isAuthenticated: false,
-      user: null,
+      clearUser: true,
       error: null,
     );
 
     final prefs = await SharedPreferences.getInstance();
+    await _authService.logout();
     await prefs.remove('auth_user_id');
     await prefs.remove('auth_user_email');
     await prefs.remove('auth_user_username');
@@ -200,7 +210,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Save auth data to local storage
-  Future<void> _saveAuthData(UserAuthInfo user, String token) async {
+  Future<void> _saveAuthData(
+    UserAuthInfo user,
+    String token, {
+    String? refreshToken,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
 
     debugPrint('💾 Saving token: ${token.isNotEmpty}');
@@ -208,6 +222,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (token.isNotEmpty) {
       await prefs.setString('auth_token', token);
       await prefs.setString('user_token', token);
+      await _authService.saveAccessToken(token);
+    }
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await _authService.saveRefreshToken(refreshToken);
     }
 
     await prefs.setString('auth_user_id', user.id);
@@ -311,7 +329,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           error: null,
         );
 
-        await _saveAuthData(userWithToken, token);
+        await _saveAuthData(
+          userWithToken,
+          token,
+          refreshToken: response.data!.refreshToken,
+        );
         return true;
       } else {
         state = state.copyWith(
@@ -351,7 +373,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           error: null,
         );
 
-        await _saveAuthData(userWithToken, token);
+        await _saveAuthData(
+          userWithToken,
+          token,
+          refreshToken: response.data!.refreshToken,
+        );
         return true;
       } else {
         state = state.copyWith(

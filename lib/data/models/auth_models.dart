@@ -91,27 +91,33 @@ class AuthResponse {
 class AuthData {
   final UserAuthInfo? user;
   final String? token;
+  final String? refreshToken;
   final String? message;
 
   AuthData({
     this.user,
     this.token,
+    this.refreshToken,
     this.message,
   });
 
   factory AuthData.fromJson(Map<String, dynamic> json) {
-  // ✅ token is nested under "tokens.access_token", not "token" or "access_token"
-  final tokensMap = json['tokens'] as Map<String, dynamic>?;
-  final token = tokensMap?['access_token'] as String?;
+    final tokensMap = json['tokens'] as Map<String, dynamic>?;
+    final token = tokensMap?['access_token'] as String? ??
+        json['access_token'] as String? ??
+        json['token'] as String?;
+    final refreshToken = tokensMap?['refresh_token'] as String? ??
+        json['refresh_token'] as String?;
 
-  final userJson = json['user'] as Map<String, dynamic>?;
+    final userJson = json['user'] as Map<String, dynamic>?;
 
-  return AuthData(
-    user: userJson != null ? UserAuthInfo.fromJson(userJson) : null,
-    token: token,
-    message: json['message'] as String?,
-  );
-}
+    return AuthData(
+      user: userJson != null ? UserAuthInfo.fromJson(userJson) : null,
+      token: token,
+      refreshToken: refreshToken,
+      message: json['message'] as String?,
+    );
+  }
 }
 
 // User Info from Auth Response

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import '../models/community_model.dart';
 import '../../core/exceptions/api_exception.dart';
@@ -34,27 +32,23 @@ class CommunityService {
         ),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data as Map<String, dynamic>;
-
-        final List<dynamic> communitiesData =
-            data['data'] as List<dynamic>? ?? [];
-        final communities = communitiesData
-            .map((json) => Community.fromJson(json as Map<String, dynamic>))
-            .toList();
-
-        final metaData = data['meta'] as Map<String, dynamic>? ?? {};
-        final pagination = PaginationMeta.fromJson(metaData);
+      if (_isSuccess(response)) {
+        final data = _responseMap(response);
+        final communities = _extractList(
+          data,
+          keys: const ['communities', 'items', 'results', 'records', 'data'],
+        ).map(Community.fromJson).toList();
+        final pagination = PaginationMeta.fromJson(_extractMeta(data));
 
         return CommunityListResponse(
           communities: communities,
           pagination: pagination,
         );
       } else {
-        throw Exception(
-          'Failed to fetch communities: ${response.statusCode}',
-        );
+        throw ApiException(response.statusCode, response.data);
       }
+    } on ApiException {
+      rethrow;
     } on DioException catch (e) {
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -74,16 +68,16 @@ class CommunityService {
         ),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data as Map<String, dynamic>;
-        final communityData = data['data'] as Map<String, dynamic>? ?? {};
+      if (_isSuccess(response)) {
+        final data = _responseMap(response);
+        final communityData = _objectValue(data['data']) ?? data;
 
         return Community.fromJson(communityData);
       } else {
-        throw Exception(
-          'Failed to fetch community: ${response.statusCode}',
-        );
+        throw ApiException(response.statusCode, response.data);
       }
+    } on ApiException {
+      rethrow;
     } on DioException catch (e) {
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -103,9 +97,7 @@ class CommunityService {
         ),
       );
 
-      if (response.statusCode != null &&
-          response.statusCode! >= 200 &&
-          response.statusCode! < 300) {
+      if (_isSuccess(response)) {
         return;
       } else {
         throw ApiException(response.statusCode, response.data);
@@ -131,9 +123,7 @@ class CommunityService {
         ),
       );
 
-      if (response.statusCode != null &&
-          response.statusCode! >= 200 &&
-          response.statusCode! < 300) {
+      if (_isSuccess(response)) {
         return true;
       } else if (response.statusCode == 404 &&
           response.data is Map<String, dynamic> &&
@@ -142,9 +132,7 @@ class CommunityService {
               'COMMUNITY_MEMBER_NOT_FOUND') {
         return true;
       } else {
-        throw Exception(
-          'Failed to leave community: ${_extractErrorMessage(response)}',
-        );
+        throw ApiException(response.statusCode, response.data);
       }
     } on ApiException {
       rethrow;
@@ -178,27 +166,23 @@ class CommunityService {
         ),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data as Map<String, dynamic>;
-
-        final List<dynamic> membersData = data['data'] as List<dynamic>? ?? [];
-        final members = membersData
-            .map((json) =>
-                CommunityMember.fromJson(json as Map<String, dynamic>))
-            .toList();
-
-        final metaData = data['meta'] as Map<String, dynamic>? ?? {};
-        final pagination = PaginationMeta.fromJson(metaData);
+      if (_isSuccess(response)) {
+        final data = _responseMap(response);
+        final members = _extractList(
+          data,
+          keys: const ['members', 'items', 'results', 'records', 'data'],
+        ).map(CommunityMember.fromJson).toList();
+        final pagination = PaginationMeta.fromJson(_extractMeta(data));
 
         return CommunityMembersResponse(
           members: members,
           pagination: pagination,
         );
       } else {
-        throw Exception(
-          'Failed to fetch community members: ${response.statusCode}',
-        );
+        throw ApiException(response.statusCode, response.data);
       }
+    } on ApiException {
+      rethrow;
     } on DioException catch (e) {
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -225,8 +209,6 @@ class CommunityService {
           'cover_image': coverImage.trim(),
         'join_type': joinType,
         'status': 'active',
-        if (customColor != null) 'custom_color': customColor,
-        if (customEmoji != null) 'custom_emoji': customEmoji,
       };
 
       final response = await _dio.post(
@@ -239,9 +221,9 @@ class CommunityService {
         ),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data as Map<String, dynamic>;
-        final communityData = data['data'] as Map<String, dynamic>? ?? {};
+      if (_isSuccess(response)) {
+        final data = _responseMap(response);
+        final communityData = _objectValue(data['data']) ?? data;
 
         return Community.fromJson(communityData);
       } else {
@@ -256,16 +238,83 @@ class CommunityService {
     }
   }
 
-  String _extractErrorMessage(Response response) {
+  bool _isSuccess(Response response) =>
+      response.statusCode != null &&
+      response.statusCode! >= 200 &&
+      response.statusCode! < 300;
+
+  Map<String, dynamic> _responseMap(Response response) {
     final data = response.data;
-    if (data is Map<String, dynamic>) {
-      final error = data['error'];
-      if (error is Map<String, dynamic> && error['message'] != null) {
-        return error['message'].toString();
-      }
-      if (data['message'] != null) return data['message'].toString();
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    throw FormatException('Expected JSON object, got ${data.runtimeType}');
+  }
+
+  Map<String, dynamic>? _objectValue(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return null;
+  }
+
+  List<Map<String, dynamic>> _extractList(
+    Map<String, dynamic> responseData, {
+    required List<String> keys,
+  }) {
+    final list = _findList(responseData['data'], keys) ??
+        _findList(responseData, keys) ??
+        const <Object?>[];
+
+    return list.map(_objectValue).whereType<Map<String, dynamic>>().toList();
+  }
+
+  List<Object?>? _findList(Object? value, List<String> keys) {
+    if (value is List) return value;
+    final map = _objectValue(value);
+    if (map == null) return null;
+
+    for (final key in keys) {
+      final nested = map[key];
+      if (nested is List) return nested;
     }
-    return 'HTTP ${response.statusCode}';
+
+    for (final key in const ['data', 'items', 'results', 'records']) {
+      final nested = map[key];
+      if (nested is List) return nested;
+    }
+
+    final mappedObjects = map.values.whereType<Map>().toList();
+    if (mappedObjects.isNotEmpty && mappedObjects.length == map.length) {
+      return mappedObjects;
+    }
+
+    return null;
+  }
+
+  Map<String, dynamic> _extractMeta(Map<String, dynamic> responseData) {
+    final topLevelMeta = _objectValue(responseData['meta']);
+    if (topLevelMeta != null) return topLevelMeta;
+
+    final data = _objectValue(responseData['data']);
+    if (data == null) return const {};
+
+    final nestedMeta =
+        _objectValue(data['meta']) ?? _objectValue(data['links']);
+    if (nestedMeta != null) return nestedMeta;
+
+    const metaKeys = {
+      'page',
+      'size',
+      'totalElements',
+      'totalPages',
+      'hasNext',
+      'hasPrevious',
+      'per_page',
+      'total',
+      'last_page',
+    };
+    if (data.keys.any(metaKeys.contains)) return data;
+
+    return const {};
   }
 }
 
@@ -293,24 +342,46 @@ class CommunityMembersResponse {
 
 /// Community member model
 class CommunityMember {
+  final String id;
+  final String communityId;
   final String userId;
   final String username;
   final String? avatar;
   final String role;
+  final String status;
+  final DateTime? joinedAt;
 
   CommunityMember({
+    this.id = '',
+    this.communityId = '',
     required this.userId,
     required this.username,
     this.avatar,
     required this.role,
+    this.status = 'active',
+    this.joinedAt,
   });
 
   factory CommunityMember.fromJson(Map<String, dynamic> json) {
+    final user = json['user'] is Map<String, dynamic>
+        ? json['user'] as Map<String, dynamic>
+        : null;
+
     return CommunityMember(
-      userId: json['user_id'] as String? ?? json['id'] as String? ?? '',
-      username: json['username'] as String? ?? '',
-      avatar: json['avatar'] as String?,
-      role: json['role'] as String? ?? 'member',
+      id: _stringValue(json['id']) ?? '',
+      communityId: _stringValue(json['community_id']) ?? '',
+      userId: _stringValue(json['user_id']) ?? _stringValue(json['id']) ?? '',
+      username: _stringValue(json['username']) ??
+          _stringValue(user?['username']) ??
+          _stringValue(user?['name']) ??
+          '',
+      avatar: _stringValue(json['avatar']) ??
+          _stringValue(json['avatar_url']) ??
+          _stringValue(user?['avatar']) ??
+          _stringValue(user?['avatar_url']),
+      role: _stringValue(json['role']) ?? 'member',
+      status: _stringValue(json['status']) ?? 'active',
+      joinedAt: _dateValue(json['joined_at']),
     );
   }
 }
@@ -319,28 +390,72 @@ class CommunityMember {
 class PaginationMeta {
   final int page;
   final int size;
+  final int totalElements;
   final int total;
   final int totalPages;
   final bool hasNext;
   final bool hasPrevious;
+  final int perPage;
+  final int lastPage;
 
   PaginationMeta({
     required this.page,
     required this.size,
+    required this.totalElements,
     required this.total,
     required this.totalPages,
     required this.hasNext,
     required this.hasPrevious,
+    required this.perPage,
+    required this.lastPage,
   });
 
   factory PaginationMeta.fromJson(Map<String, dynamic> json) {
+    final page =
+        _intValue(json['page']) ?? _intValue(json['current_page']) ?? 1;
+    final size = _intValue(json['size']) ?? _intValue(json['per_page']) ?? 10;
+    final totalElements =
+        _intValue(json['totalElements']) ?? _intValue(json['total']) ?? 0;
+    final totalPages = _intValue(json['totalPages']) ??
+        _intValue(json['last_page']) ??
+        _intValue(json['lastPage']) ??
+        0;
+
     return PaginationMeta(
-      page: json['page'] as int? ?? 1,
-      size: json['size'] as int? ?? 10,
-      total: json['total'] as int? ?? 0,
-      totalPages: json['totalPages'] as int? ?? 0,
-      hasNext: json['hasNext'] as bool? ?? false,
-      hasPrevious: json['hasPrevious'] as bool? ?? false,
+      page: page,
+      size: size,
+      totalElements: totalElements,
+      total: _intValue(json['total']) ?? totalElements,
+      totalPages: totalPages,
+      hasNext: _boolValue(json['hasNext']) ?? page < totalPages,
+      hasPrevious: _boolValue(json['hasPrevious']) ?? page > 1,
+      perPage: _intValue(json['per_page']) ?? size,
+      lastPage: _intValue(json['last_page']) ?? totalPages,
     );
   }
+}
+
+String? _stringValue(Object? value) {
+  if (value == null) return null;
+  final text = value.toString().trim();
+  return text.isEmpty ? null : text;
+}
+
+int? _intValue(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
+}
+
+bool? _boolValue(Object? value) {
+  if (value is bool) return value;
+  final text = value?.toString().toLowerCase().trim();
+  if (text == 'true' || text == '1') return true;
+  if (text == 'false' || text == '0') return false;
+  return null;
+}
+
+DateTime? _dateValue(Object? value) {
+  final text = _stringValue(value);
+  return text == null ? null : DateTime.tryParse(text);
 }
