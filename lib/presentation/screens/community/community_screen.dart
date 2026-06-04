@@ -72,7 +72,7 @@ class CommunityScreen extends ConsumerWidget {
     final createdIds = session.createdCommunityIds;
 
     final allAsync = ref.watch(
-      communitiesProvider(CommunityPaginationParams(page: 1, perPage: 100)),
+      communitiesProvider(const CommunityPaginationParams(page: 1, perPage: 100)),
     );
 
     return Scaffold(
@@ -697,8 +697,8 @@ class _CreateCommunityDialogState
         await Future.delayed(const Duration(milliseconds: 300));
       } catch (_) {}
       await ref.read(sessionProvider.notifier).createCommunity(newCommunity.id);
+      await ref.read(sessionProvider.notifier).joinCommunity(newCommunity.id);
       ref.invalidate(communitiesProvider);
-      ref.invalidate(sessionProvider);
 
       if (mounted) {
         Navigator.pop(context);

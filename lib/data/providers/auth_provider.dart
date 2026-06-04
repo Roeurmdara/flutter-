@@ -103,7 +103,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final token = response.data!.token ?? response.data!.user?.token ?? '';
         final userWithToken = _mergeToken(response.data!.user!, token);
 
-        debugPrint('✅ Register token: "$token"');
+        debugPrint('✅ Register token received: ${token.isNotEmpty}');
 
         state = state.copyWith(
           isLoading: false,
@@ -145,15 +145,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
 
-      debugPrint('🌐 AuthData.token: ${response.data?.token}');
-      debugPrint('🌐 AuthData.user.token: ${response.data?.user?.token}');
+      debugPrint(
+          '🌐 Login token received: ${(response.data?.token ?? response.data?.user?.token ?? '').isNotEmpty}');
 
       if (response.success && response.data?.user != null) {
         // ✅ Token lives on AuthData.token — merge it into user
         final token = response.data!.token ?? response.data!.user?.token ?? '';
         final userWithToken = _mergeToken(response.data!.user!, token);
 
-        debugPrint('✅ Login token merged: "$token"');
+        debugPrint('✅ Login token merged: ${token.isNotEmpty}');
 
         state = state.copyWith(
           isLoading: false,
@@ -203,7 +203,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _saveAuthData(UserAuthInfo user, String token) async {
     final prefs = await SharedPreferences.getInstance();
 
-    debugPrint('💾 Saving token: "$token"');
+    debugPrint('💾 Saving token: ${token.isNotEmpty}');
 
     if (token.isNotEmpty) {
       await prefs.setString('auth_token', token);
@@ -229,7 +229,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final avatar = prefs.getString('auth_user_avatar');
       final token = prefs.getString('auth_token');
 
-      debugPrint('🔄 Restoring session, token: "$token"');
+      debugPrint('🔄 Restoring session, token exists: ${token?.isNotEmpty}');
 
       if (userId != null && email != null && username != null) {
         final user = UserAuthInfo(
@@ -302,7 +302,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final token = response.data!.token ?? response.data!.user?.token ?? '';
         final userWithToken = _mergeToken(response.data!.user!, token);
 
-        debugPrint('✅ Google login token: "$token"');
+        debugPrint('✅ Google login token received: ${token.isNotEmpty}');
 
         state = state.copyWith(
           isLoading: false,
@@ -342,7 +342,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final token = response.data!.token ?? response.data!.user?.token ?? '';
         final userWithToken = _mergeToken(response.data!.user!, token);
 
-        debugPrint('✅ GitHub login token: "$token"');
+        debugPrint('✅ GitHub login token received: ${token.isNotEmpty}');
 
         state = state.copyWith(
           isLoading: false,

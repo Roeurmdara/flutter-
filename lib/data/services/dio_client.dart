@@ -49,7 +49,7 @@ class DioClient {
     // Add logging interceptor for debugging network requests
     _dio.interceptors.add(
       LogInterceptor(
-        requestHeader: true,
+        requestHeader: false,
         requestBody: true,
         responseHeader: true,
         responseBody: true,

@@ -93,7 +93,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     state = state.copyWith(isLoading: true);
 
     final token = _service.getAuthToken();
-    debugPrint('🔑 Token in service: "$token"');
+    debugPrint('🔑 Profile token exists: ${token?.isNotEmpty ?? false}');
 
     final response = await _service.getUserProfile();
 
@@ -425,7 +425,7 @@ class FollowingNotifier extends StateNotifier<FollowingState> {
 final userProfileServiceProvider = Provider<UserProfileService>((ref) {
   final service = UserProfileService();
   final token = ref.watch(authProvider).user?.token ?? '';
-  debugPrint('🔧 Building service, token: "$token"');
+  debugPrint('🔧 Building profile service, token exists: ${token.isNotEmpty}');
   debugPrint('🔧 Auth user: ${ref.watch(authProvider).user?.username}');
   debugPrint('🔧 Is authenticated: ${ref.watch(authProvider).isAuthenticated}');
   if (token.isNotEmpty) {

@@ -82,7 +82,7 @@ class HabitCategoryService {
           '[HabitCategoryService] Dio error - Type: ${e.type}, Message: ${e.message}');
       print('[HabitCategoryService] Response: ${e.response?.statusCode}');
 
-      String errorMessage = _getDetailedErrorMessage(e);
+      final String errorMessage = _getDetailedErrorMessage(e);
       throw Exception(errorMessage);
     } catch (e) {
       print('[HabitCategoryService] Unexpected error: $e');

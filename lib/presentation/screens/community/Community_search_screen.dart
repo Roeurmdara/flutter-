@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/exceptions/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/community_model.dart';
@@ -42,13 +43,128 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
     ).then((_) => _isNavigating = false); // 👈 reset after returning
   }
 
+  Future<void> _joinCommunity(Community community) async {
+    if (!community.isActive) {
+      _showError('${community.name} is not accepting new members.');
+      return;
+    }
+
+    try {
+      await ref
+          .read(communityOperationsProvider.notifier)
+          .joinCommunity(community.id);
+      ref.invalidate(communitiesProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Joined ${community.name}',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppColors.primaryPurple,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showError('Failed to join: ${_errorMessage(e)}');
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  String _errorMessage(Object error) {
+    if (error is ApiException && error.data is Map<String, dynamic>) {
+      final data = error.data as Map<String, dynamic>;
+      final apiError = data['error'];
+      if (apiError is Map<String, dynamic> && apiError['message'] != null) {
+        return apiError['message'].toString();
+      }
+      if (data['message'] != null) return data['message'].toString();
+    }
+    return error.toString();
+  }
+
+  Future<void> _confirmLeaveCommunity(Community community) async {
+    final shouldLeave = await showDialog<bool>(
+      context: context,
+      useRootNavigator: true,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          'Leave community?',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'You will no longer see posts from ${community.name}.',
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext, rootNavigator: true).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext, rootNavigator: true).pop(true),
+            child: const Text(
+              'Leave',
+              style: TextStyle(color: Color(0xFFE53935)),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLeave != true) return;
+
+    try {
+      await ref
+          .read(communityOperationsProvider.notifier)
+          .leaveCommunity(community.id);
+      ref.invalidate(communitiesProvider);
+      ref.invalidate(communityPostsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Left ${community.name}',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppColors.primaryPurple,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to leave: $e'),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final joinedIds = ref.watch(sessionProvider).joinedCommunityIds;
 
     final allAsync = ref.watch(
-      communitiesProvider(CommunityPaginationParams(page: 1, perPage: 100)),
+      communitiesProvider(
+          const CommunityPaginationParams(page: 1, perPage: 100)),
     );
 
     return Scaffold(
@@ -149,11 +265,10 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
                     community: c,
                     isDark: isDark,
                     isJoined: isJoined,
+                    canJoin: c.isActive,
                     onTap: () => _navigateTo(c, isJoined), // 👈 guarded
-                    onJoin: () =>
-                        ref.read(sessionProvider.notifier).joinCommunity(c.id),
-                    onLeave: () =>
-                        ref.read(sessionProvider.notifier).leaveCommunity(c.id),
+                    onJoin: () => _joinCommunity(c),
+                    onLeave: () => _confirmLeaveCommunity(c),
                   );
                 },
               );
@@ -169,13 +284,16 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
 
 class _SearchTile extends StatelessWidget {
   final Community community;
-  final bool isDark, isJoined;
-  final VoidCallback onTap, onJoin, onLeave;
+  final bool isDark, isJoined, canJoin;
+  final VoidCallback onTap;
+  final Future<void> Function() onJoin;
+  final Future<void> Function() onLeave;
 
   const _SearchTile({
     required this.community,
     required this.isDark,
     required this.isJoined,
+    required this.canJoin,
     required this.onTap,
     required this.onJoin,
     required this.onLeave,
@@ -190,8 +308,11 @@ class _SearchTile extends StatelessWidget {
     final color = communityColor(community);
     final emoji = communityEmoji(community);
 
-    final actionColor =
-        isJoined ? const Color(0xFFE53935) : AppColors.primaryPurple;
+    final actionColor = isJoined
+        ? const Color(0xFFE53935)
+        : canJoin
+            ? AppColors.primaryPurple
+            : Colors.grey;
 
     return GestureDetector(
       onTap: onTap,
@@ -272,23 +393,36 @@ class _SearchTile extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // Join / Leave button — absorbs tap so it doesn't trigger onTap
-          GestureDetector(
-            onTap: () => isJoined ? onLeave() : onJoin(), // 👈 isolated
-            behavior: HitTestBehavior.opaque, // 👈 absorb the tap here
-            child: Container(
+          // Join / Leave button
+          TextButton(
+            onPressed: isJoined
+                ? onLeave
+                : canJoin
+                    ? onJoin
+                    : null,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(64, 34),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
+              backgroundColor: actionColor.withOpacity(0.08),
+              disabledBackgroundColor: Colors.grey.withOpacity(0.08),
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                color: actionColor.withOpacity(0.08),
-                border: Border.all(color: actionColor.withOpacity(0.2)),
+                side: BorderSide(
+                  color: actionColor.withOpacity(0.2),
+                ),
               ),
-              child: Text(
-                isJoined ? 'Leave' : 'Join',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: actionColor),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              isJoined
+                  ? 'Leave'
+                  : canJoin
+                      ? 'Join'
+                      : 'Closed',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: actionColor,
               ),
             ),
           ),

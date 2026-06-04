@@ -103,13 +103,15 @@ class CommunityService {
         ),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
         return;
       } else {
-        throw Exception(
-          'Failed to join community: ${response.statusCode} - ${response.data}',
-        );
+        throw ApiException(response.statusCode, response.data);
       }
+    } on ApiException {
+      rethrow;
     } on DioException catch (e) {
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -129,13 +131,23 @@ class CommunityService {
         ),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        return true;
+      } else if (response.statusCode == 404 &&
+          response.data is Map<String, dynamic> &&
+          ((response.data as Map<String, dynamic>)['error']
+                  as Map<String, dynamic>?)?['code'] ==
+              'COMMUNITY_MEMBER_NOT_FOUND') {
         return true;
       } else {
         throw Exception(
-          'Failed to leave community: ${response.statusCode}',
+          'Failed to leave community: ${_extractErrorMessage(response)}',
         );
       }
+    } on ApiException {
+      rethrow;
     } on DioException catch (e) {
       throw Exception('Network error: ${e.message}');
     } catch (e) {
@@ -209,7 +221,8 @@ class CommunityService {
         'name': name,
         'description': description,
         'category_id': categoryId,
-        'cover_image': coverImage ?? 'https://example.com/',
+        if (coverImage != null && coverImage.trim().isNotEmpty)
+          'cover_image': coverImage.trim(),
         'join_type': joinType,
         'status': 'active',
         if (customColor != null) 'custom_color': customColor,
@@ -234,11 +247,25 @@ class CommunityService {
       } else {
         throw ApiException(response.statusCode, response.data);
       }
+    } on ApiException {
+      rethrow;
     } on DioException catch (e) {
       throw Exception('Network error: ${e.message}');
     } catch (e) {
       throw Exception('Error creating community: $e');
     }
+  }
+
+  String _extractErrorMessage(Response response) {
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      final error = data['error'];
+      if (error is Map<String, dynamic> && error['message'] != null) {
+        return error['message'].toString();
+      }
+      if (data['message'] != null) return data['message'].toString();
+    }
+    return 'HTTP ${response.statusCode}';
   }
 }
 

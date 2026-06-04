@@ -260,7 +260,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 const SizedBox(height: 32),
                 _Divider(),
                 const SizedBox(height: 24),
-                _SocialRow(),
+                const _SocialRow(),
               ],
               const SizedBox(height: 32),
             ],
