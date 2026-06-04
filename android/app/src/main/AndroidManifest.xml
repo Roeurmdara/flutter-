@@ -6,7 +6,7 @@
     <application
         android:label="flutter001"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@drawable/launch_background">
         <activity
             android:name=".MainActivity"
             android:exported="true"

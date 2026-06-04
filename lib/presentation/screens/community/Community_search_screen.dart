@@ -198,7 +198,7 @@ class _SearchTile extends StatelessWidget {
       behavior: HitTestBehavior.opaque, // 👈 prevent bubbling issues
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : Colors.white,
           borderRadius: BorderRadius.circular(14),
@@ -214,8 +214,8 @@ class _SearchTile extends StatelessWidget {
           if (community.coverImage != null && community.coverImage!.isNotEmpty)
             ClipOval(
               child: Container(
-                width: 44,
-                height: 44,
+                width: 60,
+                height: 60,
                 color: color.withOpacity(0.06),
                 child: Image.network(
                   community.coverImage!,

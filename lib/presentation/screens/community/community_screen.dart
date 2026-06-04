@@ -142,8 +142,12 @@ class CommunityScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(15, 4, 15, 100),
             children: [
               if (mine.isNotEmpty) ...[
-                _Label('My Communities', isDark),
-                const SizedBox(height: 8),
+                // This forces the Text inside _Label to adopt a font size of 22.0
+                DefaultTextStyle.merge(
+                  style: const TextStyle(fontSize: 29.0, fontWeight: FontWeight.bold),
+                  child: _Label('My Communities', isDark),
+                ),
+                const SizedBox(height: 12),
                 ...mine.map((c) => _CommunityCard(
                     community: c,
                     isDark: isDark,
@@ -151,7 +155,7 @@ class CommunityScreen extends ConsumerWidget {
                         context,
                         MaterialPageRoute(
                             builder: (_) => CommunityPostsFeedScreen(
-                                communityId: c.id, communityName: c.name))))),
+                                communityId: c.id, communityName: c.name))))).toList(),
                 const SizedBox(height: 28),
               ],
               if (joined.isNotEmpty) ...[
@@ -185,7 +189,7 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         title,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.4,
           color: isDark
@@ -217,7 +221,7 @@ class _CommunityCard extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 56,
+        height: 75,
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
           color: bgColor,
@@ -233,8 +237,8 @@ class _CommunityCard extends StatelessWidget {
                 community.coverImage!.isNotEmpty)
               ClipOval(
                 child: Container(
-                  width: 36,
-                  height: 36,
+                  width: 60,
+                  height: 60,
                   color: color.withOpacity(0.06),
                   child: Image.network(
                     community.coverImage!,
