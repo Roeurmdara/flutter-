@@ -9,6 +9,8 @@ import '../../../data/providers/community_provider.dart';
 import '../../../data/providers/category_providers.dart';
 import '../../../data/models/community_model.dart';
 import '../../../data/providers/session_provider.dart';
+import '../../../data/providers/media_provider.dart';
+import '../../../data/models/media_upload_model.dart';
 import 'community_posts_feed_screen.dart';
 import 'community_search_screen.dart';
 import '../../../core/theme/app_typography.dart';
@@ -194,10 +196,6 @@ class _Label extends StatelessWidget {
 }
 
 // ─── Community card ───────────────────────────────────────────────────────────
-//
-//  ┌────────────────────────────────────────────┐
-//  ║▌  🔥  Community Name          1.2k  👥     ║
-//  └────────────────────────────────────────────┘
 
 class _CommunityCard extends StatelessWidget {
   final Community community;
@@ -341,7 +339,7 @@ class _CreateCommunityDialogState
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _coverUrlCtrl = TextEditingController();
-  File? _coverImageFile;
+  XFile? _coverImageFile;
   String? _selectedCategoryId;
   bool _isLoading = false;
   Color _color = AppColors.primaryPurple;
@@ -432,7 +430,8 @@ class _CreateCommunityDialogState
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.file(_coverImageFile!, fit: BoxFit.cover),
+                  child: Image.file(File(_coverImageFile!.path),
+                      fit: BoxFit.cover),
                 ),
               ),
             const SizedBox(height: 14),
@@ -658,15 +657,34 @@ class _CreateCommunityDialogState
     }
     setState(() => _isLoading = true);
     try {
+      // Upload cover image if selected and get URL
+      String? coverImageUrl =
+          _coverUrlCtrl.text.trim().isEmpty ? null : _coverUrlCtrl.text.trim();
+
+      if (_coverImageFile != null) {
+        try {
+          final uploadResponse =
+              await ref.read(mediaServiceProvider).uploadImage(
+                    imageFile: _coverImageFile!,
+                    context: MediaContext.community,
+                  );
+          if (uploadResponse.success && uploadResponse.data?.url != null) {
+            coverImageUrl = uploadResponse.data!.url;
+          } else {
+            throw Exception(uploadResponse.message ??
+                'Failed to upload image. Please try again.');
+          }
+        } catch (uploadError) {
+          throw Exception('Error uploading cover image: $uploadError');
+        }
+      }
+
       final newCommunity =
           await ref.read(communityServiceProvider).createCommunity(
                 name: name,
                 description: _descCtrl.text.trim(),
                 categoryId: _selectedCategoryId!,
-                coverImage: _coverUrlCtrl.text.trim().isEmpty
-                    ? null
-                    : _coverUrlCtrl.text.trim(),
-                coverImageFile: _coverImageFile,
+                coverImage: coverImageUrl,
                 customColor: _colorHex,
                 customEmoji: _emoji,
               );
@@ -677,10 +695,20 @@ class _CreateCommunityDialogState
       await ref.read(sessionProvider.notifier).createCommunity(newCommunity.id);
       ref.invalidate(communitiesProvider);
       ref.invalidate(sessionProvider);
+
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$name created!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            // ⚪ Force the text color to be white
+            content: Text(
+              '$name created!',
+              style: const TextStyle(color: Colors.white),
+            ),
+            // 🟢 Uses your app's success color
+            backgroundColor: AppColors.primaryPurple,
+          ),
+        );
       }
     } catch (e) {
       String message = 'Error creating community';
@@ -876,7 +904,7 @@ class _CreateCommunityDialogState
           await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
       if (xfile == null) return;
       setState(() {
-        _coverImageFile = File(xfile.path);
+        _coverImageFile = xfile;
         // clear URL when a local image is chosen
         _coverUrlCtrl.text = '';
       });

@@ -2,6 +2,26 @@ import 'package:dio/dio.dart';
 import '../models/habit_template_model.dart';
 import '../../core/constants/app_constants.dart';
 
+// Response model for paginated templates
+class TemplateListResponse {
+  final List<HabitTemplate> templates;
+  final int currentPage;
+  final int lastPage;
+  final int total;
+  final int perPage;
+
+  TemplateListResponse({
+    required this.templates,
+    required this.currentPage,
+    required this.lastPage,
+    required this.total,
+    this.perPage = 10,
+  });
+
+  bool get hasNextPage => currentPage < lastPage;
+  bool get hasPreviousPage => currentPage > 1;
+}
+
 class TemplateService {
   final Dio dio;
 
@@ -32,14 +52,55 @@ class TemplateService {
     }
   }
 
-  // Fetch templates by category
-  Future<List<HabitTemplate>> fetchTemplatesByCategory(String category) async {
+  // Fetch templates by category with pagination
+  Future<TemplateListResponse> fetchTemplatesByCategory(
+    String categoryId, {
+    int page = 1,
+    int perPage = 10,
+  }) async {
     try {
       final response = await dio.get(
         '${AppConstants.baseUrl}/templates',
         queryParameters: {
-          'category_id': category
-        }, // Changed from 'category' to 'category_id'
+          'category_id': categoryId,
+          'page': page,
+          'per_page': perPage,
+        },
+        options: Options(validateStatus: (status) => status! < 500),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map) {
+          final templates = (data['data'] as List? ?? [])
+              .map((t) => HabitTemplate.fromJson(t as Map<String, dynamic>))
+              .toList();
+          final meta = data['meta'] as Map<String, dynamic>? ?? {};
+          return TemplateListResponse(
+            templates: templates,
+            currentPage: meta['current_page'] as int? ?? page,
+            lastPage: meta['last_page'] as int? ?? 1,
+            total: meta['total'] as int? ?? templates.length,
+            perPage: meta['per_page'] as int? ?? perPage,
+          );
+        }
+      }
+      return TemplateListResponse(
+          templates: [], currentPage: page, lastPage: 1, total: 0);
+    } catch (e) {
+      print('Error fetching templates by category: $e');
+      return TemplateListResponse(
+          templates: [], currentPage: page, lastPage: 1, total: 0);
+    }
+  }
+
+  // Legacy method - fetch all templates by category (no pagination)
+  Future<List<HabitTemplate>> fetchTemplatesByCategorySimple(
+      String categoryId) async {
+    try {
+      final response = await dio.get(
+        '${AppConstants.baseUrl}/templates',
+        queryParameters: {'category_id': categoryId},
         options: Options(validateStatus: (status) => status! < 500),
       );
 

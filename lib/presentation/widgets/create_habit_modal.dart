@@ -663,14 +663,26 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
             .read(activitiesNotifierProvider.notifier)
             .loadActivities(newHabit.id, _activitySettlementDate);
       }
-
       if (mounted) {
-        _showSnack('Habit created');
+        _showSnack('Habit created', color: AppColors.primaryPurple);
         if (!_addActivity) Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) _showSnack('Error: $e');
+      if (mounted) _showSnack('Error: $e', color: AppColors.error);
     }
+  }
+
+  void _showSnack(String message, {Color? color}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          // ⚪ Force the text color to be white
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: color ?? AppColors.primaryPurple.withOpacity(0.7),
+      ),
+    );
   }
 
   Future<void> _createActivity(String habitId) async {
@@ -696,12 +708,6 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
     } catch (e) {
       if (mounted) _showSnack('Activity creation failed: $e');
     }
-  }
-
-  void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
-    );
   }
 }
 

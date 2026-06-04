@@ -807,10 +807,16 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_isEditing
-              ? 'Post updated successfully'
-              : 'Post created successfully'),
+      
+          content: Text(
+            _isEditing
+                ? 'Post updated successfully'
+                : 'Post created successfully',
+            style: const TextStyle(color: Colors.white),
+          ),
           behavior: SnackBarBehavior.floating,
+      
+          backgroundColor: AppColors.primaryPurple,
         ),
       );
     }

@@ -256,20 +256,26 @@ class TemplateNotifier extends StateNotifier<TemplateState> {
   Future<void> loadTemplatesByCategory(String category) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final templates = category == 'all'
-          ? await _service.fetchTemplates()
-          : await _service.fetchTemplatesByCategory(category);
-
-      if (templates.isEmpty) {
-        final filtered = category == 'all'
-            ? _sampleTemplates
-            : _sampleTemplates
-                .where(
-                    (t) => t.category.toLowerCase() == category.toLowerCase())
-                .toList();
-        state = state.copyWith(templates: filtered, isLoading: false);
+      if (category == 'all') {
+        // Fetch all templates
+        final templates = await _service.fetchTemplates();
+        if (templates.isEmpty) {
+          state = state.copyWith(templates: _sampleTemplates, isLoading: false);
+        } else {
+          state = state.copyWith(templates: templates, isLoading: false);
+        }
       } else {
-        state = state.copyWith(templates: templates, isLoading: false);
+        // Fetch templates by category with pagination
+        final response = await _service.fetchTemplatesByCategory(category);
+        if (response.templates.isEmpty) {
+          final filtered = _sampleTemplates
+              .where((t) => t.category.toLowerCase() == category.toLowerCase())
+              .toList();
+          state = state.copyWith(templates: filtered, isLoading: false);
+        } else {
+          state =
+              state.copyWith(templates: response.templates, isLoading: false);
+        }
       }
     } catch (e) {
       state = state.copyWith(
@@ -392,28 +398,35 @@ final allTemplatesProvider = Provider((ref) {
 
 final templatesByCategoryProvider =
     FutureProvider.family<List<HabitTemplate>, String>((ref, categoryId) async {
-  // Fetch all templates from API
+  // Fetch templates by category from API with pagination
   final service = ref.read(templateServiceProvider);
-  final allTemplates = await service.fetchTemplates();
 
-  // Filter by category ID (e.g., "cat_fitness", "cat_learning", etc.)
+  // Filter by category ID
   if (categoryId == 'all' || categoryId.isEmpty) {
+    // Fetch all templates if 'all' category
+    final allTemplates = await service.fetchTemplates();
     return allTemplates.isNotEmpty ? allTemplates : _getDefaultTemplates();
   }
 
-  // Filter templates that match this category ID
-  final filtered = allTemplates
-      .where((t) => t.categoryId.toLowerCase() == categoryId.toLowerCase())
-      .toList();
+  // Fetch templates for specific category using pagination
+  try {
+    final response = await service.fetchTemplatesByCategory(
+      categoryId,
+      page: 1,
+      perPage: 50, // Get more templates per page for discovery
+    );
 
-  // If no API results, use sample templates filtered by ID
-  if (filtered.isEmpty) {
-    return _sampleTemplates
-        .where((t) => t.categoryId.toLowerCase() == categoryId.toLowerCase())
-        .toList();
+    if (response.templates.isNotEmpty) {
+      return response.templates;
+    }
+  } catch (e) {
+    print('Error fetching templates by category: $e');
   }
 
-  return filtered;
+  // Fallback to sample templates if API fails
+  return _sampleTemplates
+      .where((t) => t.categoryId.toLowerCase() == categoryId.toLowerCase())
+      .toList();
 });
 
 final filteredTemplatesProvider = Provider((ref) {
@@ -430,4 +443,37 @@ final searchResultsProvider = Provider((ref) {
   final query = ref.watch(searchTemplatesProvider);
   final notifier = ref.read(templateProvider.notifier);
   return notifier.searchTemplates(query);
+});
+
+// ─── Pagination Support ──────────────────────────────────────────────────
+
+// State for pagination: (categoryId, page, perPage)
+final templatePaginationPageProvider =
+    StateProvider.family<int, String>((ref, categoryId) => 1);
+
+// Provider for paginated templates by category
+final paginatedTemplatesByCategoryProvider = FutureProvider.family<dynamic,
+    ({String categoryId, int page, int perPage})>((ref, params) async {
+  final service = ref.read(templateServiceProvider);
+  final response = await service.fetchTemplatesByCategory(
+    params.categoryId,
+    page: params.page,
+    perPage: params.perPage,
+  );
+  return response;
+});
+
+// Convenience provider that uses the state for current page
+final templatesByCategoryPaginatedProvider =
+    FutureProvider.family<dynamic, ({String categoryId, int perPage})>(
+        (ref, params) async {
+  final currentPage =
+      ref.watch(templatePaginationPageProvider(params.categoryId));
+  final service = ref.read(templateServiceProvider);
+  final response = await service.fetchTemplatesByCategory(
+    params.categoryId,
+    page: currentPage,
+    perPage: params.perPage,
+  );
+  return response;
 });

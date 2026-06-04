@@ -50,7 +50,7 @@ class HabitCardWidget extends StatelessWidget {
       onLongPress: () => _showHabitOptions(context),
       onTap: onEdit, // ← this opens detail screen
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           borderRadius: BorderRadius.circular(14),
@@ -65,8 +65,8 @@ class HabitCardWidget extends StatelessWidget {
           children: [
             // Emoji badge
             Container(
-              width: 36,
-              height: 36,
+              width: 30,
+              height: 30,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: categoryColor.withOpacity(0.15),
@@ -111,16 +111,16 @@ class HabitCardWidget extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isCompleted
-                      ? AppColors.secondaryGreen.withOpacity(0.2)
+                      ? AppColors.primaryPurple.withOpacity(0.2)
                       : Colors.transparent,
                   border: Border.all(
                     color: isCompleted
-                        ? AppColors.secondaryGreen
+                        ? AppColors.primaryPurple.withOpacity(0.9)
                         : categoryColor.withOpacity(0.3),
                     width: 2,
                   ),
@@ -129,7 +129,7 @@ class HabitCardWidget extends StatelessWidget {
                     ? const Center(
                         child: Icon(
                           Icons.check_rounded,
-                          color: AppColors.secondaryGreen,
+                          color: AppColors.primaryPurple,
                           size: 18,
                         ),
                       )

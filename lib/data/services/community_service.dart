@@ -200,62 +200,31 @@ class CommunityService {
     required String description,
     required String categoryId,
     String? coverImage,
-    File? coverImageFile,
     String joinType = 'open',
     String? customColor,
     String? customEmoji,
   }) async {
     try {
-      Response response;
+      final requestData = {
+        'name': name,
+        'description': description,
+        'category_id': categoryId,
+        'cover_image': coverImage ?? 'https://example.com/',
+        'join_type': joinType,
+        'status': 'active',
+        if (customColor != null) 'custom_color': customColor,
+        if (customEmoji != null) 'custom_emoji': customEmoji,
+      };
 
-      if (coverImageFile != null) {
-        // Send multipart/form-data with file
-        final fileName = coverImageFile.path.split(Platform.pathSeparator).last;
-        final form = FormData.fromMap({
-          'name': name,
-          'description': description,
-          'category_id': categoryId,
-          'join_type': joinType,
-          'status': 'active',
-          if (customColor != null) 'custom_color': customColor,
-          if (customEmoji != null) 'custom_emoji': customEmoji,
-          'cover_image': await MultipartFile.fromFile(
-            coverImageFile.path,
-            filename: fileName,
-          ),
-        });
-
-        response = await _dio.post(
-          _baseUrl,
-          data: form,
-          options: Options(
-            contentType: 'multipart/form-data',
-            followRedirects: true,
-            validateStatus: (status) => status != null && status < 500,
-          ),
-        );
-      } else {
-        final requestData = {
-          'name': name,
-          'description': description,
-          'category_id': categoryId,
-          'cover_image': coverImage ?? 'https://example.com/',
-          'join_type': joinType,
-          'status': 'active',
-          if (customColor != null) 'custom_color': customColor,
-          if (customEmoji != null) 'custom_emoji': customEmoji,
-        };
-
-        response = await _dio.post(
-          _baseUrl,
-          data: requestData,
-          options: Options(
-            contentType: Headers.jsonContentType,
-            followRedirects: true,
-            validateStatus: (status) => status != null && status < 500,
-          ),
-        );
-      }
+      final response = await _dio.post(
+        _baseUrl,
+        data: requestData,
+        options: Options(
+          contentType: Headers.jsonContentType,
+          followRedirects: true,
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data as Map<String, dynamic>;
