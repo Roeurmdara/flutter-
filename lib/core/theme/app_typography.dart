@@ -1,11 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Typography Configuration
 class AppTypography {
+  static TextStyle _poppins({
+    required double fontSize,
+    required FontWeight fontWeight,
+    required Color color,
+    required double height,
+    required double letterSpacing,
+  }) {
+    return TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+      letterSpacing: letterSpacing,
+    );
+  }
+
+  static TextStyle _inter({
+    required double fontSize,
+    required FontWeight fontWeight,
+    required Color color,
+    required double height,
+    required double letterSpacing,
+  }) {
+    return TextStyle(
+      fontFamily: 'Inter',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+      letterSpacing: letterSpacing,
+    );
+  }
+
   // Display Styles - Large Headlines
   static TextStyle displayLarge(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 32,
       fontWeight: FontWeight.w700,
       color: color,
@@ -15,7 +48,7 @@ class AppTypography {
   }
 
   static TextStyle displayMedium(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 28,
       fontWeight: FontWeight.w700,
       color: color,
@@ -25,7 +58,7 @@ class AppTypography {
   }
 
   static TextStyle displaySmall(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 24,
       fontWeight: FontWeight.w600,
       color: color,
@@ -36,7 +69,7 @@ class AppTypography {
 
   // Headline Styles
   static TextStyle headlineLarge(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 20,
       fontWeight: FontWeight.w600,
       color: color,
@@ -46,7 +79,7 @@ class AppTypography {
   }
 
   static TextStyle headlineMedium(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 18,
       fontWeight: FontWeight.w600,
       color: color,
@@ -56,7 +89,7 @@ class AppTypography {
   }
 
   static TextStyle headlineSmall(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 16,
       fontWeight: FontWeight.w600,
       color: color,
@@ -67,7 +100,7 @@ class AppTypography {
 
   // Title Styles
   static TextStyle titleLarge(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 16,
       fontWeight: FontWeight.w600,
       color: color,
@@ -77,7 +110,7 @@ class AppTypography {
   }
 
   static TextStyle titleMedium(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 14,
       fontWeight: FontWeight.w600,
       color: color,
@@ -87,7 +120,7 @@ class AppTypography {
   }
 
   static TextStyle titleSmall(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 12,
       fontWeight: FontWeight.w600,
       color: color,
@@ -98,7 +131,7 @@ class AppTypography {
 
   // Body Styles
   static TextStyle bodyLarge(Color color) {
-    return GoogleFonts.inter(
+    return _inter(
       fontSize: 16,
       fontWeight: FontWeight.w400,
       color: color,
@@ -108,7 +141,7 @@ class AppTypography {
   }
 
   static TextStyle bodyMedium(Color color) {
-    return GoogleFonts.inter(
+    return _inter(
       fontSize: 14,
       fontWeight: FontWeight.w400,
       color: color,
@@ -118,7 +151,7 @@ class AppTypography {
   }
 
   static TextStyle bodySmall(Color color) {
-    return GoogleFonts.inter(
+    return _inter(
       fontSize: 12,
       fontWeight: FontWeight.w400,
       color: color,
@@ -129,7 +162,7 @@ class AppTypography {
 
   // Label Styles
   static TextStyle labelLarge(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 14,
       fontWeight: FontWeight.w600,
       color: color,
@@ -139,7 +172,7 @@ class AppTypography {
   }
 
   static TextStyle labelMedium(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 12,
       fontWeight: FontWeight.w500,
       color: color,
@@ -149,7 +182,7 @@ class AppTypography {
   }
 
   static TextStyle labelSmall(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 11,
       fontWeight: FontWeight.w500,
       color: color,
@@ -160,7 +193,7 @@ class AppTypography {
 
   // Button Styles
   static TextStyle buttonLarge(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 16,
       fontWeight: FontWeight.w600,
       color: color,
@@ -170,7 +203,7 @@ class AppTypography {
   }
 
   static TextStyle buttonMedium(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 14,
       fontWeight: FontWeight.w600,
       color: color,
@@ -180,7 +213,7 @@ class AppTypography {
   }
 
   static TextStyle buttonSmall(Color color) {
-    return GoogleFonts.poppins(
+    return _poppins(
       fontSize: 12,
       fontWeight: FontWeight.w600,
       color: color,

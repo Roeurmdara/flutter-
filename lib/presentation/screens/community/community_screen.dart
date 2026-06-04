@@ -70,7 +70,7 @@ class CommunityScreen extends ConsumerWidget {
     final createdIds = session.createdCommunityIds;
 
     final allAsync = ref.watch(
-      communitiesProvider(CommunityPaginationParams(page: 1, perPage: 100)),
+      communitiesProvider(const CommunityPaginationParams(page: 1, perPage: 100)),
     );
 
     return Scaffold(

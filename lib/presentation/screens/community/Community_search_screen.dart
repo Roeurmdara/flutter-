@@ -48,7 +48,7 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
     final joinedIds = ref.watch(sessionProvider).joinedCommunityIds;
 
     final allAsync = ref.watch(
-      communitiesProvider(CommunityPaginationParams(page: 1, perPage: 100)),
+      communitiesProvider(const CommunityPaginationParams(page: 1, perPage: 100)),
     );
 
     return Scaffold(
