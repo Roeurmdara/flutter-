@@ -30,13 +30,17 @@ class Community {
     this.customEmoji,
   });
 
+  bool get isActive => status.toLowerCase() == 'active';
+
   factory Community.fromJson(Map<String, dynamic> json) {
+    final coverImage = _validImageUrl(json['cover_image'] as String?);
+
     return Community(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       description: json['description'] as String? ?? '',
       categoryId: json['category_id'] as String? ?? '',
-      coverImage: json['cover_image'] as String?,
+      coverImage: coverImage,
       joinType: json['join_type'] as String? ?? 'open',
       status: json['status'] as String? ?? 'active',
       createdBy: json['created_by'] as String? ?? '',
@@ -50,6 +54,19 @@ class Community {
       customColor: json['custom_color'] as String?,
       customEmoji: json['custom_emoji'] as String?,
     );
+  }
+
+  static String? _validImageUrl(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) return null;
+    if (uri.host == 'example.com' || uri.host.endsWith('.example.com')) {
+      return null;
+    }
+
+    return trimmed;
   }
 
   Map<String, dynamic> toJson() {

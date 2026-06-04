@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/exceptions/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/community_model.dart';
 import '../../../data/providers/session_provider.dart';
 import '../../../data/providers/community_provider.dart';
 import 'community_posts_feed_screen.dart';
-import 'community_screen.dart' show communityColor, communityEmoji;
+import 'community_screen.dart' show communityColor;
 
 class CommunityDetailScreen extends ConsumerStatefulWidget {
   final Community community;
@@ -37,6 +38,120 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
   void dispose() {
     _tab.dispose();
     super.dispose();
+  }
+
+  Future<void> _joinCommunity() async {
+    if (!widget.community.isActive) {
+      _showError('${widget.community.name} is not accepting new members.');
+      return;
+    }
+
+    try {
+      await ref
+          .read(communityOperationsProvider.notifier)
+          .joinCommunity(widget.community.id);
+      ref.invalidate(communitiesProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Joined ${widget.community.name}',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppColors.primaryPurple,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showError('Failed to join: ${_errorMessage(e)}');
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  String _errorMessage(Object error) {
+    if (error is ApiException && error.data is Map<String, dynamic>) {
+      final data = error.data as Map<String, dynamic>;
+      final apiError = data['error'];
+      if (apiError is Map<String, dynamic> && apiError['message'] != null) {
+        return apiError['message'].toString();
+      }
+      if (data['message'] != null) return data['message'].toString();
+    }
+    return error.toString();
+  }
+
+  Future<void> _confirmLeaveCommunity() async {
+    final shouldLeave = await showDialog<bool>(
+      context: context,
+      useRootNavigator: true,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          'Leave community?',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'You will no longer see posts from ${widget.community.name}.',
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext, rootNavigator: true).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext, rootNavigator: true).pop(true),
+            child: const Text(
+              'Leave',
+              style: TextStyle(color: Color(0xFFD32F2F)),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLeave != true) return;
+
+    try {
+      await ref
+          .read(communityOperationsProvider.notifier)
+          .leaveCommunity(widget.community.id);
+      ref.invalidate(communitiesProvider);
+      ref.invalidate(communityPostsProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Left ${widget.community.name}',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppColors.primaryPurple,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to leave: $e'),
+          backgroundColor: Colors.red.shade600,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -134,13 +249,10 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
                     community: widget.community,
                     isDark: isDark,
                     isJoined: isJoined,
+                    canJoin: widget.community.isActive,
                     color: color,
-                    onJoin: () => ref
-                        .read(sessionProvider.notifier)
-                        .joinCommunity(widget.community.id),
-                    onLeave: () => ref
-                        .read(sessionProvider.notifier)
-                        .leaveCommunity(widget.community.id),
+                    onJoin: _joinCommunity,
+                    onLeave: _confirmLeaveCommunity,
                   ),
                   CommunityPostsFeedScreen(
                     communityId: widget.community.id,
@@ -167,6 +279,7 @@ class _AboutTab extends ConsumerWidget {
   final Community community;
   final bool isDark;
   final bool isJoined;
+  final bool canJoin;
   final Color color;
   final VoidCallback onJoin;
   final VoidCallback onLeave;
@@ -175,6 +288,7 @@ class _AboutTab extends ConsumerWidget {
     required this.community,
     required this.isDark,
     required this.isJoined,
+    required this.canJoin,
     required this.color,
     required this.onJoin,
     required this.onLeave,
@@ -186,8 +300,11 @@ class _AboutTab extends ConsumerWidget {
     final sub =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
-    final detailActionColor =
-        isJoined ? const Color(0xFFD32F2F) : AppColors.primaryPurple;
+    final detailActionColor = isJoined
+        ? const Color(0xFFD32F2F)
+        : canJoin
+            ? AppColors.primaryPurple
+            : Colors.grey;
 
     // Fetch creator profile
     final creatorAsync =
@@ -261,23 +378,30 @@ class _AboutTab extends ConsumerWidget {
           const SizedBox(height: 20),
 
           // ── Join / Leave ──
-          InkWell(
-            onTap: isJoined ? onLeave : onJoin,
-            borderRadius: BorderRadius.circular(10),
-            splashColor: detailActionColor.withOpacity(0.08),
-            highlightColor: detailActionColor.withOpacity(0.04),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: detailActionColor.withOpacity(0.4),
-                  width: 1.2,
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: isJoined
+                  ? onLeave
+                  : canJoin
+                      ? onJoin
+                      : null,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(
+                    color: detailActionColor.withOpacity(0.4),
+                    width: 1.2,
+                  ),
                 ),
               ),
               child: Text(
-                isJoined ? 'Leave community' : 'Join community',
+                isJoined
+                    ? 'Leave community'
+                    : canJoin
+                        ? 'Join community'
+                        : 'Community closed',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,

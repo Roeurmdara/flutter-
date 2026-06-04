@@ -292,6 +292,10 @@ class _CommunityPostsFeedScreenState
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final message = error.toString();
+    final isAccessDenied = message.contains('403') ||
+        message.contains('COMMUNITY_ACCESS_DENIED') ||
+        message.contains('active community member');
 
     return Center(
       child: Padding(
@@ -299,31 +303,39 @@ class _CommunityPostsFeedScreenState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 36, color: Colors.red[300]),
+            Icon(
+              isAccessDenied ? Icons.lock_outline : Icons.error_outline,
+              size: 36,
+              color: isAccessDenied ? muted.withOpacity(0.5) : Colors.red[300],
+            ),
             const SizedBox(height: 12),
             Text(
-              'Failed to load posts',
+              isAccessDenied ? 'Join to view posts' : 'Failed to load posts',
               style: AppTypography.headlineSmall(
                 isDark ? AppColors.darkText : AppColors.lightText,
               ).copyWith(fontSize: 15, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 4),
             Text(
-              error.toString(),
+              isAccessDenied
+                  ? 'Only active community members can access this feed.'
+                  : message,
               textAlign: TextAlign.center,
               style: AppTypography.bodySmall(muted).copyWith(fontSize: 12),
             ),
-            const SizedBox(height: 20),
-            OutlinedButton.icon(
-              onPressed: () => ref.invalidate(communityPostsProvider),
-              icon: const Icon(Icons.refresh, size: 16),
-              label: const Text('Retry', style: TextStyle(fontSize: 13)),
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4)),
-                side: BorderSide(color: muted.withOpacity(0.3)),
+            if (!isAccessDenied) ...[
+              const SizedBox(height: 20),
+              OutlinedButton.icon(
+                onPressed: () => ref.invalidate(communityPostsProvider),
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Retry', style: TextStyle(fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4)),
+                  side: BorderSide(color: muted.withOpacity(0.3)),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
