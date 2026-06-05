@@ -281,18 +281,12 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
                     onJoin: _joinCommunity,
                     onLeave: _confirmLeaveCommunity,
                   ),
-                  isJoined
-                      ? CommunityPostsFeedScreen(
-                          communityId: widget.community.id,
-                          communityName: widget.community.name,
-                          showAppBar: false,
-                          canCreatePosts: isJoined,
-                        )
-                      : _LockedFeedTab(
-                          isDark: isDark,
-                          canJoin: widget.community.isActive,
-                          onJoin: _joinCommunity,
-                        ),
+                  CommunityPostsFeedScreen(
+                    communityId: widget.community.id,
+                    communityName: widget.community.name,
+                    showAppBar: false,
+                    canCreatePosts: isJoined,
+                  ),
                 ]),
               ),
             ]),
@@ -305,64 +299,6 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
   String _fmtCount(int n) => n >= 1000
       ? '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}k'
       : '$n';
-}
-
-class _LockedFeedTab extends StatelessWidget {
-  final bool isDark;
-  final bool canJoin;
-  final VoidCallback onJoin;
-
-  const _LockedFeedTab({
-    required this.isDark,
-    required this.canJoin,
-    required this.onJoin,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
-    final subColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.lock_outline_rounded,
-              color: subColor,
-              size: 34,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Join to view posts',
-              style: AppTypography.titleMedium(textColor),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Community posts are only available to members.',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodySmall(subColor),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: canJoin ? onJoin : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryPurple,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Join community'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ─── About Tab ────────────────────────────────────────────────────────────────
@@ -530,127 +466,32 @@ class _AboutTab extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 creatorAsync.when(
-                  data: (response) => Column(
-                    children: [
-                      if (response.data?.username != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color:
-                                isDark ? AppColors.darkSurface : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.darkBorder
-                                  : AppColors.lightBorder,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Username',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.lightTextSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '@${response.data!.username}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.primaryPurple,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurface : Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isDark
-                                ? AppColors.darkBorder
-                                : AppColors.lightBorder,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'User ID',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isDark
-                                    ? AppColors.darkTextSecondary
-                                    : AppColors.lightTextSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            SelectableText(
-                              creatorId,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontFamily: 'monospace',
-                                color: isDark
-                                    ? AppColors.darkText
-                                    : AppColors.lightText,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                  data: (response) {
+                    final profile = response.data;
+                    if (profile == null || !response.success) {
+                      return _CreatorIdFallback(
+                        creatorId: creatorId,
+                        isDark: isDark,
+                      );
+                    }
+                    return _CreatorAccountPreview(
+                      creatorId: creatorId,
+                      username: profile.username,
+                      avatarUrl: profile.avatarUrl,
+                      bio: profile.bio,
+                      isDark: isDark,
+                    );
+                  },
                   loading: () => const Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: CircularProgressIndicator(),
                     ),
                   ),
-                  error: (_, __) => Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface : Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.darkBorder
-                            : AppColors.lightBorder,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'User ID',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.lightTextSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        SelectableText(
-                          creatorId,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'monospace',
-                            color: isDark
-                                ? AppColors.darkText
-                                : AppColors.lightText,
-                          ),
-                        ),
-                      ],
-                    ),
+                  error: (_, __) => _CreatorIdFallback(
+                    creatorId: creatorId,
+                    isDark: isDark,
+                    message: 'Creator profile is unavailable right now.',
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -668,4 +509,223 @@ class _AboutTab extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _CreatorAccountPreview extends StatelessWidget {
+  final String creatorId;
+  final String username;
+  final String? avatarUrl;
+  final String? bio;
+  final bool isDark;
+
+  const _CreatorAccountPreview({
+    required this.creatorId,
+    required this.username,
+    required this.avatarUrl,
+    required this.bio,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final subColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final validAvatar = _validCreatorImageUrl(avatarUrl);
+    final displayName = username.trim().isEmpty ? 'Unknown user' : username;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ClipOval(
+                child: SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: validAvatar == null
+                      ? _CreatorInitial(displayName)
+                      : Image.network(
+                          validAvatar,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              _CreatorInitial(displayName),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '@$displayName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.primaryPurple,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (bio != null && bio!.trim().isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              bio!.trim(),
+              style: AppTypography.bodySmall(subColor).copyWith(height: 1.45),
+            ),
+          ],
+          const SizedBox(height: 14),
+          _CreatorInfoTile(
+            label: 'User ID',
+            value: creatorId,
+            isDark: isDark,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CreatorIdFallback extends StatelessWidget {
+  final String creatorId;
+  final bool isDark;
+  final String? message;
+
+  const _CreatorIdFallback({
+    required this.creatorId,
+    required this.isDark,
+    this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final subColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (message != null) ...[
+            Text(
+              message!,
+              style: AppTypography.bodySmall(subColor),
+            ),
+            const SizedBox(height: 12),
+          ],
+          _CreatorInfoTile(
+            label: 'User ID',
+            value: creatorId,
+            isDark: isDark,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CreatorInfoTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isDark;
+
+  const _CreatorInfoTile({
+    required this.label,
+    required this.value,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.lightTextSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        SelectableText(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontFamily: 'monospace',
+            color: isDark ? AppColors.darkText : AppColors.lightText,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CreatorInitial extends StatelessWidget {
+  final String name;
+
+  const _CreatorInitial(this.name);
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    return Container(
+      color: AppColors.primaryPurple.withOpacity(0.12),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: AppColors.primaryPurple,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+String? _validCreatorImageUrl(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || !uri.hasScheme || uri.host.isEmpty) return null;
+  return trimmed;
 }

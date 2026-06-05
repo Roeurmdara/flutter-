@@ -69,7 +69,6 @@ class SessionNotifier extends StateNotifier<UserSession> {
   /// Static method to initialize prefs early (call from main() before running app)
   static void initializePrefs(SharedPreferences prefs) {
     _prefs = prefs;
-    print('✓ SharedPreferences initialized globally');
   }
 
   SessionNotifier(this._communityService, this._postService)
@@ -80,14 +79,11 @@ class SessionNotifier extends StateNotifier<UserSession> {
 
   /// Load session from storage synchronously (if already cached) or async
   void _loadStorageSynchronously() {
-    print(
-        '🔍 SessionNotifier: _loadStorageSynchronously() called, _prefs=$_prefs');
     if (_prefs != null) {
       // If prefs already loaded, use synchronously
       _loadFromStorageSync();
     } else {
       // Otherwise load async and update state
-      print('⚠️ SessionNotifier: _prefs is null, loading async');
       _initializeSession();
     }
   }
@@ -95,23 +91,14 @@ class SessionNotifier extends StateNotifier<UserSession> {
   /// Load session from SharedPreferences synchronously (for cached prefs)
   void _loadFromStorageSync() {
     try {
-      print('🔍 _loadFromStorageSync: reading key "$_storageKey"');
       final sessionJson = _prefs?.getString(_storageKey);
-      print('🔍 _loadFromStorageSync: raw data=$sessionJson');
 
       if (sessionJson != null && sessionJson.isNotEmpty) {
         final loaded = UserSession.fromJson(jsonDecode(sessionJson));
         state = loaded;
-        print(
-            '✅ Session loaded from storage: ${state.joinedCommunityIds.length} joined, ${state.createdCommunityIds.length} created');
-        print('📋 Joined IDs: ${state.joinedCommunityIds}');
-        print('📋 Created IDs: ${state.createdCommunityIds}');
-      } else {
-        print('⚠️ No session data found in storage');
       }
-    } catch (e, st) {
-      print('❌ Error loading session synchronously: $e');
-      print('Stack: $st');
+    } catch (_) {
+      state = UserSession.empty();
     }
   }
 
@@ -124,10 +111,8 @@ class SessionNotifier extends StateNotifier<UserSession> {
       // Load from local storage
       final loadedSession = await _loadFromStorage();
       state = loadedSession;
-      print(
-          '✓ Session initialized: ${state.joinedCommunityIds.length} joined, ${state.createdCommunityIds.length} created');
-    } catch (e) {
-      print('Error initializing session: $e');
+    } catch (_) {
+      state = UserSession.empty();
     }
   }
 
@@ -139,8 +124,8 @@ class SessionNotifier extends StateNotifier<UserSession> {
       if (sessionJson != null) {
         return UserSession.fromJson(jsonDecode(sessionJson));
       }
-    } catch (e) {
-      print('Error loading session from storage: $e');
+    } catch (_) {
+      return UserSession.empty();
     }
     return UserSession.empty();
   }
@@ -153,21 +138,9 @@ class SessionNotifier extends StateNotifier<UserSession> {
       _prefs = prefs;
 
       final json = jsonEncode(state.toJson());
-      print('💾 Saving session to storage:');
-      print('   Joined: ${state.joinedCommunityIds}');
-      print('   Created: ${state.createdCommunityIds}');
-      print('   JSON length: ${json.length} chars');
-
-      final success = await prefs.setString(_storageKey, json);
-      print('✅ Session saved to storage (success=$success)');
-
-      // Verify it was saved by reading it back
-      final verify = prefs.getString(_storageKey);
-      print(
-          '🔍 Verification: data exists=${verify != null}, length=${verify?.length ?? 0}');
-    } catch (e, st) {
-      print('❌ Error saving session to storage: $e');
-      print('Stack: $st');
+      await prefs.setString(_storageKey, json);
+    } catch (_) {
+      // Ignore storage write errors; session can be rebuilt from API.
     }
   }
 
@@ -176,63 +149,42 @@ class SessionNotifier extends StateNotifier<UserSession> {
     try {
       // Optionally sync with server, but don't override local data
       // For now, skip this since we're managing data locally
-    } catch (e) {
-      print('Error syncing with server: $e');
+    } catch (_) {
+      // Ignore sync errors.
     }
   }
 
   /// Add joined community and persist
   Future<void> joinCommunity(String communityId) async {
-    print('🔗 joinCommunity($communityId) called');
-    print('   Current joined: ${state.joinedCommunityIds}');
-
     if (!state.joinedCommunityIds.contains(communityId)) {
       state = state.copyWith(
         joinedCommunityIds: [...state.joinedCommunityIds, communityId],
         lastSyncTime: DateTime.now(),
       );
-      print('✅ State updated: ${state.joinedCommunityIds}');
       await _saveToStorage();
-      print('✅ Community joined: $communityId');
-    } else {
-      print('⚠️ Already joined: $communityId');
     }
   }
 
   /// Remove joined community and persist
   Future<void> leaveCommunity(String communityId) async {
-    print('🔗 leaveCommunity($communityId) called');
-    print('   Current joined: ${state.joinedCommunityIds}');
-
     if (state.joinedCommunityIds.contains(communityId)) {
       state = state.copyWith(
         joinedCommunityIds:
             state.joinedCommunityIds.where((id) => id != communityId).toList(),
         lastSyncTime: DateTime.now(),
       );
-      print('✅ State updated: ${state.joinedCommunityIds}');
       await _saveToStorage();
-      print('✅ Community left: $communityId');
-    } else {
-      print('⚠️ Not joined: $communityId');
     }
   }
 
   /// Add created community and persist
   Future<void> createCommunity(String communityId) async {
-    print('🔗 createCommunity($communityId) called');
-    print('   Current created: ${state.createdCommunityIds}');
-
     if (!state.createdCommunityIds.contains(communityId)) {
       state = state.copyWith(
         createdCommunityIds: [...state.createdCommunityIds, communityId],
         lastSyncTime: DateTime.now(),
       );
-      print('✅ State updated: ${state.createdCommunityIds}');
       await _saveToStorage();
-      print('✅ Community created: $communityId');
-    } else {
-      print('⚠️ Already created: $communityId');
     }
   }
 
@@ -255,9 +207,8 @@ class SessionNotifier extends StateNotifier<UserSession> {
       _prefs = prefs;
       await prefs.remove(_storageKey);
       state = UserSession.empty();
-      print('✓ Session cleared');
-    } catch (e) {
-      print('Error clearing session: $e');
+    } catch (_) {
+      state = UserSession.empty();
     }
   }
 
@@ -283,13 +234,9 @@ class SessionNotifier extends StateNotifier<UserSession> {
   /// Checks each community to see if user is a member or creator
   Future<void> syncUserCommunitiesFromAPI(String userId) async {
     try {
-      print('🌐 Syncing user communities from API...');
-      print('   User ID: $userId');
-
       // Fetch all communities
       final response =
           await _communityService.getCommunities(page: 1, perPage: 100);
-      print('📥 Fetched ${response.communities.length} total communities');
 
       final joinedIds = <String>[];
       final createdIds = <String>[];
@@ -298,7 +245,6 @@ class SessionNotifier extends StateNotifier<UserSession> {
       for (final community in response.communities) {
         // If user created it
         if (community.createdBy == userId) {
-          print('👤 User created: ${community.name} (${community.id})');
           createdIds.add(community.id);
           joinedIds.add(community.id); // Creator is also a member
         }
@@ -313,11 +259,10 @@ class SessionNotifier extends StateNotifier<UserSession> {
 
             // Check if current user is in members list
             if (members.members.any((m) => m.userId == userId)) {
-              print('👥 User joined: ${community.name} (${community.id})');
               joinedIds.add(community.id);
             }
-          } catch (e) {
-            print('⚠️ Could not check members for ${community.id}: $e');
+          } catch (_) {
+            // Ignore communities whose member list is not accessible.
           }
         }
       }
@@ -330,15 +275,9 @@ class SessionNotifier extends StateNotifier<UserSession> {
           lastSyncTime: DateTime.now(),
         );
         await _saveToStorage();
-        print('✅ Session synced from API!');
-        print('   Joined: ${joinedIds.length} communities');
-        print('   Created: ${createdIds.length} communities');
-      } else {
-        print('⚠️ User has no communities yet');
       }
-    } catch (e, st) {
-      print('❌ Error syncing communities from API: $e');
-      print('Stack: $st');
+    } catch (_) {
+      // Keep the locally cached session if API sync fails.
     }
   }
 }
@@ -346,17 +285,13 @@ class SessionNotifier extends StateNotifier<UserSession> {
 /// Global session provider - use this throughout the app
 final sessionProvider =
     StateNotifierProvider<SessionNotifier, UserSession>((ref) {
-  print('🏭 sessionProvider factory called - creating new SessionNotifier');
   // ✅ Create services WITHOUT watching other providers
   // This prevents provider recreation and data loss
   final dioClient = DioClient(secureStorage: SecureStorageService());
   final communityService = CommunityService(dio: dioClient.dio);
   final postService = CommunityPostService(dioClient: dioClient);
 
-  final notifier = SessionNotifier(communityService, postService);
-  print(
-      '🏭 SessionNotifier created with state: joined=${notifier.state.joinedCommunityIds}, created=${notifier.state.createdCommunityIds}');
-  return notifier;
+  return SessionNotifier(communityService, postService);
 });
 
 final isCommunityJoinedProvider =

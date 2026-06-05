@@ -378,6 +378,10 @@ class _PostMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (onEdit == null && onDelete == null) {
+      return const SizedBox.shrink();
+    }
+
     return PopupMenuButton<String>(
       icon: Icon(
         Icons.more_horiz_rounded,
@@ -387,19 +391,21 @@ class _PostMenu extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       elevation: 3,
       itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'edit',
-          height: 38,
-          child: Text('Edit'),
-        ),
-        PopupMenuItem(
-          value: 'delete',
-          height: 38,
-          child: Text(
-            'Delete',
-            style: TextStyle(color: Colors.red.shade400),
+        if (onEdit != null)
+          const PopupMenuItem(
+            value: 'edit',
+            height: 38,
+            child: Text('Edit'),
           ),
-        ),
+        if (onDelete != null)
+          PopupMenuItem(
+            value: 'delete',
+            height: 38,
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Colors.red.shade400),
+            ),
+          ),
       ],
       onSelected: (value) {
         if (value == 'edit') onEdit?.call();

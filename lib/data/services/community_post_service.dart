@@ -39,9 +39,6 @@ class CommunityPostService {
   }
 
   // Create a new post in a community
-  /// Create a new post in a community. If [imageFile] is provided this will
-  /// send multipart/form-data with the file attached under the 'media'
-  /// field (adjust the field name if your API expects a different key).
   Future<CommunityPost> createPost({
     required String communityId,
     required String title,
@@ -51,39 +48,18 @@ class CommunityPostService {
     File? imageFile,
   }) async {
     try {
-      Response response;
-
-      if (imageFile != null) {
-        final fileName = imageFile.path.split(Platform.pathSeparator).last;
-        final form = FormData.fromMap({
+      final imageUrl =
+          imageFile == null ? null : await _uploadPostImage(imageFile);
+      final response = await dioClient.post(
+        '/communities/$communityId/posts',
+        data: {
           'title': title,
           'body': body,
           'content_type': contentType,
-          'is_pinned': isPinned ? '1' : '0',
-          // API expects the file under the 'file' field (same as /media/upload)
-          'file':
-              await MultipartFile.fromFile(imageFile.path, filename: fileName),
-        });
-
-        response = await dioClient.dio.post(
-          '/communities/$communityId/posts',
-          data: form,
-          options: Options(
-            contentType: 'multipart/form-data',
-            validateStatus: (status) => status != null && status < 500,
-          ),
-        );
-      } else {
-        response = await dioClient.post(
-          '/communities/$communityId/posts',
-          data: {
-            'title': title,
-            'body': body,
-            'content_type': contentType,
-            'is_pinned': isPinned,
-          },
-        );
-      }
+          'is_pinned': isPinned,
+          if (imageUrl != null) 'image_url': imageUrl,
+        },
+      );
 
       // Validate response status
       if (response.statusCode != null &&
@@ -183,41 +159,21 @@ class CommunityPostService {
     File? imageFile,
   }) async {
     try {
-      Response response;
-
-      if (imageFile != null) {
-        final fileName = imageFile.path.split(Platform.pathSeparator).last;
-        final form = FormData.fromMap({
-          'title': title,
-          'body': body,
-          if (isPinned != null) 'is_pinned': isPinned ? '1' : '0',
-          // Use 'file' key for multipart uploads so backend recognizes the file
-          'file':
-              await MultipartFile.fromFile(imageFile.path, filename: fileName),
-        });
-
-        response = await dioClient.dio.put(
-          '/communities/$communityId/posts/$postId',
-          data: form,
-          options: Options(
-            contentType: 'multipart/form-data',
-            validateStatus: (status) => status != null && status < 500,
-          ),
-        );
-      } else {
-        final data = {
-          'title': title,
-          'body': body,
-        };
-        if (isPinned != null) {
-          data['is_pinned'] = isPinned.toString();
-        }
-
-        response = await dioClient.put(
-          '/communities/$communityId/posts/$postId',
-          data: data,
-        );
+      final imageUrl =
+          imageFile == null ? null : await _uploadPostImage(imageFile);
+      final data = <String, dynamic>{
+        'title': title,
+        'body': body,
+        if (imageUrl != null) 'image_url': imageUrl,
+      };
+      if (isPinned != null) {
+        data['is_pinned'] = isPinned.toString();
       }
+
+      final response = await dioClient.put(
+        '/communities/$communityId/posts/$postId',
+        data: data,
+      );
 
       // Validate response status
       if (response.statusCode != null &&
@@ -238,6 +194,39 @@ class CommunityPostService {
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<String> _uploadPostImage(File imageFile) async {
+    final fileName = imageFile.path.split(Platform.pathSeparator).last;
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(imageFile.path, filename: fileName),
+      'context': 'post',
+    });
+
+    final response = await dioClient.dio.post(
+      '/media/upload',
+      data: form,
+      options: Options(
+        validateStatus: (status) => status != null && status < 500,
+      ),
+    );
+
+    if (response.statusCode != null &&
+        response.statusCode! >= 200 &&
+        response.statusCode! < 300 &&
+        response.data is Map<String, dynamic>) {
+      final data = response.data as Map<String, dynamic>;
+      final payload = data['data'];
+      if (payload is Map<String, dynamic>) {
+        final url = payload['url']?.toString().trim();
+        if (url != null && url.isNotEmpty) {
+          return url;
+        }
+      }
+    }
+
+    throw Exception(
+        'Failed to upload post image: ${_extractErrorMessage(response)}');
   }
 
   // Delete a post
@@ -272,12 +261,6 @@ class CommunityPostService {
         },
       );
 
-      try {
-        // ignore: avoid_print
-        print(
-            'getPostComments response => status:${response.statusCode} data:${response.data}');
-      } catch (_) {}
-
       return CommentsListResponse.fromJson(
           response.data as Map<String, dynamic>);
     } catch (e) {
@@ -298,13 +281,6 @@ class CommunityPostService {
           'body': body,
         },
       );
-      // Debug: log full response to help diagnose API shape / errors
-      try {
-        // ignore: avoid_print
-        print(
-            'addComment response => status:${response.statusCode} data:${response.data}');
-      } catch (_) {}
-
       // Validate status code
       if (response.statusCode == null ||
           response.statusCode! < 200 ||
@@ -320,18 +296,7 @@ class CommunityPostService {
               : response.data;
 
       if (respData is Map<String, dynamic>) {
-        try {
-          return CommunityPostComment.fromJson(respData);
-        } catch (e, st) {
-          // Detailed debug info to help trace parsing issues
-          // ignore: avoid_print
-          print('addComment parsing error: $e');
-          // ignore: avoid_print
-          print('respData: $respData');
-          // ignore: avoid_print
-          print(st);
-          rethrow;
-        }
+        return CommunityPostComment.fromJson(respData);
       } else {
         throw Exception(
             'Unexpected response shape when adding comment: ${response.data}');
@@ -356,12 +321,6 @@ class CommunityPostService {
           'comment_id': commentId,
         },
       );
-
-      try {
-        // ignore: avoid_print
-        print(
-            'deleteComment response => status:${response.statusCode} data:${response.data}');
-      } catch (_) {}
 
       if (response.statusCode == null ||
           response.statusCode! < 200 ||
