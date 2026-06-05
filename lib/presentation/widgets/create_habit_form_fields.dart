@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/habit_category_model.dart';
 import '../../../data/providers/category_providers.dart';
-import 'dart:io';
 
 // ── Section label ───────────────────────────────────────────────────────────
 Widget buildLabel(String text, bool isDark) => Padding(

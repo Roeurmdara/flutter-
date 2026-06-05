@@ -151,7 +151,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Logo mark
-                  SizedBox(
+                  const SizedBox(
                     width: 36,
                     height: 36,
                   ),

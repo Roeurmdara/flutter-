@@ -716,7 +716,7 @@ class _ActivityCard extends StatefulWidget {
   final Activity act;
   final bool isDark;
 
-  const _ActivityCard({required this.act, required this.isDark, super.key});
+  const _ActivityCard({required this.act, required this.isDark});
 
   @override
   State<_ActivityCard> createState() => _ActivityCardState();
