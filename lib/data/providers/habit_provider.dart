@@ -102,12 +102,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     // Ensure the app shows today's date on startup so per-day completions are visible
     try {
       selectDate(DateTime.now());
-      // ignore: avoid_print
-      print('[Habits] _init - selectedDate: ${state.selectedDate}');
-      // ignore: avoid_print
-      print('[Habits] _init - completedDatesMap: ${state.completedDatesMap}');
-      // ignore: avoid_print
-      print('[Habits] _init - currentUserStreak: ${state.currentUserStreak}');
     } catch (_) {}
   }
 
@@ -125,12 +119,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
         } catch (_) {}
       }
       if (jsonStr == null || jsonStr.isEmpty) return;
-      // Debug: log loaded JSON for troubleshooting persistence issues
-      try {
-        // ignore: avoid_print
-        print('[Habits] _loadLocalCompletedDates - raw: $jsonStr');
-      } catch (_) {}
-
       final Map<String, dynamic> decoded = Map<String, dynamic>.from(
           jsonDecode(jsonStr) as Map<String, dynamic>);
       final Map<String, Set<String>> map = {};
@@ -153,10 +141,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       final serialized =
           state.completedDatesMap.map((k, v) => MapEntry(k, v.toList()));
       final jsonStr = jsonEncode(serialized);
-      try {
-        // ignore: avoid_print
-        print('[Habits] _saveLocalCompletedDates - saving: $jsonStr');
-      } catch (_) {}
       await prefs.setString(_kCompletedDatesKey, jsonStr);
     } catch (_) {
       // ignore write errors
@@ -169,8 +153,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       final prefs = await SharedPreferences.getInstance();
       final streak = prefs.getInt(_kCurrentStreakKey) ?? 0;
       state = state.copyWith(currentUserStreak: streak);
-      // ignore: avoid_print
-      print('[Habits] _loadLocalStreak - loaded: $streak');
     } catch (_) {
       // ignore errors reading local cache
     }
@@ -181,10 +163,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_kCurrentStreakKey, state.currentUserStreak);
-      try {
-        // ignore: avoid_print
-        print('[Habits] _saveLocalStreak - saved: ${state.currentUserStreak}');
-      } catch (_) {}
     } catch (_) {
       // ignore write errors
     }
@@ -479,12 +457,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       final updatedHabit = await _service.markHabitAsDone(habitId, date);
       if (updatedHabit != null) {
         state = state.copyWith(habits: _replaceHabit(updatedHabit));
-      } else {
-        try {
-          // ignore: avoid_print
-          print(
-              '[Habits] markHabitAsDone - server returned no habit for $habitId');
-        } catch (_) {}
       }
     } catch (e) {
       // Preserve local change but record error for UI
@@ -519,12 +491,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       final updatedHabit = await _service.unmarkHabitAsDone(habitId, date);
       if (updatedHabit != null) {
         state = state.copyWith(habits: _replaceHabit(updatedHabit));
-      } else {
-        try {
-          // ignore: avoid_print
-          print(
-              '[Habits] unmarkHabitAsDone - server returned no habit for $habitId');
-        } catch (_) {}
       }
     } catch (e) {
       // Preserve local change but notify via error

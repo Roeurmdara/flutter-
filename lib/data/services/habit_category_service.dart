@@ -25,31 +25,11 @@ class HabitCategoryService {
                 },
               ),
             ),
-        _secureStorage = secureStorage ?? SecureStorageService() {
-    // Add additional logging interceptor
-    _dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          print(
-              '[HabitCategoryService] Request: ${options.method} ${options.uri}');
-          print('[HabitCategoryService] Headers: ${options.headers}');
-          return handler.next(options);
-        },
-        onError: (error, handler) {
-          print(
-              '[HabitCategoryService] Interceptor Error - Type: ${error.type}');
-          print('[HabitCategoryService] Error Message: ${error.message}');
-          return handler.next(error);
-        },
-      ),
-    );
-  }
+        _secureStorage = secureStorage ?? SecureStorageService();
 
   /// Fetch all categories
   Future<List<HabitCategory>> getCategories() async {
     try {
-      print('[HabitCategoryService] Fetching categories from: $_baseUrl');
-
       final response = await _dio.get(
         _baseUrl,
         options: Options(
@@ -58,8 +38,6 @@ class HabitCategoryService {
           validateStatus: (status) => status != null && status < 500,
         ),
       );
-
-      print('[HabitCategoryService] Response status: ${response.statusCode}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data as Map<String, dynamic>;
@@ -75,20 +53,13 @@ class HabitCategoryService {
         );
       }
     } on SocketException catch (e) {
-      print('[HabitCategoryService] Network error: ${e.message}');
       throw Exception('Network error: No internet connection - ${e.message}');
-    } on TimeoutException catch (e) {
-      print('[HabitCategoryService] Timeout error: ${e.message}');
+    } on TimeoutException catch (_) {
       throw Exception('Connection timeout: Server took too long to respond');
     } on DioException catch (e) {
-      print(
-          '[HabitCategoryService] Dio error - Type: ${e.type}, Message: ${e.message}');
-      print('[HabitCategoryService] Response: ${e.response?.statusCode}');
-
       final String errorMessage = _getDetailedErrorMessage(e);
       throw Exception(errorMessage);
     } catch (e) {
-      print('[HabitCategoryService] Unexpected error: $e');
       throw Exception('Error fetching categories: $e');
     }
   }
@@ -98,11 +69,6 @@ class HabitCategoryService {
     try {
       const templatesUrl =
           'https://habit-api.rattanakmony.com/api/v1/templates';
-      print(
-          '[HabitCategoryService] ========== STARTING TEMPLATE FETCH ==========');
-      print(
-          '[HabitCategoryService] Fetching templates for category: $categoryId');
-      print('[HabitCategoryService] Base URL: $templatesUrl');
 
       final response = await _dio.get(
         templatesUrl,
@@ -118,44 +84,26 @@ class HabitCategoryService {
         ),
       );
 
-      print(
-          '[HabitCategoryService] Template response status: ${response.statusCode}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data as Map<String, dynamic>;
         final List<dynamic> templatesData =
             data['data'] as List<dynamic>? ?? [];
-
-        print(
-            '[HabitCategoryService] ✓ Found ${templatesData.length} templates');
-        print(
-            '[HabitCategoryService] ========== TEMPLATE FETCH SUCCESS ==========');
 
         return templatesData
             .map((json) =>
                 DiscoverTemplate.fromJson(json as Map<String, dynamic>))
             .toList();
       } else {
-        print(
-            '[HabitCategoryService] ✗ Bad status code: ${response.statusCode}');
         throw Exception(_extractResponseMessage(response));
       }
     } on SocketException catch (e) {
-      print('[HabitCategoryService] ✗ SocketException: ${e.message}');
       throw Exception('Network error: No internet connection - ${e.message}');
-    } on TimeoutException catch (e) {
-      print('[HabitCategoryService] ✗ TimeoutException: ${e.message}');
+    } on TimeoutException catch (_) {
       throw Exception('Connection timeout: Server took too long to respond');
     } on DioException catch (e) {
-      print('[HabitCategoryService] ========== DIO EXCEPTION ==========');
-      print('[HabitCategoryService] Type: ${e.type}');
-      print('[HabitCategoryService] Message: ${e.message}');
-      print('[HabitCategoryService] Status Code: ${e.response?.statusCode}');
-      print('[HabitCategoryService] Error: ${e.error}');
       final String errorMessage = _getDetailedErrorMessage(e);
       throw Exception(errorMessage);
     } catch (e) {
-      print('[HabitCategoryService] ✗ Unexpected error: $e');
       throw Exception('Error fetching templates: $e');
     }
   }
@@ -163,17 +111,13 @@ class HabitCategoryService {
   /// Test the templates endpoint connectivity
   Future<bool> testTemplatesConnection() async {
     try {
-      print('[HabitCategoryService] Testing templates endpoint...');
       const testUrl =
           'https://habit-api.rattanakmony.com/api/v1/templates?page=1&per_page=1';
 
       final response = await _dio.get(testUrl, options: await _authOptions());
-      print(
-          '[HabitCategoryService] Test response status: ${response.statusCode}');
 
       return response.statusCode == 200;
-    } catch (e) {
-      print('[HabitCategoryService] Test failed: $e');
+    } catch (_) {
       return false;
     }
   }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/image_crop_helper.dart';
 import '../../../data/providers/profile_provider.dart';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -130,8 +131,13 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
       final XFile? picked = await _imagePicker.pickImage(
           source: source, maxWidth: 800, maxHeight: 800, imageQuality: 85);
       if (picked == null || !mounted) return;
+      final cropped = await ImageCropHelper.cropImage(
+        imagePath: picked.path,
+        type: AppImageCropType.avatar,
+      );
+      if (cropped == null || !mounted) return;
       setState(() {
-        _pickedImageFile = File(picked.path);
+        _pickedImageFile = File(cropped.path);
         _previewAvatarUrl = null;
       });
       // Upload immediately and set the avatar URL for saving

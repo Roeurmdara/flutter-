@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/image_crop_helper.dart';
 import '../../../core/exceptions/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -253,6 +254,10 @@ class _CommunityPostsFeedScreenState
 
   Widget _buildFeed(BuildContext context, dynamic response) {
     final posts = response.data as List<CommunityPost>;
+    final canCreatePosts = widget.canCreatePosts ??
+        ref.read(sessionProvider).joinedCommunityIds.contains(
+              widget.communityId,
+            );
 
     if (posts.isEmpty) return _buildEmpty(context);
 
@@ -265,8 +270,12 @@ class _CommunityPostsFeedScreenState
           post: posts[index],
           communityId: widget.communityId,
           onCommentsTap: () => _showCommentsDialog(context, posts[index]),
-          onEditTap: () => _showEditPostDialog(context, posts[index]),
-          onDeleteTap: () => _showDeleteConfirmation(context, posts[index]),
+          onEditTap: canCreatePosts
+              ? () => _showEditPostDialog(context, posts[index])
+              : null,
+          onDeleteTap: canCreatePosts
+              ? () => _showDeleteConfirmation(context, posts[index])
+              : null,
           onAuthorTap: (_) => _showAuthorProfile(context, posts[index]),
         );
       },
@@ -447,7 +456,7 @@ class _CommunityPostsFeedScreenState
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         title: const Text('Join community?'),
         content: Text(
-          'Join ${widget.communityName} to create posts and view the feed.',
+          'Join ${widget.communityName} to create posts in this community.',
         ),
         actions: [
           TextButton(
@@ -889,12 +898,20 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
       );
       if (picked == null) return;
 
-      final bytes = await picked.readAsBytes();
+      final cropped = await ImageCropHelper.cropImage(
+        imagePath: picked.path,
+        type: AppImageCropType.post,
+      );
+      if (cropped == null) return;
+
+      final croppedFile = File(cropped.path);
+      final bytes = await croppedFile.readAsBytes();
       if (!mounted) return;
       setState(() {
-        _selectedImage = File(picked.path);
+        _selectedImage = croppedFile;
         _selectedImagePreview = bytes;
-        _selectedImageName = picked.name;
+        _selectedImageName =
+            croppedFile.path.split(Platform.pathSeparator).last;
       });
     } catch (e) {
       if (!mounted) return;
