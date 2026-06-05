@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -28,8 +28,8 @@ class _ActivityDetailScreenState extends ConsumerState<ActivityDetailScreen> {
   void initState() {
     super.initState();
     _typeController = TextEditingController(text: widget.activity.activityType);
-    _valueController = TextEditingController(text: widget.activity.value ?? '');
-    _unitController = TextEditingController(text: widget.activity.unit ?? '');
+    _valueController = TextEditingController(text: widget.activity.value);
+    _unitController = TextEditingController(text: widget.activity.unit);
     _noteController = TextEditingController(text: widget.activity.note ?? '');
     _isCompleted = widget.activity.isCompleted;
   }

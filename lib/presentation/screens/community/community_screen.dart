@@ -12,8 +12,7 @@ import '../../../data/models/community_model.dart';
 import '../../../data/providers/session_provider.dart';
 import '../../../data/providers/media_provider.dart';
 import '../../../data/models/media_upload_model.dart';
-import 'Community_detail_screen.dart';
-import 'community_posts_feed_screen.dart';
+import 'community_detail_screen.dart';
 import 'community_search_screen.dart';
 import '../../../core/theme/app_typography.dart';
 
@@ -155,16 +154,11 @@ class CommunityScreen extends ConsumerWidget {
           }
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(15, 4, 15, 100),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 104),
             children: [
               if (mine.isNotEmpty) ...[
-                // This forces the Text inside _Label to adopt a font size of 22.0
-                DefaultTextStyle.merge(
-                  style: const TextStyle(
-                      fontSize: 29.0, fontWeight: FontWeight.bold),
-                  child: _Label('My Communities', isDark),
-                ),
-                const SizedBox(height: 12),
+                _Label('My Communities', mine.length, isDark),
+                const SizedBox(height: 10),
                 ...mine
                     .map((c) => _CommunityCard(
                         community: c,
@@ -172,28 +166,31 @@ class CommunityScreen extends ConsumerWidget {
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => CommunityPostsFeedScreen(
-                                    communityId: c.id,
-                                    communityName: c.name)))))
-                    .toList(),
-                const SizedBox(height: 28),
+                                builder: (_) => CommunityDetailScreen(
+                                      community: c,
+                                      isJoined: true,
+                                    )))))
+                    ,
+                const SizedBox(height: 24),
               ],
               if (joined.isNotEmpty) ...[
-                _Label('Joined', isDark),
-                const SizedBox(height: 8),
+                _Label('Joined', joined.length, isDark),
+                const SizedBox(height: 10),
                 ...joined.map((c) => _CommunityCard(
                     community: c,
                     isDark: isDark,
                     onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) => CommunityPostsFeedScreen(
-                                communityId: c.id, communityName: c.name))))),
-                const SizedBox(height: 28),
+                            builder: (_) => CommunityDetailScreen(
+                                  community: c,
+                                  isJoined: true,
+                                ))))),
+                const SizedBox(height: 24),
               ],
               if (discover.isNotEmpty) ...[
-                _Label('Discover', isDark),
-                const SizedBox(height: 8),
+                _Label('Discover', discover.length, isDark),
+                const SizedBox(height: 10),
                 ...discover.map((c) => _CommunityCard(
                     community: c,
                     isDark: isDark,
@@ -217,15 +214,21 @@ class CommunityScreen extends ConsumerWidget {
 
 class _Label extends StatelessWidget {
   final String title;
+  final int count;
   final bool isDark;
-  const _Label(this.title, this.isDark);
+  const _Label(this.title, this.count, this.isDark);
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final subColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    return Row(
         children: [
           Container(
-            width: 4,
-            height: 14,
+            width: 3,
+            height: 18,
             decoration: BoxDecoration(
               color: AppColors.primaryPurple,
               borderRadius: BorderRadius.circular(2),
@@ -235,16 +238,33 @@ class _Label extends StatelessWidget {
           Text(
             title,
             style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.primaryPurple.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: AppColors.primaryPurple.withValues(alpha: 0.14),
+              ),
+            ),
+            child: Text(
+              '$count',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: subColor,
+              ),
             ),
           ),
         ],
       );
+  }
 }
 
 // ─── Community card ───────────────────────────────────────────────────────────
@@ -260,129 +280,305 @@ class _CommunityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = communityColor(community);
     final emoji = communityEmoji(community);
-    final bgColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final bgColor =
+        isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurface;
     final nameColor = isDark ? AppColors.darkText : AppColors.lightText;
     final subColor =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final description = community.description.trim();
+    final statusLabel = community.isActive ? 'Active' : 'Closed';
+    final joinLabel = community.joinType.isEmpty
+        ? 'Open'
+        : '${community.joinType[0].toUpperCase()}${community.joinType.substring(1)}';
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 68,
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.18), width: 1.5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : color.withValues(alpha: 0.22),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black12 : AppColors.shadowLight,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.20)
+                  : color.withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left color accent
-            Container(
-              width: 4,
-              height: 32,
-              margin: const EdgeInsets.only(left: 4),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 10),
-
-            // Cover image (if available) else emoji in color circle
-            if (community.coverImage != null &&
-                community.coverImage!.isNotEmpty)
-              ClipOval(
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  color: color.withOpacity(0.06),
-                  child: Image.network(
-                    community.coverImage!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Center(
-                      child: Text(emoji, style: const TextStyle(fontSize: 18)),
-                    ),
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(
-                        child: SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 1.5),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              )
-            else
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withOpacity(0.2),
-                      color.withOpacity(0.08),
-                    ],
-                  ),
-                  border: Border.all(
-                    color: color.withOpacity(0.25),
-                    width: 1.5,
-                  ),
-                ),
-                child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 20)),
-                ),
-              ),
-            const SizedBox(width: 14),
-
-            // Name
-            Expanded(
-              child: Text(
-                community.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.2,
-                  color: nameColor,
-                ),
-              ),
-            ),
-
-            // Member count as pill badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                _fmt(community.memberCount),
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _CommunityCover(
+                  imageUrl: community.coverImage,
+                  emoji: emoji,
                   color: color,
                 ),
-              ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                community.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.2,
+                                  color: nameColor,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _MemberPill(
+                              count: community.memberCount,
+                              color: color,
+                              isDark: isDark,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          description.isEmpty
+                              ? 'No description yet'
+                              : description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            height: 1.35,
+                            color: subColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _MetaChip(
+                  icon: Icons.circle,
+                  label: statusLabel,
+                  color: community.isActive ? AppColors.success : subColor,
+                  isDark: isDark,
+                ),
+                const SizedBox(width: 8),
+                _MetaChip(
+                  icon: Icons.lock_open_rounded,
+                  label: joinLabel,
+                  color: color,
+                  isDark: isDark,
+                ),
+                const Spacer(),
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 16,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CommunityCover extends StatelessWidget {
+  final String? imageUrl;
+  final String emoji;
+  final Color color;
+
+  const _CommunityCover({
+    required this.imageUrl,
+    required this.emoji,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.22),
+            color.withValues(alpha: 0.08),
+          ],
+        ),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(17),
+        child: hasImage
+            ? Image.network(
+                imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _EmojiFallback(
+                  emoji: emoji,
+                  color: color,
+                ),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.5,
+                        color: color,
+                      ),
+                    ),
+                  );
+                },
+              )
+            : _EmojiFallback(emoji: emoji, color: color),
+      ),
+    );
+  }
+}
+
+class _EmojiFallback extends StatelessWidget {
+  final String emoji;
+  final Color color;
+
+  const _EmojiFallback({required this.emoji, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(emoji, style: const TextStyle(fontSize: 21)),
+        ),
+      ),
+    );
+  }
+}
+
+class _MemberPill extends StatelessWidget {
+  final int count;
+  final Color color;
+  final bool isDark;
+
+  const _MemberPill({
+    required this.count,
+    required this.color,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.18 : 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.group_rounded, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            _fmt(count),
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool isDark;
+
+  const _MetaChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.black.withValues(alpha: 0.05),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: icon == Icons.circle ? 7 : 13, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -404,8 +600,8 @@ class _EmptyState extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primaryPurple.withOpacity(0.08),
-                  AppColors.primaryPurple.withOpacity(0.03),
+                  AppColors.primaryPurple.withValues(alpha: 0.08),
+                  AppColors.primaryPurple.withValues(alpha: 0.03),
                 ],
               ),
             ),
@@ -459,7 +655,7 @@ class _CreateCommunityDialogState
   }
 
   String get _colorHex =>
-      _color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
+      _color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
 
   @override
   Widget build(BuildContext context) {
@@ -548,14 +744,14 @@ class _CreateCommunityDialogState
                   color: bg,
                   borderRadius: BorderRadius.circular(14),
                   border:
-                      Border.all(color: _color.withOpacity(0.25), width: 2)),
+                      Border.all(color: _color.withValues(alpha: 0.25), width: 2)),
               child: Row(children: [
                 const SizedBox(width: 12),
                 Container(
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: _color.withOpacity(0.15),
+                    color: _color.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -655,7 +851,7 @@ class _CreateCommunityDialogState
               Expanded(
                 child: _PickerButton(
                   onTap: () => _pickColor(isDark),
-                  color: _color.withOpacity(0.1),
+                  color: _color.withValues(alpha: 0.1),
                   child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -678,8 +874,8 @@ class _CreateCommunityDialogState
                 child: _PickerButton(
                   onTap: () => _pickEmoji(isDark),
                   color: isDark
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.black.withOpacity(0.04),
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : Colors.black.withValues(alpha: 0.04),
                   child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -707,8 +903,8 @@ class _CreateCommunityDialogState
                       borderRadius: BorderRadius.circular(10),
                       side: BorderSide(
                           color: isDark
-                              ? Colors.white.withOpacity(0.08)
-                              : Colors.black.withOpacity(0.08)),
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.black.withValues(alpha: 0.08)),
                     ),
                   ),
                   child: Text('Cancel',
@@ -889,7 +1085,7 @@ class _CreateCommunityDialogState
           spacing: 12,
           runSpacing: 12,
           children: colors.map((c) {
-            final sel = c.value == _color.value;
+            final sel = c.toARGB32() == _color.toARGB32();
             return GestureDetector(
               onTap: () {
                 setState(() => _color = c);
@@ -904,7 +1100,7 @@ class _CreateCommunityDialogState
                   border:
                       sel ? Border.all(color: Colors.white, width: 3) : null,
                   boxShadow: sel
-                      ? [BoxShadow(color: c.withOpacity(0.4), blurRadius: 8)]
+                      ? [BoxShadow(color: c.withValues(alpha: 0.4), blurRadius: 8)]
                       : [],
                 ),
                 child: sel
@@ -988,7 +1184,7 @@ class _CreateCommunityDialogState
                 height: 46,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: sel ? _color.withOpacity(0.15) : Colors.transparent,
+                  color: sel ? _color.withValues(alpha: 0.15) : Colors.transparent,
                   border: sel ? Border.all(color: _color, width: 1.5) : null,
                 ),
                 child: Center(
@@ -1110,7 +1306,7 @@ class _Field extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(
-                color: AppColors.primaryPurple.withOpacity(0.35), width: 1)),
+                color: AppColors.primaryPurple.withValues(alpha: 0.35), width: 1)),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),

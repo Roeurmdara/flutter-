@@ -1,6 +1,7 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:collection/collection.dart'; // Added for firstWhereOrNull
+import 'package:flutter/foundation.dart';
 import '../models/habit_template_model.dart';
 import '../services/template_service.dart';
 import 'auth_provider.dart';
@@ -423,7 +424,7 @@ final templatesByCategoryProvider =
       return response.templates;
     }
   } catch (e) {
-    print('Error fetching templates by category: $e');
+    debugPrint('Error fetching templates by category: $e');
   }
 
   // Fallback to sample templates if API fails

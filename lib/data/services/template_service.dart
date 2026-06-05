@@ -1,4 +1,6 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
+import 'dart:developer' as developer;
+
 import '../models/habit_template_model.dart';
 import '../../core/constants/app_constants.dart';
 
@@ -46,8 +48,8 @@ class TemplateService {
         }
       }
       return [];
-    } catch (e) {
-      print('Error fetching templates: $e');
+    } catch (e, stackTrace) {
+      developer.log('Error fetching templates', error: e, stackTrace: stackTrace);
       return [];
     }
   }
@@ -87,8 +89,9 @@ class TemplateService {
       }
       return TemplateListResponse(
           templates: [], currentPage: page, lastPage: 1, total: 0);
-    } catch (e) {
-      print('Error fetching templates by category: $e');
+    } catch (e, stackTrace) {
+      developer.log('Error fetching templates by category',
+          error: e, stackTrace: stackTrace);
       return TemplateListResponse(
           templates: [], currentPage: page, lastPage: 1, total: 0);
     }
@@ -115,8 +118,9 @@ class TemplateService {
         }
       }
       return [];
-    } catch (e) {
-      print('Error fetching templates by category: $e');
+    } catch (e, stackTrace) {
+      developer.log('Error fetching templates by category',
+          error: e, stackTrace: stackTrace);
       return [];
     }
   }
@@ -141,8 +145,8 @@ class TemplateService {
         }
       }
       return null;
-    } catch (e) {
-      print('Error fetching template: $e');
+    } catch (e, stackTrace) {
+      developer.log('Error fetching template', error: e, stackTrace: stackTrace);
       return null;
     }
   }
@@ -160,8 +164,8 @@ class TemplateService {
         return HabitTemplate.fromJson(response.data);
       }
       return null;
-    } catch (e) {
-      print('Error updating template: $e');
+    } catch (e, stackTrace) {
+      developer.log('Error updating template', error: e, stackTrace: stackTrace);
       return null;
     }
   }
@@ -175,8 +179,8 @@ class TemplateService {
       );
 
       return response.statusCode == 200;
-    } catch (e) {
-      print('Error deleting template: $e');
+    } catch (e, stackTrace) {
+      developer.log('Error deleting template', error: e, stackTrace: stackTrace);
       return false;
     }
   }
@@ -194,8 +198,8 @@ class TemplateService {
         return HabitTemplate.fromJson(response.data);
       }
       return null;
-    } catch (e) {
-      print('Error creating template: $e');
+    } catch (e, stackTrace) {
+      developer.log('Error creating template', error: e, stackTrace: stackTrace);
       return null;
     }
   }
@@ -207,8 +211,9 @@ class TemplateService {
         '${AppConstants.baseUrl}/templates/$id/increment-usage',
         options: Options(validateStatus: (status) => status! < 500),
       );
-    } catch (e) {
-      print('Error incrementing template usage: $e');
+    } catch (e, stackTrace) {
+      developer.log('Error incrementing template usage',
+          error: e, stackTrace: stackTrace);
     }
   }
 }

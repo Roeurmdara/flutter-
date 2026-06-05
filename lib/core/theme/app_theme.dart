@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
@@ -112,7 +112,7 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.lightSurface,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: AppColors.primaryPurple.withOpacity(0.12),
+        indicatorColor: AppColors.primaryPurple.withValues(alpha: 0.12),
         height: 72,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
@@ -162,7 +162,7 @@ class AppTheme {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primaryPurple.withOpacity(0.3);
+            return AppColors.primaryPurple.withValues(alpha: 0.3);
           }
           return Colors.grey.shade300;
         }),
@@ -191,7 +191,7 @@ class AppTheme {
         activeTrackColor: AppColors.primaryPurple,
         inactiveTrackColor: AppColors.lightBorder,
         thumbColor: AppColors.primaryPurple,
-        overlayColor: AppColors.primaryPurple.withOpacity(0.12),
+        overlayColor: AppColors.primaryPurple.withValues(alpha: 0.12),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -293,7 +293,7 @@ class AppTheme {
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return AppColors.primaryPurple.withOpacity(0.12);
+              return AppColors.primaryPurple.withValues(alpha: 0.12);
             }
             return AppColors.lightSurface;
           }),
@@ -422,7 +422,7 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.darkSurface,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: AppColors.primaryPurple.withOpacity(0.2),
+        indicatorColor: AppColors.primaryPurple.withValues(alpha: 0.2),
         height: 72,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
@@ -474,7 +474,7 @@ class AppTheme {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primaryPurple.withOpacity(0.3);
+            return AppColors.primaryPurple.withValues(alpha: 0.3);
           }
           return Colors.grey.shade700;
         }),
@@ -503,7 +503,7 @@ class AppTheme {
         activeTrackColor: AppColors.primaryPurpleLight,
         inactiveTrackColor: AppColors.darkBorder,
         thumbColor: AppColors.primaryPurpleLight,
-        overlayColor: AppColors.primaryPurple.withOpacity(0.2),
+        overlayColor: AppColors.primaryPurple.withValues(alpha: 0.2),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -605,7 +605,7 @@ class AppTheme {
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return AppColors.primaryPurple.withOpacity(0.2);
+              return AppColors.primaryPurple.withValues(alpha: 0.2);
             }
             return AppColors.darkSurface;
           }),

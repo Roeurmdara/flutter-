@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -106,7 +106,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.1),
+                    color: AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.error),
                   ),
@@ -130,13 +130,13 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primaryPurple.withOpacity(0.35),
-            AppColors.primaryPurpleDark.withOpacity(0.18),
+            AppColors.primaryPurple.withValues(alpha: 0.35),
+            AppColors.primaryPurpleDark.withValues(alpha: 0.18),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Colors.white.withOpacity(0.18),
+          color: Colors.white.withValues(alpha: 0.18),
           width: 1.2,
         ),
       ),
@@ -151,7 +151,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           Text(
             'Keep your streaks alive today',
             style: AppTypography.bodyMedium(
-              Colors.white.withOpacity(0.82),
+              Colors.white.withValues(alpha: 0.82),
             ),
           ),
           const SizedBox(height: 18),
@@ -169,7 +169,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
             child: LinearProgressIndicator(
               value: completionRate / 100,
               minHeight: 8,
-              backgroundColor: Colors.white.withOpacity(0.2),
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
               valueColor: const AlwaysStoppedAnimation<Color>(
                 AppColors.secondaryGreen,
               ),
@@ -178,7 +178,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           const SizedBox(height: 8),
           Text(
             'Completion: $completionRate%',
-            style: AppTypography.bodySmall(Colors.white.withOpacity(0.8)),
+            style: AppTypography.bodySmall(Colors.white.withValues(alpha: 0.8)),
           ),
         ],
       ),
@@ -211,7 +211,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryPurple.withOpacity(0.1),
+                  color: AppColors.primaryPurple.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: AppColors.primaryPurple,
@@ -278,7 +278,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
               shape: BoxShape.circle,
             ),
             todayDecoration: BoxDecoration(
-              color: AppColors.primaryPurple.withOpacity(0.3),
+              color: AppColors.primaryPurple.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
             defaultTextStyle: AppTypography.bodySmall(
@@ -364,7 +364,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           Icon(
             Icons.check_circle_outline,
             size: 64,
-            color: AppColors.primaryPurple.withOpacity(0.3),
+            color: AppColors.primaryPurple.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
@@ -480,10 +480,10 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
+          color: Colors.white.withValues(alpha: 0.3),
           width: 1,
         ),
       ),

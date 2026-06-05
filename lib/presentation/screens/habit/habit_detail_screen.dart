@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../core/theme/app_colors.dart';
@@ -108,8 +108,10 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           ElevatedButton(
             onPressed: () async {
               final body = _quickCommentController.text.trim();
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
               if (body.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(content: Text('Comment cannot be empty')),
                 );
                 return;
@@ -120,8 +122,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       body: body,
                     );
                 if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  navigator.pop();
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Comment added!'),
                       backgroundColor: Colors.green,
@@ -130,7 +132,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Error: $e'),
                       backgroundColor: Colors.red,
@@ -519,8 +521,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     final pid = _postIdController.text.trim();
                     final title = _postTitleController.text.trim();
                     final body = _postBodyController.text.trim();
+                    final messenger = ScaffoldMessenger.of(context);
                     if (cid.isEmpty || pid.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                             content: Text('Community and Post IDs required')),
                       );
@@ -536,13 +539,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                             body: body.isEmpty ? 'Updated body' : body,
                             isPinned: _postIsPinned,
                           );
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                             content: Text('Post updated'),
                             backgroundColor: Colors.green),
                       );
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
                             content: Text('Update failed: $e'),
                             backgroundColor: Colors.red),
@@ -559,8 +562,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   onPressed: () async {
                     final cid = _communityIdController.text.trim();
                     final pid = _postIdController.text.trim();
+                    final messenger = ScaffoldMessenger.of(context);
                     if (cid.isEmpty || pid.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                             content: Text('Community and Post IDs required')),
                       );
@@ -573,13 +577,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                             communityId: cid,
                             postId: pid,
                           );
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                             content: Text('Post deleted'),
                             backgroundColor: Colors.green),
                       );
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
                             content: Text('Delete failed: $e'),
                             backgroundColor: Colors.red),
@@ -613,8 +617,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   onPressed: () async {
                     final pid = _postIdController.text.trim();
                     final body = _commentBodyController.text.trim();
+                    final messenger = ScaffoldMessenger.of(context);
                     if (pid.isEmpty || body.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                             content: Text('Post ID and comment body required')),
                       );
@@ -627,13 +632,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                             postId: pid,
                             body: body,
                           );
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                             content: Text('Comment added'),
                             backgroundColor: Colors.green),
                       );
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
                             content: Text('Add comment failed: $e'),
                             backgroundColor: Colors.red),
@@ -650,8 +655,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                   onPressed: () async {
                     final pid = _postIdController.text.trim();
                     final cid = _commentIdController.text.trim();
+                    final messenger = ScaffoldMessenger.of(context);
                     if (pid.isEmpty || cid.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                             content: Text('Post ID and Comment ID required')),
                       );
@@ -664,13 +670,13 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                             postId: pid,
                             commentId: cid,
                           );
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                             content: Text('Comment deleted'),
                             backgroundColor: Colors.green),
                       );
                     } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(
                             content: Text('Delete comment failed: $e'),
                             backgroundColor: Colors.red),
@@ -721,7 +727,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFF6366F1).withOpacity(0.3),
+          color: const Color(0xFF6366F1).withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -1205,9 +1211,9 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
+        color: Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.withOpacity(0.3)),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1225,7 +1231,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             error,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.red.withOpacity(0.8),
+              color: Colors.red.withValues(alpha: 0.8),
             ),
           ),
         ],

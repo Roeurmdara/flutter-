@@ -1,4 +1,4 @@
-class Habit {
+﻿class Habit {
   final String id;
   final String userId;
   final String? categoryId;

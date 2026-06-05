@@ -42,8 +42,8 @@ class CommunityPost {
     final updatedAt = json['updated_at'] != null
         ? DateTime.parse(json['updated_at'].toString())
         : createdAt;
-    final authorJson = json['author'] is Map<String, dynamic>
-        ? json['author'] as Map<String, dynamic>
+    final authorJson = json['author'] is Map
+        ? Map<String, dynamic>.from(json['author'] as Map)
         : null;
 
     return CommunityPost(
@@ -100,6 +100,8 @@ class CommunityPostComment {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+  final String? authorUsername;
+  final String? authorAvatarUrl;
 
   CommunityPostComment({
     required this.id,
@@ -111,6 +113,8 @@ class CommunityPostComment {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
+    this.authorUsername,
+    this.authorAvatarUrl,
   });
 
   factory CommunityPostComment.fromJson(Map<String, dynamic> json) {
@@ -120,6 +124,9 @@ class CommunityPostComment {
     final updatedAt = json['updated_at'] != null
         ? DateTime.parse(json['updated_at'].toString())
         : createdAt;
+    final authorJson = json['author'] is Map
+        ? Map<String, dynamic>.from(json['author'] as Map)
+        : null;
 
     return CommunityPostComment(
       id: json['id']?.toString() ?? '',
@@ -133,6 +140,8 @@ class CommunityPostComment {
       deletedAt: json['deleted_at'] != null
           ? DateTime.parse(json['deleted_at'].toString())
           : null,
+      authorUsername: authorJson?['username']?.toString(),
+      authorAvatarUrl: authorJson?['avatar_url']?.toString(),
     );
   }
 
@@ -146,6 +155,10 @@ class CommunityPostComment {
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
         'deleted_at': deletedAt?.toIso8601String(),
+        'author': {
+          if (authorUsername != null) 'username': authorUsername,
+          if (authorAvatarUrl != null) 'avatar_url': authorAvatarUrl,
+        },
       };
 }
 

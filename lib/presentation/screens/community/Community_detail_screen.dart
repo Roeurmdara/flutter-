@@ -4,6 +4,7 @@ import '../../../core/exceptions/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/community_model.dart';
+import '../../../data/models/profile_model.dart';
 import '../../../data/providers/session_provider.dart';
 import '../../../data/providers/community_provider.dart';
 import 'community_posts_feed_screen.dart';
@@ -221,7 +222,8 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
             const SizedBox(height: 6),
             Text(
               '${_fmtCount(widget.community.memberCount)} members',
-              style: AppTypography.bodySmall(Colors.white.withOpacity(0.75))
+              style: AppTypography.bodySmall(
+                      Colors.white.withValues(alpha: 0.75))
                   .copyWith(fontSize: 13),
             ),
           ]),
@@ -256,7 +258,7 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
                     splashFactory: InkRipple.splashFactory,
                     overlayColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.pressed)) {
-                        return AppColors.primaryPurple.withOpacity(0.08);
+                        return AppColors.primaryPurple.withValues(alpha: 0.08);
                       }
                       return Colors.transparent;
                     }),
@@ -348,8 +350,8 @@ class _AboutTab extends ConsumerWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.06)
-                  : Colors.black.withOpacity(0.04)),
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.04)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('About',
@@ -367,16 +369,16 @@ class _AboutTab extends ConsumerWidget {
               style: AppTypography.bodySmall(sub).copyWith(fontSize: 11)),
           const SizedBox(height: 6),
           GestureDetector(
-            onTap: () => _showCreatorProfile(context, community.createdBy, ref),
+            onTap: () => _showCreatorProfile(context, community, ref),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.primaryPurple.withOpacity(0.1),
+                color: AppColors.primaryPurple.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: creatorAsync.when(
                 data: (response) => Text(
-                  response.data?.username ?? 'Unknown',
+                  _creatorDisplayName(response.data, community),
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.primaryPurple,
@@ -389,9 +391,7 @@ class _AboutTab extends ConsumerWidget {
                   child: CircularProgressIndicator(strokeWidth: 1),
                 ),
                 error: (_, __) => Text(
-                  community.createdBy.length > 20
-                      ? '${community.createdBy.substring(0, 20)}...'
-                      : community.createdBy,
+                  _creatorFallbackName(community),
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.primaryPurple,
@@ -419,7 +419,7 @@ class _AboutTab extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                   side: BorderSide(
-                    color: detailActionColor.withOpacity(0.4),
+                    color: detailActionColor.withValues(alpha: 0.4),
                     width: 1.2,
                   ),
                 ),
@@ -445,11 +445,12 @@ class _AboutTab extends ConsumerWidget {
   }
 
   void _showCreatorProfile(
-      BuildContext context, String creatorId, WidgetRef ref) {
+      BuildContext context, Community community, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       builder: (context) => Consumer(
         builder: (context, refInModal, child) {
+          final creatorId = community.createdBy;
           final creatorAsync =
               refInModal.watch(userProfileByIdProvider(creatorId));
           return Container(
@@ -468,17 +469,17 @@ class _AboutTab extends ConsumerWidget {
                 creatorAsync.when(
                   data: (response) {
                     final profile = response.data;
-                    if (profile == null || !response.success) {
+                    if (profile == null && community.creatorName == null) {
                       return _CreatorIdFallback(
-                        creatorId: creatorId,
+                        displayName: _creatorFallbackName(community),
                         isDark: isDark,
                       );
                     }
                     return _CreatorAccountPreview(
-                      creatorId: creatorId,
-                      username: profile.username,
-                      avatarUrl: profile.avatarUrl,
-                      bio: profile.bio,
+                      username:
+                          profile?.username ?? community.creatorName ?? 'Creator',
+                      avatarUrl: profile?.avatarUrl ?? community.creatorAvatar,
+                      bio: profile?.bio,
                       isDark: isDark,
                     );
                   },
@@ -489,7 +490,7 @@ class _AboutTab extends ConsumerWidget {
                     ),
                   ),
                   error: (_, __) => _CreatorIdFallback(
-                    creatorId: creatorId,
+                    displayName: _creatorFallbackName(community),
                     isDark: isDark,
                     message: 'Creator profile is unavailable right now.',
                   ),
@@ -512,14 +513,12 @@ class _AboutTab extends ConsumerWidget {
 }
 
 class _CreatorAccountPreview extends StatelessWidget {
-  final String creatorId;
   final String username;
   final String? avatarUrl;
   final String? bio;
   final bool isDark;
 
   const _CreatorAccountPreview({
-    required this.creatorId,
     required this.username,
     required this.avatarUrl,
     required this.bio,
@@ -601,12 +600,6 @@ class _CreatorAccountPreview extends StatelessWidget {
               style: AppTypography.bodySmall(subColor).copyWith(height: 1.45),
             ),
           ],
-          const SizedBox(height: 14),
-          _CreatorInfoTile(
-            label: 'User ID',
-            value: creatorId,
-            isDark: isDark,
-          ),
         ],
       ),
     );
@@ -614,12 +607,12 @@ class _CreatorAccountPreview extends StatelessWidget {
 }
 
 class _CreatorIdFallback extends StatelessWidget {
-  final String creatorId;
+  final String displayName;
   final bool isDark;
   final String? message;
 
   const _CreatorIdFallback({
-    required this.creatorId,
+    required this.displayName,
     required this.isDark,
     this.message,
   });
@@ -649,52 +642,16 @@ class _CreatorIdFallback extends StatelessWidget {
             ),
             const SizedBox(height: 12),
           ],
-          _CreatorInfoTile(
-            label: 'User ID',
-            value: creatorId,
-            isDark: isDark,
+          Text(
+            displayName,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: isDark ? AppColors.darkText : AppColors.lightText,
+            ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _CreatorInfoTile extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool isDark;
-
-  const _CreatorInfoTile({
-    required this.label,
-    required this.value,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: isDark
-                ? AppColors.darkTextSecondary
-                : AppColors.lightTextSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        SelectableText(
-          value,
-          style: TextStyle(
-            fontSize: 12,
-            fontFamily: 'monospace',
-            color: isDark ? AppColors.darkText : AppColors.lightText,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -708,7 +665,7 @@ class _CreatorInitial extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
     return Container(
-      color: AppColors.primaryPurple.withOpacity(0.12),
+      color: AppColors.primaryPurple.withValues(alpha: 0.12),
       alignment: Alignment.center,
       child: Text(
         initial,
@@ -728,4 +685,16 @@ String? _validCreatorImageUrl(String? value) {
   final uri = Uri.tryParse(trimmed);
   if (uri == null || !uri.hasScheme || uri.host.isEmpty) return null;
   return trimmed;
+}
+
+String _creatorDisplayName(UserProfile? profile, Community community) {
+  final profileName = profile?.username.trim();
+  if (profileName != null && profileName.isNotEmpty) return profileName;
+  return _creatorFallbackName(community);
+}
+
+String _creatorFallbackName(Community community) {
+  final embeddedName = community.creatorName?.trim();
+  if (embeddedName != null && embeddedName.isNotEmpty) return embeddedName;
+  return 'Creator';
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/habit_model.dart';
@@ -92,14 +92,14 @@ class _HabitCardWidgetState extends State<HabitCardWidget>
         decoration: BoxDecoration(
           color: widget.isCompleted
               ? (isDark
-                  ? AppColors.darkSurfaceElevated.withOpacity(0.6)
-                  : AppColors.successSoft.withOpacity(0.3))
+                  ? AppColors.darkSurfaceElevated.withValues(alpha: 0.6)
+                  : AppColors.successSoft.withValues(alpha: 0.3))
               : (isDark ? AppColors.darkSurface : AppColors.lightSurface),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: widget.isCompleted
-                ? (isDark ? AppColors.darkBorder : AppColors.success.withOpacity(0.2))
-                : (isDark ? AppColors.darkBorder : categoryColor.withOpacity(0.15)),
+                ? (isDark ? AppColors.darkBorder : AppColors.success.withValues(alpha: 0.2))
+                : (isDark ? AppColors.darkBorder : categoryColor.withValues(alpha: 0.15)),
             width: 1,
           ),
           boxShadow: widget.isCompleted
@@ -120,8 +120,8 @@ class _HabitCardWidgetState extends State<HabitCardWidget>
               height: 36,
               decoration: BoxDecoration(
                 color: widget.isCompleted
-                    ? AppColors.success.withOpacity(0.5)
-                    : categoryColor.withOpacity(0.7),
+                    ? AppColors.success.withValues(alpha: 0.5)
+                    : categoryColor.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -137,12 +137,12 @@ class _HabitCardWidgetState extends State<HabitCardWidget>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    categoryColor.withOpacity(0.15),
-                    categoryColor.withOpacity(0.08),
+                    categoryColor.withValues(alpha: 0.15),
+                    categoryColor.withValues(alpha: 0.08),
                   ],
                 ),
                 border: Border.all(
-                  color: categoryColor.withOpacity(0.2),
+                  color: categoryColor.withValues(alpha: 0.2),
                   width: 1.5,
                 ),
               ),
@@ -184,7 +184,7 @@ class _HabitCardWidgetState extends State<HabitCardWidget>
                         fontWeight: FontWeight.w500,
                         color: widget.isCompleted
                             ? (isDark ? Colors.white24 : Colors.black12)
-                            : categoryColor.withOpacity(0.7),
+                            : categoryColor.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -214,14 +214,14 @@ class _HabitCardWidgetState extends State<HabitCardWidget>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: widget.isCompleted
-                        ? AppColors.success.withOpacity(0.15)
+                        ? AppColors.success.withValues(alpha: 0.15)
                         : Colors.transparent,
                     border: Border.all(
                       color: widget.isCompleted
                           ? AppColors.success
                           : (isDark
                               ? AppColors.darkBorder
-                              : categoryColor.withOpacity(0.3)),
+                              : categoryColor.withValues(alpha: 0.3)),
                       width: 2,
                     ),
                   ),

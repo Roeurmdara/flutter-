@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -21,21 +21,21 @@ class _T {
 
   static Color border(BuildContext ctx) =>
       Theme.of(ctx).brightness == Brightness.dark
-          ? Colors.white.withOpacity(0.08)
-          : Colors.black.withOpacity(0.08);
+          ? Colors.white.withValues(alpha: 0.08)
+          : Colors.black.withValues(alpha: 0.08);
 
   static Color labelText(BuildContext ctx) =>
       Theme.of(ctx).brightness == Brightness.dark
-          ? Colors.white.withOpacity(0.35)
-          : Colors.black.withOpacity(0.35);
+          ? Colors.white.withValues(alpha: 0.35)
+          : Colors.black.withValues(alpha: 0.35);
 
   static Color bodyText(BuildContext ctx) =>
       Theme.of(ctx).brightness == Brightness.dark ? Colors.white : Colors.black;
 
   static Color hintText(BuildContext ctx) =>
       Theme.of(ctx).brightness == Brightness.dark
-          ? Colors.white.withOpacity(0.25)
-          : Colors.black.withOpacity(0.25);
+          ? Colors.white.withValues(alpha: 0.25)
+          : Colors.black.withValues(alpha: 0.25);
 
   static Color cancelBg(BuildContext ctx) =>
       Theme.of(ctx).brightness == Brightness.dark
@@ -44,15 +44,14 @@ class _T {
 
   static Color cancelText(BuildContext ctx) =>
       Theme.of(ctx).brightness == Brightness.dark
-          ? Colors.white.withOpacity(0.6)
-          : Colors.black.withOpacity(0.5);
+          ? Colors.white.withValues(alpha: 0.6)
+          : Colors.black.withValues(alpha: 0.5);
 
   // Accent — a single restrained purple
   static const accent = Color(0xFF534AB7);
   static const accentLight = Color(0xFFC7BFF9);
 
   // Spacing
-  static const double gap = 16;
   static const double gapSm = 10;
   static const double radius = 12;
   static const double radiusLg = 20;
@@ -81,7 +80,7 @@ class EditProfileForm extends ConsumerStatefulWidget {
   final dynamic profile;
   final VoidCallback onCancel;
   final VoidCallback onSaveSuccess;
-  final AlwaysAliveProviderBase<dynamic> profileProvider;
+  final ProviderBase<dynamic> profileProvider;
 
   const EditProfileForm({
     super.key,
@@ -171,8 +170,8 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surfaceColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
     final borderColor = isDark
-        ? Colors.white.withOpacity(0.08)
-        : Colors.black.withOpacity(0.08);
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.08);
 
     showModalBottomSheet(
       context: context,
@@ -509,7 +508,7 @@ class _AvatarPreview extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      color: _T.accentLight.withOpacity(0.5),
+      color: _T.accentLight.withValues(alpha: 0.5),
       child: Center(
         child: Text(initial,
             style: TextStyle(
@@ -573,54 +572,6 @@ class _MinimalTextField extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final bool loading;
-
-  const _ActionButton({
-    required this.label,
-    required this.onTap,
-    required this.backgroundColor,
-    required this.foregroundColor,
-    this.loading = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: backgroundColor,
-      borderRadius: BorderRadius.circular(_T.radius),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(_T.radius),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          child: loading
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 1.5,
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(foregroundColor)),
-                )
-              : Text(label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: foregroundColor,
-                    fontFamily: _T.fontFamily,
-                  )),
-        ),
-      ),
-    );
-  }
-}
-
 class _SheetTile extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -648,7 +599,7 @@ class _SheetTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, size: 20, color: color),

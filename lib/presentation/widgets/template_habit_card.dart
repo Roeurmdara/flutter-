@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TemplateHabitCard  —  standalone card widget
@@ -18,7 +18,6 @@ import 'package:flutter/material.dart';
 
 // ─── Minimal colour tokens (replace with your AppColors import) ───────────────
 class _Colors {
-  static const darkBackground = Color(0xFF111111);
   static const darkSurface = Color(0xFF1C1C1E);
   static const darkBorder = Color(0xFF2C2C2E);
   static const darkText = Color(0xFFF2F2F7);
@@ -160,7 +159,7 @@ class _TemplateHabitCardState extends State<TemplateHabitCard> {
           color: surface,
           border: Border.all(
             color: _added
-                ? _Colors.addedGreen.withOpacity(0.8)
+                ? _Colors.addedGreen.withValues(alpha: 0.8)
                 : border,
             width: _added ? 1.5 : 0.5,
           ),
@@ -174,7 +173,7 @@ class _TemplateHabitCardState extends State<TemplateHabitCard> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
               decoration: BoxDecoration(
-                color: widget.categoryColor.withOpacity(0.12),
+                color: widget.categoryColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
@@ -226,7 +225,7 @@ class _TemplateHabitCardState extends State<TemplateHabitCard> {
                   '$days days',
                   style: TextStyle(
                     fontSize: 10,
-                    color: textSecondary.withOpacity(0.6),
+                    color: textSecondary.withValues(alpha: 0.6),
                   ),
                 ),
                 GestureDetector(
@@ -241,7 +240,7 @@ class _TemplateHabitCardState extends State<TemplateHabitCard> {
                       color: Colors.transparent,
                       border: Border.all(
                         color: _added
-                            ? _Colors.addedGreen.withOpacity(0.7)
+                            ? _Colors.addedGreen.withValues(alpha: 0.7)
                             : border,
                         width: 0.5,
                       ),
@@ -466,7 +465,7 @@ class _TemplateDetailSheetState extends State<_TemplateDetailSheet> {
                   color: _added ? Colors.transparent : widget.categoryColor,
                   border: Border.all(
                     color: _added
-                        ? _Colors.addedGreen.withOpacity(0.6)
+                        ? _Colors.addedGreen.withValues(alpha: 0.6)
                         : widget.categoryColor,
                     width: _added ? 1.0 : 0,
                   ),
@@ -525,9 +524,9 @@ class _CategoryChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.25), width: 0.5),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -559,7 +558,7 @@ class _FreqChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -594,9 +593,9 @@ class _StatChip extends StatelessWidget {
         padding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.07),
+          color: color.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.18), width: 0.5),
+          border: Border.all(color: color.withValues(alpha: 0.18), width: 0.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -605,7 +604,7 @@ class _StatChip extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 10,
-                color: color.withOpacity(0.7),
+                color: color.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -669,7 +668,7 @@ class _BulletRow extends StatelessWidget {
               width: 5,
               height: 5,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.6),
+                color: color.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
               ),
             ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
@@ -135,13 +135,13 @@ class SettingsScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.error.withOpacity(0.08),
-                      AppColors.error.withOpacity(0.04),
+                      AppColors.error.withValues(alpha: 0.08),
+                      AppColors.error.withValues(alpha: 0.04),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppColors.error.withOpacity(0.2),
+                    color: AppColors.error.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -341,8 +341,8 @@ class _ToggleItem extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primaryPurple.withOpacity(0.12),
-                  AppColors.primaryPurple.withOpacity(0.06),
+                  AppColors.primaryPurple.withValues(alpha: 0.12),
+                  AppColors.primaryPurple.withValues(alpha: 0.06),
                 ],
               ),
               borderRadius: BorderRadius.circular(12),
@@ -378,7 +378,7 @@ class _ToggleItem extends StatelessWidget {
             value: value,
             onChanged: onChanged,
             activeThumbColor: AppColors.primaryPurple,
-            activeTrackColor: AppColors.primaryPurple.withOpacity(0.3),
+            activeTrackColor: AppColors.primaryPurple.withValues(alpha: 0.3),
           ),
         ],
       ),
@@ -417,8 +417,8 @@ class _TapItem extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primaryPurple.withOpacity(0.12),
-                    AppColors.primaryPurple.withOpacity(0.06),
+                    AppColors.primaryPurple.withValues(alpha: 0.12),
+                    AppColors.primaryPurple.withValues(alpha: 0.06),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12),

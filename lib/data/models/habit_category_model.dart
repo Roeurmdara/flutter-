@@ -1,4 +1,4 @@
-// Habit Category Model - from API response
+﻿// Habit Category Model - from API response
 class HabitCategory {
   final String id;
   final String name;

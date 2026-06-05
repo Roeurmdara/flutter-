@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/habit_model.dart';
@@ -40,7 +40,6 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
   bool _showActivityForm = false;
   DateTime _activitySettlementDate = DateTime.now();
   List<Activity> _createdActivities = [];
-  Habit? _createdHabit;
 
   Color _customColor = AppColors.primaryPurple;
   String _customEmoji = '✨';
@@ -146,7 +145,7 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                         decoration: BoxDecoration(
                           color: isDark
                               ? Colors.white10
-                              : Colors.black.withOpacity(0.05),
+                              : Colors.black.withValues(alpha: 0.05),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -162,7 +161,9 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
               const SizedBox(height: 8),
               Divider(
                 height: 1,
-                color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                color: isDark
+                    ? Colors.white10
+                    : Colors.black.withValues(alpha: 0.05),
               ),
 
               // ── Body ─────────────────────────────────────────────────────
@@ -351,8 +352,8 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.04)
-            : Colors.black.withOpacity(0.03),
+            ? Colors.white.withValues(alpha: 0.04)
+            : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isDark ? Colors.white12 : Colors.black12,
@@ -378,10 +379,10 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                   shape: BoxShape.circle,
                   color: _customColor,
                   border: Border.all(
-                      color: _customColor.withOpacity(0.5), width: 2),
+                      color: _customColor.withValues(alpha: 0.5), width: 2),
                   boxShadow: [
                     BoxShadow(
-                        color: _customColor.withOpacity(0.3),
+                        color: _customColor.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2))
                   ],
@@ -422,8 +423,9 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _customColor.withOpacity(0.15),
-          border: Border.all(color: _customColor.withOpacity(0.3), width: 2),
+          color: _customColor.withValues(alpha: 0.15),
+          border:
+              Border.all(color: _customColor.withValues(alpha: 0.3), width: 2),
         ),
         child: Center(
           child: Text(_customEmoji, style: const TextStyle(fontSize: 28)),
@@ -463,10 +465,10 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
             child: Container(
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.primaryPurple.withOpacity(0.08),
+                color: AppColors.primaryPurple.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: AppColors.primaryPurple.withOpacity(0.25),
+                  color: AppColors.primaryPurple.withValues(alpha: 0.25),
                 ),
               ),
               child: Row(
@@ -476,7 +478,7 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryPurple.withOpacity(0.15),
+                      color: AppColors.primaryPurple.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -505,8 +507,8 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.03)
-                  : Colors.black.withOpacity(0.02),
+                  ? Colors.white.withValues(alpha: 0.03)
+                  : Colors.black.withValues(alpha: 0.02),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isDark ? Colors.white12 : Colors.black12,
@@ -550,8 +552,8 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.white.withOpacity(0.04)
-                          : Colors.black.withOpacity(0.03),
+                          ? Colors.white.withValues(alpha: 0.04)
+                          : Colors.black.withValues(alpha: 0.03),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                           color: isDark ? Colors.white12 : Colors.black12),
@@ -560,7 +562,8 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
                       children: [
                         Icon(Icons.calendar_today_outlined,
                             size: 14,
-                            color: AppColors.primaryPurple.withOpacity(0.7)),
+                            color:
+                                AppColors.primaryPurple.withValues(alpha: 0.7)),
                         const SizedBox(width: 8),
                         Text(
                           '${_activitySettlementDate.day}/${_activitySettlementDate.month}/${_activitySettlementDate.year}',
@@ -620,7 +623,7 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
         'startDate': _startDate,
         'endDate': _endDate,
         'color':
-            '#${_customColor.value.toRadixString(16).substring(2).toUpperCase()}',
+            '#${_customColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
         'emoji': _customEmoji,
       });
 
@@ -639,7 +642,7 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
 
     try {
       final colorHex =
-          '#${_customColor.value.toRadixString(16).substring(2).toUpperCase()}';
+          '#${_customColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
       final newHabit = await ref.read(habitsProvider.notifier).createHabit(
             categoryId: _selectedCategoryId!,
             title: _titleController.text.trim(),
@@ -655,7 +658,6 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
             emoji: _customEmoji,
             colorHex: colorHex,
           );
-      setState(() => _createdHabit = newHabit);
 
       if (_addActivity && _activityTypeController.text.trim().isNotEmpty) {
         await _createActivity(newHabit.id);
@@ -680,7 +682,8 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
           // ⚪ Force the text color to be white
           style: const TextStyle(color: Colors.white),
         ),
-        backgroundColor: color ?? AppColors.primaryPurple.withOpacity(0.7),
+        backgroundColor:
+            color ?? AppColors.primaryPurple.withValues(alpha: 0.7),
       ),
     );
   }
@@ -754,7 +757,7 @@ class _ActivityCardState extends State<_ActivityCard> {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryPurple.withOpacity(0.10),
+                      color: AppColors.primaryPurple.withValues(alpha: 0.10),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -798,13 +801,13 @@ class _ActivityCardState extends State<_ActivityCard> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: _expanded
-                          ? AppColors.primaryPurple.withOpacity(0.12)
+                          ? AppColors.primaryPurple.withValues(alpha: 0.12)
                           : (isDark
-                              ? Colors.white.withOpacity(0.06)
-                              : Colors.black.withOpacity(0.05)),
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.black.withValues(alpha: 0.05)),
                       border: Border.all(
                         color: _expanded
-                            ? AppColors.primaryPurple.withOpacity(0.4)
+                            ? AppColors.primaryPurple.withValues(alpha: 0.4)
                             : (isDark ? Colors.white24 : Colors.black12),
                       ),
                     ),

@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -89,7 +89,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
   static const _kCompletedDatesKey = 'habits_completed_dates_map_v1';
   static const _kSelectedDateKey = 'habits_selected_date_v1';
   static const _kCurrentStreakKey = 'habits_current_streak_v1';
-  static const _kLastStreakUpdateKey = 'habits_last_streak_update_v1';
 
   HabitsNotifier(this._service) : super(HabitState()) {
     _init();

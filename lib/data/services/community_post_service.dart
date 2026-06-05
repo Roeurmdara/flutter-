@@ -1,6 +1,9 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/exceptions/api_exception.dart';
 import 'dio_client.dart';
 import '../models/community_post_model.dart';
@@ -9,6 +12,44 @@ class CommunityPostService {
   final DioClient dioClient;
 
   CommunityPostService({required this.dioClient});
+
+  // Helper to load comments from persistent storage (SharedPreferences)
+  static Future<List<CommunityPostComment>> _loadPersistentComments(String postId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'local_comments_$postId';
+      final jsonStr = prefs.getString(key);
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final decoded = jsonDecode(jsonStr);
+        if (decoded is List) {
+          return decoded
+              .map((item) {
+                if (item is Map) {
+                  return CommunityPostComment.fromJson(Map<String, dynamic>.from(item));
+                }
+                throw Exception('Decoded item is not a Map');
+              })
+              .toList();
+        }
+      }
+    } catch (e, stackTrace) {
+      developer.log('Error loading comments from storage',
+          error: e, stackTrace: stackTrace);
+    }
+    return [];
+  }
+
+  // Helper to save comments to persistent storage (SharedPreferences)
+  static Future<void> _savePersistentComments(String postId, List<CommunityPostComment> comments) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'local_comments_$postId';
+      final jsonStr = jsonEncode(comments.map((c) => c.toJson()).toList());
+      await prefs.setString(key, jsonStr);
+    } catch (e) {
+      // Ignore storage errors
+    }
+  }
 
   // Get all posts in a community
   Future<PostListResponse> getCommunityPosts({
@@ -261,10 +302,50 @@ class CommunityPostService {
         },
       );
 
-      return CommentsListResponse.fromJson(
-          response.data as Map<String, dynamic>);
+      // Check status code
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        return CommentsListResponse.fromJson(
+            response.data as Map<String, dynamic>);
+      } else {
+        // Fallback to local comments in memory/storage if GET is not supported (405) or not found (404)
+        if (response.statusCode == 405 || response.statusCode == 404) {
+          final list = await _loadPersistentComments(postId);
+          return CommentsListResponse(
+            data: list,
+            meta: PaginationMeta(
+              page: 1,
+              size: list.length,
+              totalElements: list.length,
+              totalPages: 1,
+              hasNext: false,
+              hasPrevious: false,
+              perPage: perPage,
+              total: list.length,
+              lastPage: 1,
+            ),
+          );
+        }
+        throw ApiException(response.statusCode, response.data);
+      }
     } catch (e) {
-      rethrow;
+      // If any request exception happens, fallback to local comments
+      final list = await _loadPersistentComments(postId);
+      return CommentsListResponse(
+        data: list,
+        meta: PaginationMeta(
+          page: 1,
+          size: list.length,
+          totalElements: list.length,
+          totalPages: 1,
+          hasNext: false,
+          hasPrevious: false,
+          perPage: perPage,
+          total: list.length,
+          lastPage: 1,
+        ),
+      );
     }
   }
 
@@ -296,7 +377,12 @@ class CommunityPostService {
               : response.data;
 
       if (respData is Map<String, dynamic>) {
-        return CommunityPostComment.fromJson(respData);
+        final comment = CommunityPostComment.fromJson(respData);
+        // Save to persistent local storage
+        final list = await _loadPersistentComments(postId);
+        list.add(comment);
+        await _savePersistentComments(postId, list);
+        return comment;
       } else {
         throw Exception(
             'Unexpected response shape when adding comment: ${response.data}');
@@ -329,8 +415,16 @@ class CommunityPostService {
             'Failed to delete comment: HTTP ${response.statusCode} - ${response.statusMessage} - ${response.data}');
       }
 
+      // Remove from persistent local storage
+      final list = await _loadPersistentComments(postId);
+      list.removeWhere((c) => c.id == commentId);
+      await _savePersistentComments(postId, list);
       return true;
     } catch (e) {
+      // Even if server request fails, keep local cache in sync if needed or fallback
+      final list = await _loadPersistentComments(postId);
+      list.removeWhere((c) => c.id == commentId);
+      await _savePersistentComments(postId, list);
       rethrow;
     }
   }

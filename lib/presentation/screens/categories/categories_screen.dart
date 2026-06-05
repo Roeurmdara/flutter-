@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -92,8 +92,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 filled: true,
                 fillColor: isDark
-                    ? Colors.white.withOpacity(0.05)
-                    : Colors.black.withOpacity(0.04),
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.04),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
@@ -184,7 +184,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               color: (isDark
                       ? AppColors.darkTextSecondary
                       : AppColors.lightTextSecondary)
-                  .withOpacity(0.4),
+                  .withValues(alpha: 0.4),
             ),
             const SizedBox(height: 12),
             Text(
@@ -313,7 +313,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               color: (isDark
                       ? AppColors.darkTextSecondary
                       : AppColors.lightTextSecondary)
-                  .withOpacity(0.4),
+                  .withValues(alpha: 0.4),
             ),
             const SizedBox(height: 16),
             Text(
@@ -508,8 +508,8 @@ class CategorySection extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 10,
                     color: isDark
-                        ? AppColors.darkTextSecondary.withOpacity(0.7)
-                        : AppColors.lightTextSecondary.withOpacity(0.7),
+                        ? AppColors.darkTextSecondary.withValues(alpha: 0.7)
+                        : AppColors.lightTextSecondary.withValues(alpha: 0.7),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

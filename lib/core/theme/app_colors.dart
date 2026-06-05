@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 /// App Colors - Purple + Green Gradient Theme (Enhanced)
 class AppColors {

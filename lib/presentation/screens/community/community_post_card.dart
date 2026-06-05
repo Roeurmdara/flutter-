@@ -4,10 +4,12 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/community_post_model.dart';
 import '../../../data/providers/community_provider.dart';
+import '../../widgets/image_viewer_dialog.dart';
 
 class CommunityPostCard extends ConsumerWidget {
   final CommunityPost post;
   final String communityId;
+  final VoidCallback? onTap;
   final VoidCallback? onCommentsTap;
   final VoidCallback? onEditTap;
   final VoidCallback? onDeleteTap;
@@ -17,6 +19,7 @@ class CommunityPostCard extends ConsumerWidget {
     super.key,
     required this.post,
     required this.communityId,
+    this.onTap,
     this.onCommentsTap,
     this.onEditTap,
     this.onDeleteTap,
@@ -31,10 +34,10 @@ class CommunityPostCard extends ConsumerWidget {
     final sub =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
     final border = isDark
-        ? Colors.white.withOpacity(0.08)
-        : Colors.black.withOpacity(0.06);
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.06);
 
-    return Container(
+    final cardContent = Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 10),
       decoration: BoxDecoration(
         color: surface,
@@ -43,7 +46,7 @@ class CommunityPostCard extends ConsumerWidget {
         boxShadow: [
           if (!isDark)
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),
@@ -74,7 +77,7 @@ class CommunityPostCard extends ConsumerWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryPurple.withOpacity(0.1),
+                      color: AppColors.primaryPurple.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: const Row(
@@ -123,14 +126,21 @@ class CommunityPostCard extends ConsumerWidget {
                     style: AppTypography.bodyMedium(text).copyWith(
                       fontSize: 13.5,
                       height: 1.45,
-                      color: text.withOpacity(0.78),
+                      color: text.withValues(alpha: 0.78),
                     ),
                   ),
               ],
             ),
           ),
           if (_validImageUrl(post.imageUrl) != null)
-            _PostImage(imageUrl: _validImageUrl(post.imageUrl)!),
+            GestureDetector(
+              onTap: () => showImageViewer(
+                context,
+                _validImageUrl(post.imageUrl)!,
+                post.title.trim().isNotEmpty ? post.title.trim() : 'Post Image',
+              ),
+              child: _PostImage(imageUrl: _validImageUrl(post.imageUrl)!),
+            ),
           Divider(height: 1, color: border),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -154,6 +164,13 @@ class CommunityPostCard extends ConsumerWidget {
         ],
       ),
     );
+
+    return onTap != null
+        ? GestureDetector(
+            onTap: onTap,
+            child: cardContent,
+          )
+        : cardContent;
   }
 
   String _formatCount(int count) {
@@ -263,17 +280,17 @@ class _PostImage extends StatelessWidget {
           width: double.infinity,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => Container(
-            color: Theme.of(context).dividerColor.withOpacity(0.18),
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.18),
             alignment: Alignment.center,
             child: Icon(
               Icons.broken_image_outlined,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.45),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
             ),
           ),
           loadingBuilder: (context, child, progress) {
             if (progress == null) return child;
             return Container(
-              color: Theme.of(context).dividerColor.withOpacity(0.12),
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.12),
               alignment: Alignment.center,
               child: const SizedBox(
                 width: 22,
@@ -324,7 +341,7 @@ class _InitialAvatar extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.primaryPurple.withOpacity(0.12),
+        color: AppColors.primaryPurple.withValues(alpha: 0.12),
       ),
       child: Text(
         initial,
@@ -351,7 +368,7 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.onSurface.withOpacity(0.58);
+    final color = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.58);
     return TextButton.icon(
       onPressed: onTap,
       icon: Icon(icon, size: 17),
@@ -386,7 +403,7 @@ class _PostMenu extends StatelessWidget {
       icon: Icon(
         Icons.more_horiz_rounded,
         size: 20,
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       elevation: 3,

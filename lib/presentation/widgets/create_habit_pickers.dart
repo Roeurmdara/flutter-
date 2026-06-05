@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 // ── Color Picker Bottom Sheet ────────────────────────────────────────────────
 void showHabitColorPicker({
@@ -53,7 +53,7 @@ void showHabitColorPicker({
             itemCount: colors.length,
             itemBuilder: (context, index) {
               final color = colors[index];
-              final isSelected = color.value == currentColor.value;
+              final isSelected = color.toARGB32() == currentColor.toARGB32();
 
               return GestureDetector(
                 onTap: () {
@@ -70,7 +70,7 @@ void showHabitColorPicker({
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: color.withOpacity(0.5),
+                              color: color.withValues(alpha: 0.5),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -157,10 +157,10 @@ void showHabitEmojiPicker({
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     color: isSelected
-                        ? currentColor.withOpacity(0.2)
+                        ? currentColor.withValues(alpha: 0.2)
                         : (isDark
-                            ? Colors.white.withOpacity(0.04)
-                            : Colors.black.withOpacity(0.03)),
+                            ? Colors.white.withValues(alpha: 0.04)
+                            : Colors.black.withValues(alpha: 0.03)),
                     border: Border.all(
                       color: isSelected
                           ? currentColor

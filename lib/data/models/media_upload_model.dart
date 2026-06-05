@@ -1,4 +1,4 @@
-// Media Upload Response Model
+﻿// Media Upload Response Model
 class MediaUploadData {
   final String url;
   final String path;

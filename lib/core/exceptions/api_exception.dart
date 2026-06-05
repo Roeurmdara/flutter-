@@ -1,4 +1,4 @@
-class ApiException implements Exception {
+﻿class ApiException implements Exception {
   final int? statusCode;
   final dynamic data;
 

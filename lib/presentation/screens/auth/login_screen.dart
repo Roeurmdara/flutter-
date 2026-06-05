@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -163,7 +163,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                     color: AppColors.errorSoft,
-                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(
@@ -185,7 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         onTap: () =>
                             ref.read(authProvider.notifier).clearError(),
                         child: Icon(Icons.close_rounded,
-                            color: AppColors.error.withOpacity(0.6), size: 18),
+                            color: AppColors.error.withValues(alpha: 0.6), size: 18),
                       ),
                     ],
                   ),
@@ -252,7 +252,7 @@ class _Header extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryPurple.withOpacity(0.15),
+                  color: AppColors.primaryPurple.withValues(alpha: 0.15),
                   blurRadius: 40,
                   spreadRadius: 10,
                 ),
@@ -379,7 +379,7 @@ class _Field extends StatelessWidget {
         hintStyle: GoogleFonts.inter(
           fontSize: 15,
           fontWeight: FontWeight.w400,
-          color: AppColors.lightTextSecondary.withOpacity(0.6),
+          color: AppColors.lightTextSecondary.withValues(alpha: 0.6),
         ),
         prefixIcon: Icon(icon, color: AppColors.lightTextSecondary, size: 20),
         suffixIcon: suffix,
@@ -620,7 +620,7 @@ class _SubmitButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryPurple.withOpacity(0.3),
+              color: AppColors.primaryPurple.withValues(alpha: 0.3),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -780,8 +780,8 @@ class __SocialBtnState extends ConsumerState<_SocialBtn> {
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: widget.brandColor.withOpacity(0.06),
-        border: Border.all(color: widget.brandColor.withOpacity(0.2)),
+        color: widget.brandColor.withValues(alpha: 0.06),
+        border: Border.all(color: widget.brandColor.withValues(alpha: 0.2)),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Material(

@@ -1,4 +1,4 @@
-// Habit Template Model
+﻿// Habit Template Model
 class HabitTemplate {
   final String id;
   final String title;

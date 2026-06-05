@@ -1,4 +1,4 @@
-// Follower/Following User Model
+﻿// Follower/Following User Model
 class FollowerUser {
   final String id;
   final String username;

@@ -1,4 +1,4 @@
-// User Profile Update Request Model
+﻿// User Profile Update Request Model
 class UserProfileUpdateRequest {
   final String username;
   final String? avatarUrl;
@@ -32,10 +32,21 @@ class UserProfile {
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
+    final user = _objectValue(json['user']) ?? _objectValue(json['profile']);
     return UserProfile(
-      username: json['username'] as String? ?? '',
-      avatarUrl: json['avatar_url'] as String?,
-      bio: json['bio'] as String?,
+      username: _stringValue(json['username']) ??
+          _stringValue(json['name']) ??
+          _stringValue(json['display_name']) ??
+          _stringValue(user?['username']) ??
+          _stringValue(user?['name']) ??
+          _stringValue(user?['display_name']) ??
+          _stringValue(json['email']) ??
+          '',
+      avatarUrl: _stringValue(json['avatar_url']) ??
+          _stringValue(json['avatar']) ??
+          _stringValue(user?['avatar_url']) ??
+          _stringValue(user?['avatar']),
+      bio: _stringValue(json['bio']) ?? _stringValue(user?['bio']),
     );
   }
 
@@ -79,13 +90,14 @@ class ProfileResponse {
   });
 
   factory ProfileResponse.fromJson(Map<String, dynamic> json) {
+    final data = _objectValue(json['data']);
+    final profileData =
+        _objectValue(data?['profile']) ?? _objectValue(data?['user']) ?? data;
     return ProfileResponse(
       success: json['success'] as bool? ?? false,
       message: json['message'] as String? ?? '',
       status: json['status'] as int? ?? 0,
-      data: json['data'] != null
-          ? UserProfile.fromJson(json['data'] as Map<String, dynamic>)
-          : null,
+      data: profileData != null ? UserProfile.fromJson(profileData) : null,
       error: json['error'] != null
           ? (json['error'] is String
               ? json['error']
@@ -96,4 +108,16 @@ class ProfileResponse {
           : null,
     );
   }
+}
+
+Map<String, dynamic>? _objectValue(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return null;
+}
+
+String? _stringValue(Object? value) {
+  if (value == null) return null;
+  final text = value.toString().trim();
+  return text.isEmpty ? null : text;
 }

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/habit_template_model.dart';
 import '../../../data/providers/habit_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// APITemplateCard  (unchanged)
+// APITemplateCard
 // ─────────────────────────────────────────────────────────────────────────────
 class APITemplateCard extends StatefulWidget {
   final HabitTemplate template;
@@ -29,114 +30,213 @@ class APITemplateCard extends StatefulWidget {
 
 class _APITemplateCardState extends State<APITemplateCard> {
   bool _added = false;
+  double _scale = 1.0;
 
   @override
   Widget build(BuildContext context) {
     final freq = widget.template.recommendedFrequency;
-    final days = widget.template.recommendedDuration;
-    final freqLabel = freq[0].toUpperCase() + freq.substring(1);
+    final freqLabel = freq.isNotEmpty ? freq[0].toUpperCase() + freq.substring(1) : '';
     final isDark = widget.isDark;
+    final categoryColor = widget.categoryColor;
 
     final Color textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
     final Color textSecondary =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      width: 148,
-      margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        border: Border.all(
-          color: _added
-              ? const Color(0xFF63993B).withOpacity(0.8)
-              : isDark
-                  ? AppColors.darkBorder
-                  : AppColors.lightBorder,
-          width: _added ? 1.5 : 0.5,
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Title ──────────────────────────────────────────────────
-          Text(
-            widget.template.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              height: 1.25,
-              color: textPrimary,
+    // Premium card border and gradient matching the category
+    final Color cardBorder = _added
+        ? const Color(0xFF63993B).withValues(alpha: 0.6)
+        : (isDark
+            ? categoryColor.withValues(alpha: 0.15)
+            : categoryColor.withValues(alpha: 0.12));
+
+    final Gradient cardGradient = _added
+        ? LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [
+                    const Color(0xFF132511),
+                    const Color(0xFF1B3618),
+                  ]
+                : [
+                    const Color(0xFFF3F9EF),
+                    const Color(0xFFE6F3DF),
+                  ],
+          )
+        : LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [
+                    AppColors.darkSurface,
+                    Color.alphaBlend(
+                      categoryColor.withValues(alpha: 0.05),
+                      AppColors.darkSurface,
+                    ),
+                  ]
+                : [
+                    Colors.white,
+                    Color.alphaBlend(
+                      categoryColor.withValues(alpha: 0.03),
+                      Colors.white,
+                    ),
+                  ],
+          );
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _scale = 0.95),
+      onTapUp: (_) => setState(() => _scale = 1.0),
+      onTapCancel: () => setState(() => _scale = 1.0),
+      onTap: () => _showDetail(context),
+      child: Transform.scale(
+        scale: _scale,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 148,
+          margin: const EdgeInsets.only(right: 10),
+          padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+          decoration: BoxDecoration(
+            gradient: cardGradient,
+            border: Border.all(
+              color: cardBorder,
+              width: _added ? 1.5 : 0.8,
             ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: isDark 
+                    ? Colors.black.withValues(alpha: 0.15) 
+                    : Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+              if (_added)
+                BoxShadow(
+                  color: const Color(0xFF63993B).withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+            ],
           ),
-          const SizedBox(height: 6),
-
-          // ── Frequency row ──────────────────────────────────────────
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.schedule_rounded, size: 12, color: textSecondary),
-              const SizedBox(width: 4),
+              // ── Title ──────────────────────────────────────────────────
               Text(
-                freqLabel,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w400,
-                  color: textSecondary,
+                widget.template.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1.25,
+                  color: textPrimary,
                 ),
+              ),
+              const SizedBox(height: 6),
+
+              // ── Frequency row ──────────────────────────────────────────
+              Row(
+                children: [
+                  Icon(
+                    Icons.repeat_rounded, 
+                    size: 11, 
+                    color: _added 
+                        ? (isDark ? const Color(0xFFA2D37D) : const Color(0xFF4C7D2D))
+                        : textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    freqLabel,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                      color: _added 
+                          ? (isDark ? const Color(0xFFA2D37D) : const Color(0xFF4C7D2D))
+                          : textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+
+              const Spacer(),
+
+              // ── Bottom row: icon circle + arrow circle ─────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Category icon with colored circle bg
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          widget.categoryColor.withValues(alpha: 0.16),
+                          widget.categoryColor.withValues(alpha: 0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: widget.categoryColor.withValues(alpha: 0.25),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: widget.categoryColor.withValues(alpha: 0.06),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        widget.categoryIcon,
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ),
+
+                  // Plus/Check button
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: _added
+                          ? const LinearGradient(
+                              colors: [Color(0xFF63993B), Color(0xFF4C7D2D)],
+                            )
+                          : const LinearGradient(
+                              colors: [
+                                AppColors.primaryPurple,
+                                Color(0xFF7C3AED),
+                              ],
+                            ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_added ? const Color(0xFF63993B) : AppColors.primaryPurple)
+                              .withValues(alpha: 0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _added ? Icons.check_rounded : Icons.add_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-
-          const Spacer(),
-
-          // ── Bottom row: icon circle + arrow circle ─────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // Category icon with colored circle bg
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: widget.categoryColor.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    widget.categoryIcon,
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                ),
-              ),
-
-              // Arrow — opens detail sheet
-              GestureDetector(
-                onTap: () => _showDetail(context),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDark
-                        ? AppColors.primaryPurple
-                        : AppColors.primaryPurple,
-                  ),
-                  child: Icon(
-                    Icons.arrow_upward_rounded,
-                    size: 16,
-                    color: isDark ? Colors.white : Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -290,13 +390,11 @@ class _APITemplateDetailSheetState
 
     final Color bg = isDark ? AppColors.darkSurface : const Color(0xFFFAFAFA);
     final Color textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
-    final Color textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
     final Color divider =
-        isDark ? Colors.white10 : Colors.black.withOpacity(0.06);
+        isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06);
     final Color inputFill = isDark
-        ? Colors.white.withOpacity(0.04)
-        : Colors.black.withOpacity(0.03);
+        ? Colors.white.withValues(alpha: 0.04)
+        : Colors.black.withValues(alpha: 0.03);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.88,
@@ -344,7 +442,7 @@ class _APITemplateDetailSheetState
                         decoration: BoxDecoration(
                           color: isDark
                               ? Colors.white10
-                              : Colors.black.withOpacity(0.05),
+                              : Colors.black.withValues(alpha: 0.05),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -376,10 +474,10 @@ class _APITemplateDetailSheetState
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: widget.categoryColor.withOpacity(0.1),
+                              color: widget.categoryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: widget.categoryColor.withOpacity(0.25),
+                                color: widget.categoryColor.withValues(alpha: 0.25),
                                 width: 0.5,
                               ),
                             ),
@@ -533,10 +631,10 @@ class _APITemplateDetailSheetState
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 5),
                               decoration: BoxDecoration(
-                                color: widget.categoryColor.withOpacity(0.08),
+                                color: widget.categoryColor.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: widget.categoryColor.withOpacity(0.2),
+                                  color: widget.categoryColor.withValues(alpha: 0.2),
                                   width: 0.5,
                                 ),
                               ),
@@ -565,7 +663,7 @@ class _APITemplateDetailSheetState
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primaryPurple,
                             disabledBackgroundColor:
-                                AppColors.primaryPurple.withOpacity(0.5),
+                                AppColors.primaryPurple.withValues(alpha: 0.5),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),

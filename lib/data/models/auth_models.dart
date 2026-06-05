@@ -1,4 +1,4 @@
-// Registration Request Model
+﻿// Registration Request Model
 class RegisterRequest {
   final String email;
   final String username;

@@ -8,6 +8,8 @@ class Community {
   final String joinType;
   final String status;
   final String createdBy;
+  final String? creatorName;
+  final String? creatorAvatar;
   final int memberCount;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -26,6 +28,8 @@ class Community {
     required this.joinType,
     required this.status,
     required this.createdBy,
+    this.creatorName,
+    this.creatorAvatar,
     required this.memberCount,
     required this.createdAt,
     required this.updatedAt,
@@ -40,9 +44,15 @@ class Community {
 
   factory Community.fromJson(Map<String, dynamic> json) {
     final coverImage = _validImageUrl(_stringValue(json['cover_image']));
-    final membership = json['membership'] is Map<String, dynamic>
-        ? json['membership'] as Map<String, dynamic>
+    final membership = json['membership'] is Map
+        ? Map<String, dynamic>.from(json['membership'] as Map)
         : null;
+    final createdByMap = _objectValue(json['created_by']);
+    final creator = _objectValue(json['creator']) ??
+        _objectValue(json['created_by_user']) ??
+        _objectValue(json['created_by_profile']) ??
+        _objectValue(json['owner']) ??
+        createdByMap;
 
     return Community(
       id: _stringValue(json['id']) ?? '',
@@ -52,7 +62,29 @@ class Community {
       coverImage: coverImage,
       joinType: _stringValue(json['join_type']) ?? 'open',
       status: _stringValue(json['status']) ?? 'active',
-      createdBy: _stringValue(json['created_by']) ?? '',
+      createdBy: _stringValue(createdByMap?['id']) ??
+          _stringValue(createdByMap?['user_id']) ??
+          _stringValue(json['created_by_id']) ??
+          _stringValue(json['creator_id']) ??
+          _stringValue(json['owner_id']) ??
+          (createdByMap == null ? _stringValue(json['created_by']) : null) ??
+          '',
+      creatorName: _stringValue(json['creator_username']) ??
+          _stringValue(json['created_by_username']) ??
+          _stringValue(json['created_by_name']) ??
+          _stringValue(json['owner_name']) ??
+          _stringValue(creator?['username']) ??
+          _stringValue(creator?['name']) ??
+          _stringValue(creator?['display_name']) ??
+          _stringValue(creator?['email']),
+      creatorAvatar: _validImageUrl(
+        _stringValue(json['creator_avatar']) ??
+            _stringValue(json['creator_avatar_url']) ??
+            _stringValue(json['created_by_avatar']) ??
+            _stringValue(json['created_by_avatar_url']) ??
+            _stringValue(creator?['avatar']) ??
+            _stringValue(creator?['avatar_url']),
+      ),
       memberCount: _intValue(json['member_count']) ?? 0,
       createdAt: _dateValue(json['created_at']) ?? DateTime.now(),
       updatedAt: _dateValue(json['updated_at']) ?? DateTime.now(),
@@ -90,6 +122,12 @@ class Community {
     return trimmed;
   }
 
+  static Map<String, dynamic>? _objectValue(Object? value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return null;
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -100,6 +138,8 @@ class Community {
       'join_type': joinType,
       'status': status,
       'created_by': createdBy,
+      if (creatorName != null) 'creator_username': creatorName,
+      if (creatorAvatar != null) 'creator_avatar_url': creatorAvatar,
       'member_count': memberCount,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),

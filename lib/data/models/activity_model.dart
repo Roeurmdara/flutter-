@@ -1,4 +1,4 @@
-class Activity {
+﻿class Activity {
   final String id;
   final String habitId;
   final String activityType;

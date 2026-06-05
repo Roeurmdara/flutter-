@@ -12,6 +12,8 @@ import '../../../data/providers/community_provider.dart';
 import '../../../data/providers/session_provider.dart';
 import 'community_post_card.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../widgets/image_viewer_dialog.dart';
+import 'community_post_detail_screen.dart';
 
 class CommunityPostsFeedScreen extends ConsumerStatefulWidget {
   final String communityId;
@@ -94,7 +96,7 @@ class _CommunityPostsFeedScreenState
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                            color: Colors.black.withOpacity(0.12),
+                            color: Colors.black.withValues(alpha: 0.12),
                             blurRadius: 6),
                       ],
                     ),
@@ -160,7 +162,7 @@ class _CommunityPostsFeedScreenState
                   Text(
                     '${_fmtCount(community.memberCount)} members',
                     style:
-                        AppTypography.bodySmall(Colors.white.withOpacity(0.75))
+                        AppTypography.bodySmall(Colors.white.withValues(alpha: 0.75))
                             .copyWith(fontSize: 13),
                   ),
                 ],
@@ -193,7 +195,7 @@ class _CommunityPostsFeedScreenState
                     splashFactory: InkRipple.splashFactory,
                     overlayColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.pressed)) {
-                        return AppColors.primaryPurple.withOpacity(0.08);
+                        return AppColors.primaryPurple.withValues(alpha: 0.08);
                       }
                       return Colors.transparent;
                     }),
@@ -269,7 +271,8 @@ class _CommunityPostsFeedScreenState
         return CommunityPostCard(
           post: posts[index],
           communityId: widget.communityId,
-          onCommentsTap: () => _showCommentsDialog(context, posts[index]),
+          onTap: () => _navigateToPostDetail(context, posts[index]),
+          onCommentsTap: () => _navigateToPostDetail(context, posts[index]),
           onEditTap: canCreatePosts
               ? () => _showEditPostDialog(context, posts[index])
               : null,
@@ -291,7 +294,7 @@ class _CommunityPostsFeedScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.article_outlined, size: 40, color: muted.withOpacity(0.4)),
+          Icon(Icons.article_outlined, size: 40, color: muted.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
           Text(
             'No posts yet',
@@ -346,7 +349,7 @@ class _CommunityPostsFeedScreenState
                   : Icons.error_outline,
               size: 36,
               color: isAuthExpired || isAccessDenied
-                  ? muted.withOpacity(0.5)
+                  ? muted.withValues(alpha: 0.5)
                   : Colors.red[300],
             ),
             const SizedBox(height: 12),
@@ -379,7 +382,7 @@ class _CommunityPostsFeedScreenState
                 style: OutlinedButton.styleFrom(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4)),
-                  side: BorderSide(color: muted.withOpacity(0.3)),
+                  side: BorderSide(color: muted.withValues(alpha: 0.3)),
                 ),
               ),
             ],
@@ -408,7 +411,7 @@ class _CommunityPostsFeedScreenState
               },
         style: OutlinedButton.styleFrom(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          side: BorderSide(color: muted.withOpacity(0.3)),
+          side: BorderSide(color: muted.withValues(alpha: 0.3)),
         ),
         child: _isLoadingMore
             ? SizedBox(
@@ -450,6 +453,7 @@ class _CommunityPostsFeedScreenState
   }
 
   Future<void> _showJoinRequiredDialog(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
     final shouldJoin = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -484,7 +488,7 @@ class _CommunityPostsFeedScreenState
       ref.invalidate(communityDetailProvider(widget.communityId));
       ref.invalidate(communityPostsProvider);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Joined ${widget.communityName}'),
           behavior: SnackBarBehavior.floating,
@@ -493,7 +497,7 @@ class _CommunityPostsFeedScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Failed to join: $e'),
           behavior: SnackBarBehavior.floating,
@@ -549,10 +553,15 @@ class _CommunityPostsFeedScreenState
     );
   }
 
-  void _showCommentsDialog(BuildContext context, CommunityPost post) {
-    showDialog(
-      context: context,
-      builder: (_) => _CommentsDialog(postId: post.id, postTitle: post.title),
+  void _navigateToPostDetail(BuildContext context, CommunityPost post) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CommunityPostDetailScreen(
+          post: post,
+          communityId: widget.communityId,
+        ),
+      ),
     );
   }
 
@@ -589,18 +598,29 @@ class _CommunityPostsFeedScreenState
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    ClipOval(
-                      child: SizedBox(
-                        width: 52,
-                        height: 52,
-                        child: avatarUrl == null || avatarUrl.trim().isEmpty
-                            ? _AuthorInitial(displayName)
-                            : Image.network(
-                                avatarUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    _AuthorInitial(displayName),
-                              ),
+                    GestureDetector(
+                      onTap: () {
+                        if (avatarUrl != null && avatarUrl.trim().isNotEmpty) {
+                          showImageViewer(
+                            context,
+                            avatarUrl,
+                            "$displayName's Profile Picture",
+                          );
+                        }
+                      },
+                      child: ClipOval(
+                        child: SizedBox(
+                          width: 52,
+                          height: 52,
+                          child: avatarUrl == null || avatarUrl.trim().isEmpty
+                              ? _AuthorInitial(displayName)
+                              : Image.network(
+                                  avatarUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      _AuthorInitial(displayName),
+                                ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -694,7 +714,7 @@ class _AuthorInitial extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
     return Container(
-      color: AppColors.primaryPurple.withOpacity(0.12),
+      color: AppColors.primaryPurple.withValues(alpha: 0.12),
       alignment: Alignment.center,
       child: Text(
         initial,
@@ -795,8 +815,8 @@ class _AboutTab extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isDark
-                ? Colors.white.withOpacity(0.06)
-                : Colors.black.withOpacity(0.04),
+                ? Colors.white.withValues(alpha: 0.06)
+                : Colors.black.withValues(alpha: 0.04),
           ),
         ),
         child: Column(
@@ -829,17 +849,16 @@ class _AboutTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.primaryPurple.withOpacity(0.1),
+                color: AppColors.primaryPurple.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: SelectableText(
-                community.createdBy.length > 30
-                    ? '${community.createdBy.substring(0, 30)}...'
-                    : community.createdBy,
+              child: Text(
+                community.creatorName?.trim().isNotEmpty == true
+                    ? community.creatorName!.trim()
+                    : 'Creator',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.primaryPurple,
-                  fontFamily: 'monospace',
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1037,7 +1056,7 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.58),
+                        color: Colors.black.withValues(alpha: 0.58),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
@@ -1167,9 +1186,9 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
                         onChanged: _isLoading
                             ? null
                             : (v) => setState(() => _isPinned = v),
-                        activeColor: AppColors.primaryPurple,
+                        activeThumbColor: AppColors.primaryPurple,
                         activeTrackColor:
-                            AppColors.primaryPurple.withOpacity(0.2),
+                            AppColors.primaryPurple.withValues(alpha: 0.2),
                       ),
                     ),
                   ],
@@ -1254,7 +1273,7 @@ class _ImageActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.58),
+          color: Colors.black.withValues(alpha: 0.58),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, size: 16, color: Colors.white),
@@ -1459,7 +1478,7 @@ class _CommentsDialogState extends ConsumerState<_CommentsDialog> {
                   padding: const EdgeInsets.all(8),
                   constraints: const BoxConstraints(),
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primaryPurple.withOpacity(0.08),
+                    backgroundColor: AppColors.primaryPurple.withValues(alpha: 0.08),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4)),
                   ),

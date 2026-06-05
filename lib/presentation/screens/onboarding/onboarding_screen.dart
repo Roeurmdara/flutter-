@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
@@ -134,8 +134,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   stops: const [0.25, 0.55, 0.85],
                   colors: [
                     Colors.transparent,
-                    const Color(0xFF0E0B1A).withOpacity(0.5),
-                    const Color(0xFF0E0B1A).withOpacity(0.92),
+                    const Color(0xFF0E0B1A).withValues(alpha: 0.5),
+                    const Color(0xFF0E0B1A).withValues(alpha: 0.92),
                   ],
                 ),
               ),
@@ -163,16 +163,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: Colors.white.withOpacity(0.15), width: 1),
+                              color: Colors.white.withValues(alpha: 0.15), width: 1),
                         ),
                         child: Text('Skip',
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             )),
                       ),
                     ),
@@ -249,7 +249,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         style: GoogleFonts.inter(
                           fontSize: 15,
                           fontWeight: FontWeight.w400,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           height: 1.55,
                         ),
                       ),
@@ -321,7 +321,7 @@ class _Dots extends StatelessWidget {
             gradient: active
                 ? const LinearGradient(colors: AppColors.heroGradient)
                 : null,
-            color: active ? null : Colors.white.withOpacity(0.25),
+            color: active ? null : Colors.white.withValues(alpha: 0.25),
             borderRadius: BorderRadius.circular(4),
           ),
         );
@@ -358,7 +358,7 @@ class _NextButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(isLast ? 16 : 28),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryPurple.withOpacity(0.35),
+              color: AppColors.primaryPurple.withValues(alpha: 0.35),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),

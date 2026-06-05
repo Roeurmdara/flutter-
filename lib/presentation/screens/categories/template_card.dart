@@ -1,4 +1,4 @@
-
+﻿
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
@@ -59,7 +59,7 @@ Widget build(BuildContext context) {
   final Color textSecondary =
       isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
   final Color borderColor = _added
-      ? const Color(0xFF63993B).withOpacity(0.7)
+      ? const Color(0xFF63993B).withValues(alpha: 0.7)
       : isDark
           ? AppColors.darkBorder
           : AppColors.lightBorder;
@@ -123,7 +123,7 @@ Widget build(BuildContext context) {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: widget.categoryColor.withOpacity(0.15),
+                color: widget.categoryColor.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -243,7 +243,7 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
             visibility: 'private',
             emoji: widget.template.emoji as String? ?? widget.categoryIcon,
             colorHex: widget.template.colorHex as String? ??
-                '#${widget.categoryColor.value.toRadixString(16).substring(2).toUpperCase()}',
+                '#${widget.categoryColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
           );
 
       widget.onToggle();
@@ -292,10 +292,10 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
     final Color textSecondary =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
     final Color divider =
-        isDark ? Colors.white10 : Colors.black.withOpacity(0.06);
+        isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06);
     final Color inputFill = isDark
-        ? Colors.white.withOpacity(0.04)
-        : Colors.black.withOpacity(0.03);
+        ? Colors.white.withValues(alpha: 0.04)
+        : Colors.black.withValues(alpha: 0.03);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.88,
@@ -344,7 +344,7 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                         decoration: BoxDecoration(
                           color: isDark
                               ? Colors.white10
-                              : Colors.black.withOpacity(0.05),
+                              : Colors.black.withValues(alpha: 0.05),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -376,11 +376,11 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: widget.categoryColor.withOpacity(0.1),
+                              color: widget.categoryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color:
-                                    widget.categoryColor.withOpacity(0.25),
+                                    widget.categoryColor.withValues(alpha: 0.25),
                                 width: 0.5,
                               ),
                             ),
@@ -520,7 +520,7 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                                         height: 4,
                                         decoration: BoxDecoration(
                                           color: widget.categoryColor
-                                              .withOpacity(0.5),
+                                              .withValues(alpha: 0.5),
                                           shape: BoxShape.circle,
                                         ),
                                       ),
@@ -591,7 +591,7 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primaryPurple,
                             disabledBackgroundColor:
-                                AppColors.primaryPurple.withOpacity(0.5),
+                                AppColors.primaryPurple.withValues(alpha: 0.5),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14),
                             ),

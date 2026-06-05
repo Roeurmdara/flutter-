@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/app_typography.dart';
 
@@ -189,7 +189,7 @@ class HabitProgressCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.shadowLight.withOpacity(0.5),
+              color: AppColors.shadowLight.withValues(alpha: 0.5),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -229,7 +229,7 @@ class HabitProgressCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.accentOrange.withOpacity(0.1),
+                    color: AppColors.accentOrange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(

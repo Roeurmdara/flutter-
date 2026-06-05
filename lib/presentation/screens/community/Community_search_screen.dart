@@ -344,8 +344,8 @@ class _SearchTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isJoined
-                ? actionColor.withOpacity(0.2)
-                : color.withOpacity(0.12),
+                ? actionColor.withValues(alpha: 0.2)
+                : color.withValues(alpha: 0.12),
             width: 1,
           ),
         ),
@@ -356,7 +356,7 @@ class _SearchTile extends StatelessWidget {
               child: Container(
                 width: 60,
                 height: 60,
-                color: color.withOpacity(0.06),
+                color: color.withValues(alpha: 0.06),
                 child: Image.network(
                   community.coverImage!,
                   fit: BoxFit.cover,
@@ -381,7 +381,8 @@ class _SearchTile extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                  shape: BoxShape.circle, color: color.withOpacity(0.1)),
+                  shape: BoxShape.circle,
+                  color: color.withValues(alpha: 0.1)),
               child: Center(
                   child: Text(emoji, style: const TextStyle(fontSize: 22))),
             ),
@@ -422,12 +423,12 @@ class _SearchTile extends StatelessWidget {
             style: TextButton.styleFrom(
               minimumSize: const Size(64, 34),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              backgroundColor: actionColor.withOpacity(0.08),
-              disabledBackgroundColor: Colors.grey.withOpacity(0.08),
+              backgroundColor: actionColor.withValues(alpha: 0.08),
+              disabledBackgroundColor: Colors.grey.withValues(alpha: 0.08),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
-                  color: actionColor.withOpacity(0.2),
+                  color: actionColor.withValues(alpha: 0.2),
                 ),
               ),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,

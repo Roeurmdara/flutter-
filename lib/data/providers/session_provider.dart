@@ -1,8 +1,7 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/community_service.dart';
-import '../services/community_post_service.dart';
 import '../services/dio_client.dart';
 import '../services/secure_storage_service.dart';
 
@@ -63,7 +62,6 @@ class UserSession {
 class SessionNotifier extends StateNotifier<UserSession> {
   static const String _storageKey = 'user_session';
   final CommunityService _communityService;
-  final CommunityPostService _postService;
   static SharedPreferences? _prefs;
 
   /// Static method to initialize prefs early (call from main() before running app)
@@ -71,8 +69,7 @@ class SessionNotifier extends StateNotifier<UserSession> {
     _prefs = prefs;
   }
 
-  SessionNotifier(this._communityService, this._postService)
-      : super(UserSession.empty()) {
+  SessionNotifier(this._communityService) : super(UserSession.empty()) {
     // Load from storage immediately and synchronously if possible
     _loadStorageSynchronously();
   }
@@ -289,9 +286,8 @@ final sessionProvider =
   // This prevents provider recreation and data loss
   final dioClient = DioClient(secureStorage: SecureStorageService());
   final communityService = CommunityService(dio: dioClient.dio);
-  final postService = CommunityPostService(dioClient: dioClient);
 
-  return SessionNotifier(communityService, postService);
+  return SessionNotifier(communityService);
 });
 
 final isCommunityJoinedProvider =

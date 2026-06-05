@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/activity_model.dart';
 import '../services/habit_service.dart';
 import 'habit_provider.dart';
@@ -109,8 +109,7 @@ class ActivitiesNotifier extends StateNotifier<ActivityState> {
   ) async {
     state = state.copyWith(isUpdating: true, error: null);
     try {
-      final updatedActivity =
-          await _service.markActivityAsComplete(habitId, activityId);
+      await _service.markActivityAsComplete(habitId, activityId);
 
       final updatedActivities = state.activities.map((activity) {
         return activity.id == activityId
@@ -137,8 +136,7 @@ class ActivitiesNotifier extends StateNotifier<ActivityState> {
   ) async {
     state = state.copyWith(isUpdating: true, error: null);
     try {
-      final updatedActivity =
-          await _service.unmarkActivityAsComplete(habitId, activityId);
+      await _service.unmarkActivityAsComplete(habitId, activityId);
 
       final updatedActivities = state.activities.map((activity) {
         return activity.id == activityId

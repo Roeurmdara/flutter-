@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -188,7 +188,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryPurple.withOpacity(0.2),
+                  color: AppColors.primaryPurple.withValues(alpha: 0.2),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -386,8 +386,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primaryPurple.withOpacity(0.12),
-                    AppColors.primaryPurple.withOpacity(0.06),
+                    AppColors.primaryPurple.withValues(alpha: 0.12),
+                    AppColors.primaryPurple.withValues(alpha: 0.06),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12),
@@ -490,8 +490,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.primaryPurple.withOpacity(0.12),
-                    AppColors.primaryPurple.withOpacity(0.06),
+                    AppColors.primaryPurple.withValues(alpha: 0.12),
+                    AppColors.primaryPurple.withValues(alpha: 0.06),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12),

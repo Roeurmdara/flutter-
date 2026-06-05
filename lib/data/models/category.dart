@@ -1,4 +1,4 @@
-// lib/data/models/category.dart
+﻿// lib/data/models/category.dart
 
 class MealCategory {
   final String id;

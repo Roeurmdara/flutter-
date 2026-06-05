@@ -1,4 +1,4 @@
-// Discover Template Model - for templates in discover page
+﻿// Discover Template Model - for templates in discover page
 class DiscoverTemplate {
   final String id;
   final String categoryId;

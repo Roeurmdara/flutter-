@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
@@ -94,7 +94,7 @@ class _FollowingScreenState extends ConsumerState<FollowingScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryPurple.withOpacity(0.2),
+                  color: AppColors.primaryPurple.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -154,7 +154,7 @@ class _FollowingScreenState extends ConsumerState<FollowingScreen> {
             height: 50,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primaryPurple.withOpacity(0.2),
+              color: AppColors.primaryPurple.withValues(alpha: 0.2),
             ),
             child: user.avatar != null
                 ? ClipOval(
@@ -209,7 +209,7 @@ class _FollowingScreenState extends ConsumerState<FollowingScreen> {
           // Action button
           Container(
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
+              color: Colors.red.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: IconButton(

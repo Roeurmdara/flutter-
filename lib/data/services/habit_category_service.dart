@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'dart:io';
 import 'dart:async';
 import '../models/habit_category_model.dart';
@@ -170,7 +170,6 @@ class HabitCategoryService {
         return 'Connection error: Check internet connection or CORS settings';
       case DioExceptionType.badCertificate:
         return 'SSL certificate error: The server certificate is invalid';
-      case DioExceptionType.unknown:
       default:
         return 'Unknown error: ${error.message}. The server may be unreachable or there may be a CORS issue.';
     }

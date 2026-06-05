@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:habit_tracker/core/theme/app_colors.dart';
 import 'package:habit_tracker/core/theme/app_typography.dart';
 
@@ -37,10 +37,10 @@ class PrimaryButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryPurple,
           disabledBackgroundColor: isDark
-              ? AppColors.darkTextSecondary.withOpacity(0.3)
-              : AppColors.lightTextSecondary.withOpacity(0.3),
+              ? AppColors.darkTextSecondary.withValues(alpha: 0.3)
+              : AppColors.lightTextSecondary.withValues(alpha: 0.3),
           elevation: isEnabled ? 4 : 0,
-          shadowColor: AppColors.primaryPurple.withOpacity(0.3),
+          shadowColor: AppColors.primaryPurple.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -52,7 +52,7 @@ class PrimaryButton extends StatelessWidget {
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white.withOpacity(0.8)),
+                      Colors.white.withValues(alpha: 0.8)),
                 ),
               )
             : Row(
@@ -105,7 +105,7 @@ class SecondaryButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           side: BorderSide(
             color: isDark
-                ? AppColors.darkBorder.withOpacity(0.5)
+                ? AppColors.darkBorder.withValues(alpha: 0.5)
                 : AppColors.lightBorder,
             width: 1.5,
           ),
@@ -199,7 +199,7 @@ class GradientButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryPurple.withOpacity(0.3),
+            color: AppColors.primaryPurple.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -218,7 +218,7 @@ class GradientButton extends StatelessWidget {
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white.withOpacity(0.8),
+                        Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   )

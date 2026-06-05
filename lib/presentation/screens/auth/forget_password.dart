@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
@@ -118,7 +118,7 @@ class _ForgetPasswordScreenState
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primaryPurple.withOpacity(0.12),
+                      color: AppColors.primaryPurple.withValues(alpha: 0.12),
                       blurRadius: 40,
                       spreadRadius: 10,
                     ),
@@ -173,7 +173,7 @@ class _ForgetPasswordScreenState
                 decoration: BoxDecoration(
                   color: AppColors.errorSoft,
                   border: Border.all(
-                    color: AppColors.error.withOpacity(0.3),
+                    color: AppColors.error.withValues(alpha: 0.3),
                   ),
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -212,7 +212,7 @@ class _ForgetPasswordScreenState
                 hintText: 'Email address',
                 hintStyle: GoogleFonts.inter(
                   fontSize: 15,
-                  color: AppColors.lightTextSecondary.withOpacity(0.6),
+                  color: AppColors.lightTextSecondary.withValues(alpha: 0.6),
                 ),
                 filled: true,
                 fillColor: AppColors.lightInputFill,
@@ -255,7 +255,7 @@ class _ForgetPasswordScreenState
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primaryPurple.withOpacity(0.3),
+                      color: AppColors.primaryPurple.withValues(alpha: 0.3),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
@@ -301,7 +301,7 @@ class _ForgetPasswordScreenState
                   color: AppColors.successSoft,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: AppColors.success.withOpacity(0.3),
+                    color: AppColors.success.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(

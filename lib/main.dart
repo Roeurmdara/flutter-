@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_shadcn_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'data/providers/session_provider.dart';
 import 'data/services/secure_storage_service.dart';
@@ -116,24 +118,35 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
-      return const ProviderScope(
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          home: Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+      return ProviderScope(
+        child: ShadApp.custom(
+          themeMode: ThemeMode.light,
+          theme: appShadcnLightTheme,
+          appBuilder: (context) => MaterialApp(
+            debugShowCheckedModeBanner: false,
+            builder: (context, child) => ShadAppBuilder(child: child!),
+            home: const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ),
           ),
         ),
       );
     }
 
     return ProviderScope(
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: AppConstants.appName,
-        theme: AppTheme.lightTheme(),
-        darkTheme: AppTheme.darkTheme(),
+      child: ShadApp.custom(
         themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-        home: _buildHome(),
+        theme: appShadcnLightTheme,
+        darkTheme: appShadcnDarkTheme,
+        appBuilder: (context) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: AppConstants.appName,
+          theme: AppTheme.lightTheme(),
+          darkTheme: AppTheme.darkTheme(),
+          themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          builder: (context, child) => ShadAppBuilder(child: child!),
+          home: _buildHome(),
+        ),
       ),
     );
   }
