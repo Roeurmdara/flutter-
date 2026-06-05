@@ -14,7 +14,7 @@ class PrimaryButton extends StatelessWidget {
   final EdgeInsets? padding;
 
   const PrimaryButton({
-    Key? key,
+    super.key,
     required this.label,
     required this.onPressed,
     this.isLoading = false,
@@ -23,7 +23,7 @@ class PrimaryButton extends StatelessWidget {
     this.height = 56,
     this.width,
     this.padding,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -84,14 +84,14 @@ class SecondaryButton extends StatelessWidget {
   final double? width;
 
   const SecondaryButton({
-    Key? key,
+    super.key,
     required this.label,
     required this.onPressed,
     this.isEnabled = true,
     this.icon,
     this.height = 56,
     this.width,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -142,12 +142,12 @@ class CustomTextButton extends StatelessWidget {
   final TextStyle? style;
 
   const CustomTextButton({
-    Key? key,
+    super.key,
     required this.label,
     required this.onPressed,
     this.isEnabled = true,
     this.style,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +175,7 @@ class GradientButton extends StatelessWidget {
   final List<Color>? gradient;
 
   const GradientButton({
-    Key? key,
+    super.key,
     required this.label,
     required this.onPressed,
     this.isLoading = false,
@@ -183,7 +183,7 @@ class GradientButton extends StatelessWidget {
     this.height = 56,
     this.width,
     this.gradient,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

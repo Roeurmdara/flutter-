@@ -37,7 +37,7 @@ class AuthService {
         options: Options(
           contentType: Headers.jsonContentType,
           followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
+          validateStatus: (status) => status != null && status < 600,
         ),
       );
 
@@ -82,7 +82,7 @@ class AuthService {
         options: Options(
           contentType: Headers.jsonContentType,
           followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
+          validateStatus: (status) => status != null && status < 600,
         ),
       );
 
@@ -92,13 +92,7 @@ class AuthService {
 
       return authResponse;
     } on DioException catch (e) {
-      return AuthResponse(
-        success: false,
-        message: e.message ?? 'Login failed',
-        status: e.response?.statusCode ?? 500,
-        error: e.message,
-        errorCode: 'NETWORK_ERROR',
-      );
+      return _authErrorResponse(e, fallbackMessage: 'Login failed');
     } catch (e) {
       return AuthResponse(
         success: false,
@@ -215,6 +209,10 @@ class AuthService {
         await _secureStorage.saveAccessToken(
           authResponse.data!.token!,
         );
+        final refreshToken = authResponse.data!.refreshToken;
+        if (refreshToken != null && refreshToken.isNotEmpty) {
+          await _secureStorage.saveRefreshToken(refreshToken);
+        }
 
         if (authResponse.data?.user != null) {
           await _secureStorage.saveUserData(
@@ -264,6 +262,14 @@ class AuthService {
     await _secureStorage.clearAuthData();
   }
 
+  Future<void> saveAccessToken(String token) async {
+    await _secureStorage.saveAccessToken(token);
+  }
+
+  Future<void> saveRefreshToken(String token) async {
+    await _secureStorage.saveRefreshToken(token);
+  }
+
   /// Check if user is logged in
   Future<bool> isLoggedIn() async {
     return _secureStorage.isLoggedIn();
@@ -272,5 +278,34 @@ class AuthService {
   /// Get current access token
   Future<String?> getAccessToken() async {
     return _secureStorage.getAccessToken();
+  }
+
+  AuthResponse _authErrorResponse(
+    DioException error, {
+    required String fallbackMessage,
+  }) {
+    final status = error.response?.statusCode ?? 500;
+    final data = error.response?.data;
+    final message = status == 503
+        ? 'Authentication server is temporarily unavailable. Please try again later.'
+        : _extractErrorMessage(data) ?? error.message ?? fallbackMessage;
+
+    return AuthResponse(
+      success: false,
+      message: message,
+      status: status,
+      error: message,
+      errorCode: status == 503 ? 'AUTH_SERVER_UNAVAILABLE' : 'NETWORK_ERROR',
+    );
+  }
+
+  String? _extractErrorMessage(Object? data) {
+    if (data is! Map) return null;
+    final error = data['error'];
+    if (error is Map && error['message'] != null) {
+      return error['message'].toString();
+    }
+    if (data['message'] != null) return data['message'].toString();
+    return null;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/providers/category_providers.dart';
 import '../../../data/providers/template_provider.dart';
@@ -11,7 +12,7 @@ import 'api_template_card.dart';
 // CategoriesScreen
 // ─────────────────────────────────────────────────────────────────────────────
 class CategoriesScreen extends ConsumerStatefulWidget {
-  const CategoriesScreen({Key? key}) : super(key: key);
+  const CategoriesScreen({super.key});
 
   @override
   ConsumerState<CategoriesScreen> createState() => _CategoriesScreenState();
@@ -42,7 +43,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         toolbarHeight: 60,
         title: Text(
           'Discover habits',
-          style: TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: 19,
             fontWeight: FontWeight.w600,
             color: isDark ? AppColors.darkText : AppColors.lightText,
@@ -122,7 +123,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 if (categories.isEmpty) return _buildEmptyState(isDark);
                 // Always watch all category templates so they're cached
                 for (final cat in categories) {
-                  ref.watch(templatesByCategoryProvider(cat.id as String));
+                  ref.watch(templatesByCategoryProvider(cat.id));
                 }
                 if (_query.isNotEmpty) {
                   return _buildSearchResults(categories, isDark);
@@ -422,10 +423,10 @@ class CategorySection extends ConsumerWidget {
   final bool isDark;
 
   const CategorySection({
-    Key? key,
+    super.key,
     required this.category,
     required this.isDark,
-  }) : super(key: key);
+  });
 
   Color _hexToColor(String hex) {
     final buffer = StringBuffer();
@@ -474,9 +475,9 @@ class CategorySection extends ConsumerWidget {
               const SizedBox(width: 9),
               Text(
                 category.name as String,
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: 0.01,
                   color: isDark ? AppColors.darkText : AppColors.lightText,
                 ),
@@ -538,7 +539,7 @@ class CategorySection extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: templates.length,
                 itemBuilder: (context, i) {
-                  final template = templates[i] as HabitTemplate;
+                  final template = templates[i];
                   return APITemplateCard(
                     template: template,
                     categoryColor: categoryColor,

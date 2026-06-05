@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/habit_category_model.dart';
 import '../../../data/providers/category_providers.dart';
-import 'dart:io';
 
 // ── Section label ───────────────────────────────────────────────────────────
 Widget buildLabel(String text, bool isDark) => Padding(
@@ -60,11 +59,11 @@ class CategoryDropdown extends ConsumerWidget {
   final ValueChanged<String?> onChanged;
 
   const CategoryDropdown({
-    Key? key,
+    super.key,
     required this.isDark,
     required this.selectedCategoryId,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -81,7 +80,7 @@ class CategoryDropdown extends ConsumerWidget {
           ),
         ),
       ),
-      error: (_, __) => Text(
+      error: (_, __) => const Text(
         'Failed to load categories',
         style: TextStyle(color: AppColors.error, fontSize: 13),
       ),
@@ -96,7 +95,7 @@ class CategoryDropdown extends ConsumerWidget {
           }
         }
 
-        Color _parseColor(String hex) {
+        Color parseColor(String hex) {
           try {
             return Color(
               int.parse(hex.replaceFirst('#', ''), radix: 16) + 0xFF000000,
@@ -107,7 +106,7 @@ class CategoryDropdown extends ConsumerWidget {
         }
 
         return DropdownButtonFormField<String>(
-          value: selectedCategoryId,
+          initialValue: selectedCategoryId,
           isExpanded: true,
           itemHeight: 64,
           icon: Icon(
@@ -157,7 +156,7 @@ class CategoryDropdown extends ConsumerWidget {
             ),
           ),
           selectedItemBuilder: (context) => categories.map((cat) {
-            final color = _parseColor(cat.colorHex);
+            final color = parseColor(cat.colorHex);
             return Row(
               children: [
                 Container(
@@ -191,7 +190,7 @@ class CategoryDropdown extends ConsumerWidget {
             );
           }).toList(),
           items: categories.map((cat) {
-            final color = _parseColor(cat.colorHex);
+            final color = parseColor(cat.colorHex);
             return DropdownMenuItem<String>(
               value: cat.id,
               child: Row(
@@ -263,12 +262,12 @@ class FrequencyDropdown extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   const FrequencyDropdown({
-    Key? key,
+    super.key,
     required this.isDark,
     required this.selectedFrequency,
     required this.frequencies,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   String _getFrequencyEmoji(String freq) {
     switch (freq.toLowerCase()) {
@@ -364,13 +363,13 @@ class HabitDateField extends StatelessWidget {
   final bool isOptional;
 
   const HabitDateField({
-    Key? key,
+    super.key,
     required this.isDark,
     required this.label,
     required this.date,
     required this.onChanged,
     this.isOptional = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -8,7 +8,6 @@ import '../models/profile_model.dart';
 import '../services/community_service.dart';
 import '../services/community_post_service.dart';
 import '../services/habit_category_service.dart';
-import '../services/profile_service.dart';
 import '../services/dio_client.dart';
 import '../services/secure_storage_service.dart';
 import 'session_provider.dart';

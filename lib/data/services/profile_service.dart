@@ -142,7 +142,7 @@ class UserProfileService {
     }
   }
 
-  /// Upload an avatar or media file to the server using the media.upload endpoint.
+  /// Upload an avatar image through POST /media/upload.
   /// Returns the uploaded image URL on success, or null on failure.
   Future<String?> uploadAvatar(File file) async {
     try {
@@ -151,27 +151,33 @@ class UserProfileService {
 
       final fileName = file.path.split(Platform.pathSeparator).last;
       final form = FormData.fromMap({
-        'media': await MultipartFile.fromFile(file.path, filename: fileName),
+        'file': await MultipartFile.fromFile(file.path, filename: fileName),
+        'context': 'avatar',
       });
 
       final response = await _dio.post(
-        'https://habit-api.rattanakmony.com/api/v1/media.upload',
+        'https://habit-api.rattanakmony.com/api/v1/media/upload',
         data: form,
         options: Options(
           headers: {
             'Authorization': 'Bearer $authToken',
-            'Content-Type': 'multipart/form-data',
           },
           followRedirects: true,
           validateStatus: (status) => status != null && status < 500,
         ),
       );
 
-      if (response.data is Map && (response.data as Map).containsKey('data')) {
-        final data = (response.data as Map)['data'];
-        if (data is Map && (data['url'] != null || data['path'] != null)) {
-          return data['url'] as String? ?? data['path'] as String?;
-        }
+      if (response.statusCode == null ||
+          response.statusCode! < 200 ||
+          response.statusCode! >= 300) {
+        return null;
+      }
+
+      final body = response.data;
+      if (body is Map && body['data'] is Map) {
+        final data = body['data'] as Map;
+        final url = data['url'];
+        return url is String && url.trim().isNotEmpty ? url.trim() : null;
       }
       return null;
     } on DioException catch (_) {

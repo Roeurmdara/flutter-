@@ -11,14 +11,14 @@ class SocialLoginButton extends StatelessWidget {
   final bool isLoading;
 
   const SocialLoginButton({
-    Key? key,
+    super.key,
     required this.label,
     required this.icon,
     required this.backgroundColor,
     required this.textColor,
     required this.onPressed,
     this.isLoading = false,
-  }) : super(key: key);
+  });
 
   /// Google login button
   factory SocialLoginButton.google({

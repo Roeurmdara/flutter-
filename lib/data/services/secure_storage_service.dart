@@ -11,6 +11,7 @@ class SecureStorageService {
   static const String _userUsernameKey = 'user_username';
   // SharedPreferences keys for backward compatibility
   static const String _sharedPrefTokenKey = 'auth_token';
+  static const String _sharedPrefLegacyTokenKey = 'user_token';
 
   final FlutterSecureStorage _storage;
 
@@ -23,6 +24,7 @@ class SecureStorageService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_sharedPrefTokenKey, token);
+      await prefs.setString(_sharedPrefLegacyTokenKey, token);
     } catch (e) {
       // SharedPreferences might not be available on all platforms
     }
@@ -35,20 +37,17 @@ class SecureStorageService {
 
   /// Get access token - check both SecureStorage and SharedPreferences
   Future<String?> getAccessToken() async {
-    // First try SecureStorage
-    var token = await _storage.read(key: _accessTokenKey);
-
-    // If not found, check SharedPreferences for backward compatibility
-    if (token == null || token.isEmpty) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        token = prefs.getString(_sharedPrefTokenKey);
-      } catch (e) {
-        // SharedPreferences might not be available on all platforms
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final sharedToken = prefs.getString(_sharedPrefTokenKey);
+      if (sharedToken != null && sharedToken.isNotEmpty) {
+        return sharedToken;
       }
+    } catch (e) {
+      // SharedPreferences might not be available on all platforms
     }
 
-    return token;
+    return _storage.read(key: _accessTokenKey);
   }
 
   /// Get refresh token
@@ -94,6 +93,18 @@ class SecureStorageService {
       _storage.delete(key: _userEmailKey),
       _storage.delete(key: _userUsernameKey),
     ]);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_sharedPrefTokenKey);
+      await prefs.remove(_sharedPrefLegacyTokenKey);
+      await prefs.remove('auth_user_id');
+      await prefs.remove('auth_user_email');
+      await prefs.remove('auth_user_username');
+      await prefs.remove('auth_user_avatar');
+    } catch (e) {
+      // SharedPreferences might not be available on all platforms
+    }
   }
 
   /// Check if user is logged in

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/exceptions/api_exception.dart';
 import '../../../data/providers/community_provider.dart';
@@ -11,6 +12,7 @@ import '../../../data/models/community_model.dart';
 import '../../../data/providers/session_provider.dart';
 import '../../../data/providers/media_provider.dart';
 import '../../../data/models/media_upload_model.dart';
+import 'Community_detail_screen.dart';
 import 'community_posts_feed_screen.dart';
 import 'community_search_screen.dart';
 import '../../../core/theme/app_typography.dart';
@@ -62,7 +64,7 @@ String _fmt(int n) =>
 // ─── Community Screen ─────────────────────────────────────────────────────────
 
 class CommunityScreen extends ConsumerWidget {
-  const CommunityScreen({Key? key}) : super(key: key);
+  const CommunityScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -72,7 +74,8 @@ class CommunityScreen extends ConsumerWidget {
     final createdIds = session.createdCommunityIds;
 
     final allAsync = ref.watch(
-      communitiesProvider(const CommunityPaginationParams(page: 1, perPage: 100)),
+      communitiesProvider(
+          const CommunityPaginationParams(page: 1, perPage: 100)),
     );
 
     return Scaffold(
@@ -107,21 +110,29 @@ class CommunityScreen extends ConsumerWidget {
               Icons.search_rounded,
               color: isDark ? AppColors.darkText : AppColors.lightText,
             ),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const CommunitySearchScreen(),
-              ),
-            ),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CommunitySearchScreen(),
+                ),
+              );
+              ref.invalidate(
+                communitiesProvider(
+                  const CommunityPaginationParams(page: 1, perPage: 100),
+                ),
+              );
+            },
           ),
         ],
       ),
       body: allAsync.when(
-        loading: () => Center(
+        loading: () => const Center(
             child: CircularProgressIndicator(
                 color: AppColors.primaryPurple, strokeWidth: 1.5)),
-        error: (_, __) => Center(
-            child: Text('Something went wrong',
+        error: (error, _) => Center(
+            child: Text(error.toString(),
+                textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 13,
                     color: isDark
@@ -134,9 +145,14 @@ class CommunityScreen extends ConsumerWidget {
               .where(
                   (c) => joinedIds.contains(c.id) && !createdIds.contains(c.id))
               .toList();
+          final discover = all
+              .where((c) =>
+                  !createdIds.contains(c.id) && !joinedIds.contains(c.id))
+              .toList();
 
-          if (mine.isEmpty && joined.isEmpty)
+          if (all.isEmpty) {
             return _EmptyState(isDark: isDark);
+          }
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(15, 4, 15, 100),
@@ -144,18 +160,22 @@ class CommunityScreen extends ConsumerWidget {
               if (mine.isNotEmpty) ...[
                 // This forces the Text inside _Label to adopt a font size of 22.0
                 DefaultTextStyle.merge(
-                  style: const TextStyle(fontSize: 29.0, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 29.0, fontWeight: FontWeight.bold),
                   child: _Label('My Communities', isDark),
                 ),
                 const SizedBox(height: 12),
-                ...mine.map((c) => _CommunityCard(
-                    community: c,
-                    isDark: isDark,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => CommunityPostsFeedScreen(
-                                communityId: c.id, communityName: c.name))))).toList(),
+                ...mine
+                    .map((c) => _CommunityCard(
+                        community: c,
+                        isDark: isDark,
+                        onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => CommunityPostsFeedScreen(
+                                    communityId: c.id,
+                                    communityName: c.name)))))
+                    .toList(),
                 const SizedBox(height: 28),
               ],
               if (joined.isNotEmpty) ...[
@@ -169,6 +189,21 @@ class CommunityScreen extends ConsumerWidget {
                         MaterialPageRoute(
                             builder: (_) => CommunityPostsFeedScreen(
                                 communityId: c.id, communityName: c.name))))),
+                const SizedBox(height: 28),
+              ],
+              if (discover.isNotEmpty) ...[
+                _Label('Discover', isDark),
+                const SizedBox(height: 8),
+                ...discover.map((c) => _CommunityCard(
+                    community: c,
+                    isDark: isDark,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => CommunityDetailScreen(
+                                  community: c,
+                                  isJoined: false,
+                                ))))),
               ],
             ],
           );
@@ -186,16 +221,29 @@ class _Label extends StatelessWidget {
   const _Label(this.title, this.isDark);
 
   @override
-  Widget build(BuildContext context) => Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.4,
-          color: isDark
-              ? AppColors.darkTextSecondary
-              : AppColors.lightTextSecondary,
-        ),
+  Widget build(BuildContext context) => Row(
+        children: [
+          Container(
+            width: 4,
+            height: 14,
+            decoration: BoxDecoration(
+              color: AppColors.primaryPurple,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
+          ),
+        ],
       );
 }
 
@@ -221,24 +269,41 @@ class _CommunityCard extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: 75,
-        margin: const EdgeInsets.only(bottom: 8),
+        height: 68,
+        margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.25), width: 2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.18), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black12 : AppColors.shadowLight,
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            const SizedBox(width: 12),
+            // Left color accent
+            Container(
+              width: 4,
+              height: 32,
+              margin: const EdgeInsets.only(left: 4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
 
             // Cover image (if available) else emoji in color circle
             if (community.coverImage != null &&
                 community.coverImage!.isNotEmpty)
               ClipOval(
                 child: Container(
-                  width: 60,
-                  height: 60,
+                  width: 40,
+                  height: 40,
                   color: color.withOpacity(0.06),
                   child: Image.network(
                     community.coverImage!,
@@ -261,17 +326,28 @@ class _CommunityCard extends StatelessWidget {
               )
             else
               Container(
-                width: 36,
-                height: 36,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
                   shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      color.withOpacity(0.2),
+                      color.withOpacity(0.08),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: color.withOpacity(0.25),
+                    width: 1.5,
+                  ),
                 ),
                 child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 18)),
+                  child: Text(emoji, style: const TextStyle(fontSize: 20)),
                 ),
               ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
 
             // Name
             Expanded(
@@ -279,7 +355,7 @@ class _CommunityCard extends StatelessWidget {
                 community.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.2,
@@ -288,11 +364,21 @@ class _CommunityCard extends StatelessWidget {
               ),
             ),
 
-            // Member count as text
-            Text(
-              '${_fmt(community.memberCount)} members',
-              style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w400, color: subColor),
+            // Member count as pill badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _fmt(community.memberCount),
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
             ),
             const SizedBox(width: 14),
           ],
@@ -311,17 +397,32 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Text('🌟', style: TextStyle(fontSize: 38)),
-          const SizedBox(height: 14),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primaryPurple.withOpacity(0.08),
+                  AppColors.primaryPurple.withOpacity(0.03),
+                ],
+              ),
+            ),
+            child: const Center(
+              child: Text('🌟', style: TextStyle(fontSize: 32)),
+            ),
+          ),
+          const SizedBox(height: 20),
           Text('No communities yet',
-              style: TextStyle(
-                  fontSize: 15,
+              style: GoogleFonts.poppins(
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: isDark ? AppColors.darkText : AppColors.lightText)),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text('Tap + to create or search to join',
-              style: TextStyle(
-                  fontSize: 12,
+              style: GoogleFonts.inter(
+                  fontSize: 13,
                   color: isDark
                       ? AppColors.darkTextSecondary
                       : AppColors.lightTextSecondary)),
@@ -507,7 +608,7 @@ class _CreateCommunityDialogState
                     if (cats.isEmpty) return const SizedBox.shrink();
                     _selectedCategoryId ??= cats.first.id;
                     return DropdownButtonFormField<String>(
-                      value: _selectedCategoryId,
+                      initialValue: _selectedCategoryId,
                       onChanged: (v) => setState(() => _selectedCategoryId = v),
                       dropdownColor: surface,
                       style: TextStyle(fontSize: 14, color: text),
@@ -675,8 +776,7 @@ class _CreateCommunityDialogState
           if (uploadResponse.success && uploadResponse.data?.url != null) {
             coverImageUrl = uploadResponse.data!.url;
           } else {
-            throw Exception(uploadResponse.message ??
-                'Failed to upload image. Please try again.');
+            throw Exception(uploadResponse.message);
           }
         } catch (uploadError) {
           throw Exception('Error uploading cover image: $uploadError');

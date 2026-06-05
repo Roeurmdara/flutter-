@@ -8,8 +8,7 @@ import '../../../data/providers/activity_provider.dart';
 class ActivityDetailScreen extends ConsumerStatefulWidget {
   final Activity activity;
 
-  const ActivityDetailScreen({Key? key, required this.activity})
-      : super(key: key);
+  const ActivityDetailScreen({super.key, required this.activity});
 
   @override
   ConsumerState<ActivityDetailScreen> createState() =>
@@ -63,9 +62,10 @@ class _ActivityDetailScreenState extends ConsumerState<ActivityDetailScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Save failed: $e'), backgroundColor: Colors.red));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -100,9 +100,10 @@ class _ActivityDetailScreenState extends ConsumerState<ActivityDetailScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Delete failed: $e'), backgroundColor: Colors.red));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -123,10 +124,11 @@ class _ActivityDetailScreenState extends ConsumerState<ActivityDetailScreen> {
       }
       setState(() => _isCompleted = !_isCompleted);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Operation failed: $e'),
             backgroundColor: Colors.red));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

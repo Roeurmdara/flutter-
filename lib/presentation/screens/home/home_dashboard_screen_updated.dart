@@ -14,10 +14,10 @@ class HomeDashboardScreen extends ConsumerStatefulWidget {
   final bool isDarkMode;
 
   const HomeDashboardScreen({
-    Key? key,
+    super.key,
     required this.onThemeToggle,
     required this.isDarkMode,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<HomeDashboardScreen> createState() =>
@@ -170,7 +170,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
               value: completionRate / 100,
               minHeight: 8,
               backgroundColor: Colors.white.withOpacity(0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(
+              valueColor: const AlwaysStoppedAnimation<Color>(
                 AppColors.secondaryGreen,
               ),
             ),
@@ -273,7 +273,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           },
           calendarStyle: CalendarStyle(
             cellMargin: const EdgeInsets.all(4),
-            selectedDecoration: BoxDecoration(
+            selectedDecoration: const BoxDecoration(
               color: AppColors.primaryPurple,
               shape: BoxShape.circle,
             ),

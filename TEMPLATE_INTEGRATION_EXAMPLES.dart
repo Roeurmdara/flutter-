@@ -10,7 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'discover/discover_templates_screen.dart';
 
 class DiscoverScreen extends ConsumerWidget {
-  const DiscoverScreen({Key? key}) : super(key: key);
+  const DiscoverScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,7 +45,7 @@ class DiscoverScreen extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────────────────
 
 class HomeScreenWithTemplates extends ConsumerWidget {
-  const HomeScreenWithTemplates({Key? key}) : super(key: key);
+  const HomeScreenWithTemplates({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -113,9 +113,9 @@ class CreateHabitWithTemplate extends ConsumerStatefulWidget {
   final HabitTemplate? template;
 
   const CreateHabitWithTemplate({
-    Key? key,
+    super.key,
     this.template,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<CreateHabitWithTemplate> createState() =>
@@ -229,7 +229,7 @@ class _CreateHabitWithTemplateState
 
             // Frequency dropdown
             DropdownButtonFormField<String>(
-              value: selectedFrequency,
+              initialValue: selectedFrequency,
               decoration: InputDecoration(
                 labelText: 'Frequency',
                 border: OutlineInputBorder(
@@ -266,7 +266,7 @@ class _CreateHabitWithTemplateState
                 setState(() => selectedDuration = value.toInt());
               },
             ),
-            Text('Duration: ${selectedDuration} minutes'),
+            Text('Duration: $selectedDuration minutes'),
             const SizedBox(height: 24),
 
             // Create button
@@ -344,7 +344,7 @@ final router = GoRouter(
 // ─────────────────────────────────────────────────────────────────────────
 
 class TemplateOfTheWeekWidget extends ConsumerWidget {
-  const TemplateOfTheWeekWidget({Key? key}) : super(key: key);
+  const TemplateOfTheWeekWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

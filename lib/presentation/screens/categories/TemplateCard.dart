@@ -15,13 +15,13 @@ class TemplateCard extends StatefulWidget {
   final bool isDark;
 
   const TemplateCard({
-    Key? key,
+    super.key,
     required this.template,
     required this.categoryColor,
     required this.categoryName,
     required this.categoryIcon,
     required this.isDark,
-  }) : super(key: key);
+  });
 
   @override
   State<TemplateCard> createState() => _TemplateCardState();
@@ -174,7 +174,7 @@ class TemplateDetailSheet extends ConsumerStatefulWidget {
   final VoidCallback onToggle;
 
   const TemplateDetailSheet({
-    Key? key,
+    super.key,
     required this.template,
     required this.categoryColor,
     required this.categoryName,
@@ -182,7 +182,7 @@ class TemplateDetailSheet extends ConsumerStatefulWidget {
     required this.isDark,
     required this.isAdded,
     required this.onToggle,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<TemplateDetailSheet> createState() =>
@@ -551,9 +551,9 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 11),
-                              child: const Text('💡',
+                            const Padding(
+                              padding: EdgeInsets.only(top: 11),
+                              child: Text('💡',
                                   style: TextStyle(fontSize: 16)),
                             ),
                             const SizedBox(width: 8),

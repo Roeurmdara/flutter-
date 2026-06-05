@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../data/providers/profile_provider.dart';
 import 'followers_screen.dart';
 import 'following_screen.dart';
@@ -13,9 +13,9 @@ class ProfileScreen extends ConsumerStatefulWidget {
   final VoidCallback? onNavigateToSettings;
 
   const ProfileScreen({
-    Key? key,
+    super.key,
     this.onNavigateToSettings,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -41,13 +41,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final profile = profileState.profile;
 
     return Scaffold(
-      appBar: _buildAppBar(isDark),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       body: profileState.isLoading && profile == null
           ? const Center(
               child: CircularProgressIndicator(),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               child: Column(
                 children: [
                   if (profile != null) ...[
@@ -56,12 +55,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       isDark,
                       profileState.avatarVersion,
                     ),
-                    const SizedBox(height: 16),
-                    _buildFollowStats(isDark),
-                    const SizedBox(height: 16),
-                    _buildQuickActions(isDark),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+                      child: Column(
+                        children: [
+                          _buildFollowStats(isDark),
+                          const SizedBox(height: 16),
+                          _buildQuickActions(isDark),
+                        ],
+                      ),
+                    ),
                   ] else
-                    _buildErrorWidget(isDark),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _buildErrorWidget(isDark),
+                    ),
                 ],
               ),
             ),
@@ -69,48 +77,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // APP BAR
-  // ─────────────────────────────────────────────────────────────
-
-  PreferredSizeWidget _buildAppBar(
-    bool isDark,
-  ) {
-    return AppBar(
-      title: const Text('Profile'),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.settings_outlined),
-          onPressed: widget.onNavigateToSettings ?? () {},
-        ),
-      ],
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // CARD
-  // ─────────────────────────────────────────────────────────────
-
-  Widget _buildCard({
-    required bool isDark,
-    required Widget child,
-    EdgeInsets? padding,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: padding ?? const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-        ),
-      ),
-      child: child,
-    );
-  }
-
-  // ─────────────────────────────────────────────────────────────
-  // PROFILE HEADER
+  // PROFILE HEADER with gradient banner
   // ─────────────────────────────────────────────────────────────
 
   Widget _buildProfileHeader(
@@ -122,57 +89,142 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final bio = profile.bio as String?;
     final avatarUrl = profile.avatarUrl as String?;
 
-    return _buildCard(
-      isDark: isDark,
-      child: Column(
-        children: [
-          Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              _buildAvatarWidget(
-                avatarUrl: avatarUrl,
-                username: username,
-                size: 90,
-                cacheKey: avatarVersion,
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        // Gradient banner
+        Container(
+          height: 180,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark ? AppColors.heroGradientDark : AppColors.heroGradient,
+            ),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Profile',
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, color: Colors.white),
+                    onPressed: widget.onNavigateToSettings ?? () {},
+                  ),
+                ],
               ),
-              Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color:
-                        isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                    width: 2,
+            ),
+          ),
+        ),
+        // Card overlapping the banner
+        Positioned(
+          top: 130,
+          left: 16,
+          right: 16,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark ? Colors.black26 : AppColors.shadowLight,
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Text(
+                  username,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            username,
-            style: AppTypography.titleLarge(
-              isDark ? AppColors.darkText : AppColors.lightText,
+                if (bio != null && bio.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    bio,
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          if (bio != null && bio.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              bio,
-              textAlign: TextAlign.center,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.bodySmall(
-                isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.lightTextSecondary,
+        ),
+        // Avatar floating between banner and card
+        Positioned(
+          top: 90,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                width: 4,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryPurple.withOpacity(0.2),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ],
-      ),
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                _buildAvatarWidget(
+                  avatarUrl: avatarUrl,
+                  username: username,
+                  size: 80,
+                  cacheKey: avatarVersion,
+                ),
+                Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                      width: 2.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Spacer to push content below the overlapping card
+        SizedBox(
+          height: bio != null && bio.isNotEmpty ? 290 : 260,
+          width: double.infinity,
+        ),
+      ],
     );
   }
 
@@ -200,12 +252,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           height: size,
           placeholder: (_, __) {
             return Shimmer.fromColors(
-              baseColor: const Color(0xFFE0E0E0),
-              highlightColor: const Color(0xFFF5F5F5),
+              baseColor: AppColors.shimmerBaseLight,
+              highlightColor: AppColors.shimmerHighlightLight,
               child: Container(
                 width: size,
                 height: size,
-                color: const Color(0xFFE0E0E0),
+                color: AppColors.shimmerBaseLight,
               ),
             );
           },
@@ -231,15 +283,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.primaryPurple,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppColors.heroGradient,
+        ),
       ),
       child: Center(
         child: Text(
           initial,
-          style: TextStyle(
-            fontSize: size * 0.4,
+          style: GoogleFonts.poppins(
+            fontSize: size * 0.38,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
@@ -308,21 +364,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black12 : AppColors.shadowLight,
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.primaryPurple.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primaryPurple.withOpacity(0.12),
+                    AppColors.primaryPurple.withOpacity(0.06),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
@@ -330,15 +398,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 color: AppColors.primaryPurple,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               count.toString(),
-              style: AppTypography.titleMedium(textColor),
+              style: GoogleFonts.poppins(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: textColor,
+              ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
-              style: AppTypography.bodySmall(secondaryColor),
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: secondaryColor,
+              ),
             ),
           ],
         ),
@@ -354,10 +429,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black12 : AppColors.shadowLight,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -394,7 +476,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required VoidCallback onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -406,8 +488,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.primaryPurple.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primaryPurple.withOpacity(0.12),
+                    AppColors.primaryPurple.withOpacity(0.06),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
@@ -419,7 +506,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Expanded(
               child: Text(
                 title,
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: isDark ? AppColors.darkText : AppColors.lightText,
@@ -444,19 +531,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   // ─────────────────────────────────────────────────────────────
 
   Widget _buildErrorWidget(bool isDark) {
-    return _buildCard(
-      isDark: isDark,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
       child: Column(
         children: [
           const Icon(
-            Icons.error_outline,
+            Icons.error_outline_rounded,
             size: 48,
-            color: Colors.orange,
+            color: AppColors.accentOrange,
           ),
           const SizedBox(height: 12),
           Text(
             'Unable to load profile',
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontWeight: FontWeight.w600,
               color: isDark ? AppColors.darkText : AppColors.lightText,
             ),
@@ -465,7 +560,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Text(
             'Please ensure you are logged in and have a valid token.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: GoogleFonts.inter(
               fontSize: 12,
               color: isDark
                   ? AppColors.darkTextSecondary

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../core/theme/app_colors.dart';
@@ -16,10 +17,10 @@ class HomeDashboardScreen extends ConsumerStatefulWidget {
   final bool isDarkMode;
 
   const HomeDashboardScreen({
-    Key? key,
+    super.key,
     required this.onThemeToggle,
     required this.isDarkMode,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<HomeDashboardScreen> createState() =>
@@ -58,6 +59,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
         onRefresh: () async {
           await ref.read(habitsProvider.notifier).loadHabits();
         },
+        color: AppColors.primaryPurple,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
@@ -66,7 +68,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
               // Greeting Card
               _buildGreetingCard(isDark, completionRate, habitsForDate.length,
                   userName, currentStreak),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Date Selector
               _buildDateSelector(isDark, selectedDate),
@@ -87,8 +89,10 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
               else if (habitsForDate.isEmpty)
                 _buildEmptyState(isDark)
               else ...[
-                // Pending habits (no section header, just listed)
-                if (pendingHabits.isNotEmpty)
+                // Pending habits
+                if (pendingHabits.isNotEmpty) ...[
+                  _buildSectionTitle('To Do', isDark, pendingHabits.length),
+                  const SizedBox(height: 10),
                   _buildHabitList(
                     isDark,
                     pendingHabits,
@@ -96,11 +100,12 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                     selectedDate,
                     isPending: true,
                   ),
+                ],
 
                 // Done section
                 if (doneHabits.isNotEmpty) ...[
                   const SizedBox(height: 24),
-                  _buildSectionTitle('Done', isDark),
+                  _buildSectionTitle('Done', isDark, doneHabits.length),
                   const SizedBox(height: 10),
                   _buildHabitList(
                     isDark,
@@ -118,13 +123,22 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.error),
+                    color: AppColors.errorSoft,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
                   ),
-                  child: Text(
-                    'Error: ${habitState.error}',
-                    style: AppTypography.bodySmall(AppColors.error),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded,
+                          color: AppColors.error, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Error: ${habitState.error}',
+                          style: AppTypography.bodySmall(AppColors.error),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -140,21 +154,21 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
   Widget _buildGreetingCard(bool isDark, int completionRate, int totalHabits,
       String userName, int streak) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppColors.primaryPurple.withOpacity(0.35),
-            AppColors.primaryPurpleDark.withOpacity(0.18),
-          ],
+          colors: isDark ? AppColors.heroGradientDark : AppColors.heroGradient,
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.18),
-          width: 1.2,
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryPurple.withOpacity(0.25),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -166,21 +180,31 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Good ${_getGreeting()}, $userName!',
-                  style: AppTypography.headlineMedium(Colors.white),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  'Keep streaks alive today',
-                  style: AppTypography.bodyMedium(
-                    Colors.white.withOpacity(0.82),
+                  'Good ${_getGreeting()},',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white.withOpacity(0.8),
                   ),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 2),
+                Text(
+                  '$userName! 👋',
+                  style: GoogleFonts.poppins(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildGlassChip(' $totalHabits Habits Doday',
-                        AppColors.primaryPurpleDark),
+                    _buildGlassChip(
+                        '📋 $totalHabits Today', AppColors.primaryPurpleDark),
+                    const SizedBox(width: 8),
+                    _buildGlassChip(
+                        '🔥 $streak Streak', AppColors.primaryPurpleDark),
                   ],
                 ),
               ],
@@ -189,22 +213,21 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
 
           const SizedBox(width: 10),
 
-          // Right Side: Flame image centered inside the circular progress ring
+          // Right Side: Progress ring
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                height: 110,
-                width: 110,
+                height: 90,
+                width: 90,
                 child: Stack(
-                  alignment: Alignment
-                      .center, // Strictly aligns all stack children to the center
+                  alignment: Alignment.center,
                   children: [
                     // Background Track Ring
                     Positioned.fill(
                       child: CircularProgressIndicator(
                         value: 1.0,
-                        strokeWidth: 5,
+                        strokeWidth: 6,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           Colors.white.withOpacity(0.15),
                         ),
@@ -214,15 +237,14 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                     Positioned.fill(
                       child: CircularProgressIndicator(
                         value: completionRate / 100,
-                        strokeWidth: 5,
+                        strokeWidth: 6,
                         strokeCap: StrokeCap.round,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryPurple.withOpacity(0.9),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Colors.white,
                         ),
                       ),
                     ),
-                    // Perfectly Centered Image with Streak Badge
-                    // Perfectly Centered Image with Streak Badge
+                    // Centered Image with Streak Badge
                     Builder(
                       builder: (context) {
                         final config = _getFlameConfig(streak);
@@ -241,32 +263,6 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                                   ),
                                 ),
                               ),
-                              // Streak Badge at top-right
-                              Positioned(
-                                top: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryPurple,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '🔥 $streak',
-                                    style:
-                                        AppTypography.labelSmall(Colors.white)
-                                            .copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                         );
@@ -275,11 +271,21 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 5),
-              Text(
-                '$completionRate%',
-                style: AppTypography.bodySmall(Colors.white.withOpacity(0.9))
-                    .copyWith(fontWeight: FontWeight.bold),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$completionRate%',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ],
           ),
@@ -289,82 +295,95 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
   }
 
   Widget _buildDateSelector(bool isDark, DateTime selectedDate) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
+    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final subColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildDateArrow(Icons.chevron_left_rounded, isDark, () {
             final previousDate = selectedDate.subtract(const Duration(days: 1));
             ref.read(habitsProvider.notifier).selectDate(previousDate);
-          },
-        ),
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              _showCalendar = !_showCalendar;
-            });
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment
-                .center, // Centers the day and the badge relative to each other
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Big, prominent Day text positioned right in the middle above the badge
-              Text(
-                DateFormat('EEEE').format(selectedDate), // Outputs: "Monday"
-                style: AppTypography.headlineMedium(
-                  // Switched to a larger headline style
-                  isDark ? Colors.white : AppColors.lightText,
-                ).copyWith(
-                  fontWeight: FontWeight
-                      .w800, // Extra bold to look much bigger and dominant
-                  letterSpacing: 0.5,
+          }),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _showCalendar = !_showCalendar;
+              });
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  DateFormat('EEEE').format(selectedDate),
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                    letterSpacing: -0.3,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(
-                  height:
-                      2), // Generous spacing to separate the dominant text from the badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                decoration: BoxDecoration(
-                  color:
-                      isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.primaryPurple,
-                    width: 1,
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryPurple.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _showCalendar
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        size: 16,
+                        color: AppColors.primaryPurple,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        DateFormat('MMM dd, yyyy').format(selectedDate),
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primaryPurple,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize
-                      .min, // Keeps the badge snug around the date text
-                  children: [
-                    const SizedBox(width: 5),
-                    Text(
-                      DateFormat('MMM dd, yyyy').format(selectedDate),
-                      style: AppTypography.labelLarge(
-                        isDark
-                            ? Colors.white70
-                            : AppColors.lightText.withOpacity(
-                                0.8), // Slightly dimmed to keep focus on the day above
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.arrow_forward),
-          onPressed: () {
+          _buildDateArrow(Icons.chevron_right_rounded, isDark, () {
             final nextDate = selectedDate.add(const Duration(days: 1));
             ref.read(habitsProvider.notifier).selectDate(nextDate);
-          },
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateArrow(IconData icon, bool isDark, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
         ),
-      ],
+        child: Icon(icon, size: 22,
+          color: isDark ? AppColors.darkText : AppColors.lightText),
+      ),
     );
   }
 
@@ -372,14 +391,21 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black12 : AppColors.shadowLight,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(12),
         child: TableCalendar(
           firstDay: DateTime.utc(2020),
           lastDay: DateTime.utc(2030),
@@ -391,34 +417,44 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
           },
           calendarStyle: CalendarStyle(
             cellMargin: const EdgeInsets.all(4),
-            selectedDecoration: BoxDecoration(
-              color: AppColors.primaryPurple,
+            selectedDecoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: AppColors.heroGradient,
+              ),
               shape: BoxShape.circle,
             ),
             todayDecoration: BoxDecoration(
-              color: AppColors.primaryPurple.withOpacity(0.3),
+              color: AppColors.primaryPurple.withOpacity(0.15),
               shape: BoxShape.circle,
             ),
-            defaultTextStyle: AppTypography.bodySmall(
-              isDark ? Colors.white : Colors.black,
+            defaultTextStyle: GoogleFonts.inter(
+              fontSize: 13,
+              color: isDark ? Colors.white : Colors.black,
             ),
-            weekendTextStyle: AppTypography.bodySmall(
-              isDark ? Colors.white70 : Colors.black54,
+            weekendTextStyle: GoogleFonts.inter(
+              fontSize: 13,
+              color: isDark ? Colors.white70 : Colors.black54,
             ),
-            selectedTextStyle: AppTypography.bodySmall(Colors.white),
+            selectedTextStyle: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
           headerStyle: HeaderStyle(
             formatButtonVisible: false,
             titleCentered: true,
-            titleTextStyle: AppTypography.labelLarge(
-              isDark ? Colors.white : Colors.black,
+            titleTextStyle: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black,
             ),
             leftChevronIcon: Icon(
-              Icons.chevron_left,
+              Icons.chevron_left_rounded,
               color: isDark ? Colors.white : Colors.black,
             ),
             rightChevronIcon: Icon(
-              Icons.chevron_right,
+              Icons.chevron_right_rounded,
               color: isDark ? Colors.white : Colors.black,
             ),
           ),
@@ -438,7 +474,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: habits.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final habit = habits[index];
         final isCompleted = habitState.completedStatus[habit.id] ?? false;
@@ -478,34 +514,51 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
   Widget _buildEmptyState(bool isDark) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min, // Hugs content cleanly
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Minimalist illustration centered
-            Image.asset(
-              'assets/images/hi.png',
-              width: 160,
-              height: 160,
-              fit: BoxFit.contain,
-              // Dynamically tints the image to match the dark/light aesthetic softly
-
-              colorBlendMode: BlendMode.modulate,
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primaryPurple.withOpacity(0.08),
+                    AppColors.primaryPurple.withOpacity(0.03),
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Image.asset(
+                  'assets/images/hi.png',
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.contain,
+                  colorBlendMode: BlendMode.modulate,
+                ),
+              ),
             ),
-            const SizedBox(height: 28), // Generous spacing for breathing room
+            const SizedBox(height: 24),
             Text(
-              'Hi! No habits for this date',
-              style: AppTypography.headlineSmall(
-                isDark ? Colors.white70 : Colors.black54,
+              'No habits for this day',
+              style: GoogleFonts.poppins(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white70 : AppColors.lightText,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'Click Add +',
-              style: AppTypography.bodySmall(
-                isDark ? Colors.white38 : Colors.black38,
+              'Tap the + button to create your first habit',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: isDark ? Colors.white38 : AppColors.lightTextSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -515,29 +568,73 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title, bool isDark) {
-    return Text(
-      title,
-      style: AppTypography.headlineSmall(
-        isDark ? Colors.white54 : Colors.black38,
-      ),
+  Widget _buildSectionTitle(String title, bool isDark, [int? count]) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 18,
+          decoration: BoxDecoration(
+            color: title == 'Done'
+                ? AppColors.success
+                : AppColors.primaryPurple,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
+          ),
+        ),
+        if (count != null) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: (title == 'Done'
+                      ? AppColors.success
+                      : AppColors.primaryPurple)
+                  .withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$count',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: title == 'Done'
+                    ? AppColors.success
+                    : AppColors.primaryPurple,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
   Widget _buildGlassChip(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
+          color: Colors.white.withOpacity(0.2),
           width: 1,
         ),
       ),
       child: Text(
         label,
-        style: AppTypography.bodySmall(Colors.white),
+        style: GoogleFonts.inter(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Colors.white.withOpacity(0.95),
+        ),
       ),
     );
   }

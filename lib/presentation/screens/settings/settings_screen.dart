@@ -1,149 +1,165 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 
-class SettingsScreen extends StatefulWidget {
-  final Function(bool isDark) onThemeToggle;
+class SettingsScreen extends ConsumerWidget {
   final bool isDarkMode;
+  final Function(bool isDark) onThemeToggle;
   final Future<void> Function() onLogout;
   final VoidCallback? onEditProfile;
 
   const SettingsScreen({
-    Key? key,
-    required this.onThemeToggle,
+    super.key,
     required this.isDarkMode,
+    required this.onThemeToggle,
     required this.onLogout,
     this.onEditProfile,
-  }) : super(key: key);
+  });
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  late bool _notificationsEnabled;
-  late bool _smartReminders;
-
-  @override
-  void initState() {
-    super.initState();
-    _notificationsEnabled = true;
-    _smartReminders = true;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      appBar: AppBar(
+        title: Text(
+          'Settings',
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor:
+            isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: Navigator.of(context).canPop()
+            ? IconButton(
+                icon: Icon(Icons.arrow_back_rounded,
+                    color: isDark ? AppColors.darkText : AppColors.lightText),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Appearance ──────────────────────────────────────────
-            _buildSectionLabel('Appearance', isDark),
-            const SizedBox(height: 8),
-            _buildCard(
+            _SectionLabel('Preferences', isDark),
+            const SizedBox(height: 10),
+
+            // Preferences card
+            _SettingsCard(
               isDark: isDark,
-              child: _buildToggleItem(
-                icon: Icons.brightness_4_outlined,
-                title: 'Dark Mode',
-                isDark: isDark,
-                value: widget.isDarkMode,
-                onChanged: widget.onThemeToggle,
-              ),
+              children: [
+                _ToggleItem(
+                  icon: isDarkMode
+                      ? Icons.dark_mode_rounded
+                      : Icons.light_mode_rounded,
+                  title: 'Dark Mode',
+                  subtitle: isDarkMode ? 'Currently dark' : 'Currently light',
+                  value: isDarkMode,
+                  onChanged: (v) => onThemeToggle(v),
+                  isDark: isDark,
+                ),
+              ],
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
+            _SectionLabel('Account', isDark),
+            const SizedBox(height: 10),
 
-            // ── Notifications ───────────────────────────────────────
-            _buildSectionLabel('Notifications', isDark),
-            const SizedBox(height: 8),
-            _buildCard(
+            // Account card
+            _SettingsCard(
               isDark: isDark,
-              child: Column(
-                children: [
-                  _buildToggleItem(
-                    icon: Icons.notifications_outlined,
-                    title: 'Enable Notifications',
-                    isDark: isDark,
-                    value: _notificationsEnabled,
-                    onChanged: (v) => setState(() => _notificationsEnabled = v),
-                  ),
-                  _buildDivider(isDark),
-                  _buildToggleItem(
-                    icon: Icons.smart_toy_outlined,
-                    title: 'Smart Reminders',
-                    isDark: isDark,
-                    value: _smartReminders,
-                    onChanged: (v) => setState(() => _smartReminders = v),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // ── Account ─────────────────────────────────────────────
-            _buildSectionLabel('Account', isDark),
-            const SizedBox(height: 8),
-            _buildCard(
-              isDark: isDark,
-              child: Column(
-                children: [
-                  _buildTapItem(
+              children: [
+                if (onEditProfile != null) ...[
+                  _TapItem(
                     icon: Icons.person_outline_rounded,
                     title: 'Edit Profile',
+                    subtitle: 'Update your information',
                     isDark: isDark,
-                    onTap: widget.onEditProfile ?? () {},
+                    onTap: onEditProfile!,
                   ),
-                  _buildDivider(isDark),
-                  _buildTapItem(
-                    icon: Icons.language_outlined,
-                    title: 'Language',
-                    isDark: isDark,
-                    onTap: () {},
-                  ),
-                  _buildDivider(isDark),
-                  _buildTapItem(
-                    icon: Icons.privacy_tip_outlined,
-                    title: 'Privacy Policy',
-                    isDark: isDark,
-                    onTap: () {},
-                  ),
+                  _CardDivider(isDark: isDark),
                 ],
-              ),
+                _TapItem(
+                  icon: Icons.shield_outlined,
+                  title: 'Privacy & Security',
+                  subtitle: 'Manage your data',
+                  isDark: isDark,
+                  onTap: () {},
+                ),
+              ],
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
+            _SectionLabel('About', isDark),
+            const SizedBox(height: 10),
 
-            // ── About ───────────────────────────────────────────────
-            _buildSectionLabel('About', isDark),
-            const SizedBox(height: 8),
-            _buildCard(
+            _SettingsCard(
               isDark: isDark,
-              child: _buildTapItem(
-                icon: Icons.info_outline_rounded,
-                title: 'Version 1.0.0',
-                isDark: isDark,
-                showArrow: false,
-              ),
+              children: [
+                _TapItem(
+                  icon: Icons.info_outline_rounded,
+                  title: 'About HabitFlow',
+                  subtitle: 'Version 1.0.0',
+                  isDark: isDark,
+                  onTap: () {},
+                ),
+                _CardDivider(isDark: isDark),
+                _TapItem(
+                  icon: Icons.help_outline_rounded,
+                  title: 'Help & Support',
+                  subtitle: 'Get assistance',
+                  isDark: isDark,
+                  onTap: () {},
+                ),
+              ],
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 36),
 
-            // ── Logout ──────────────────────────────────────────────
-            _buildCard(
-              isDark: isDark,
-              child: _buildTapItem(
-                icon: Icons.logout_rounded,
-                title: 'Logout',
-                isDark: isDark,
-                showArrow: false,
-                destructive: true,
-                onTap: _handleLogout,
+            // Logout button
+            GestureDetector(
+              onTap: () => _showLogoutDialog(context),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.error.withOpacity(0.08),
+                      AppColors.error.withOpacity(0.04),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.error.withOpacity(0.2),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.logout_rounded,
+                        color: AppColors.error, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Log Out',
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -152,50 +168,139 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // SECTION LABEL
-  // ─────────────────────────────────────────────────────────────
+  void _showLogoutDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-  Widget _buildSectionLabel(String label, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.3,
-          color: isDark
-              ? AppColors.darkTextSecondary
-              : AppColors.lightTextSecondary,
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor:
+            isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Log Out',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.darkText : AppColors.lightText,
+          ),
         ),
+        content: Text(
+          'Are you sure you want to log out?',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.lightTextSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w500,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.lightTextSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              onLogout();
+            },
+            child: Text(
+              'Log Out',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                color: AppColors.error,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  // ─────────────────────────────────────────────────────────────
-  // CARD
-  // ─────────────────────────────────────────────────────────────
+// ─── Section Label ──────────────────────────────────────────────────────────
 
-  Widget _buildCard({required bool isDark, required Widget child}) {
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  final bool isDark;
+
+  const _SectionLabel(this.label, this.isDark);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 16,
+          decoration: BoxDecoration(
+            color: AppColors.primaryPurple,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.lightTextSecondary,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Settings Card Container ──────────────────────────────────────────────────
+
+class _SettingsCard extends StatelessWidget {
+  final bool isDark;
+  final List<Widget> children;
+
+  const _SettingsCard({required this.isDark, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black12 : AppColors.shadowLight,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: child,
+      child: Column(children: children),
     );
   }
+}
 
-  // ─────────────────────────────────────────────────────────────
-  // DIVIDER
-  // ─────────────────────────────────────────────────────────────
+// ─── Card Divider ─────────────────────────────────────────────────────────────
 
-  Widget _buildDivider(bool isDark) {
+class _CardDivider extends StatelessWidget {
+  final bool isDark;
+
+  const _CardDivider({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Divider(
@@ -204,131 +309,156 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
+}
 
-  // ─────────────────────────────────────────────────────────────
-  // TAP ITEM  (matches ProfileScreen._buildQuickActionItem exactly)
-  // ─────────────────────────────────────────────────────────────
+// ─── Toggle Item ──────────────────────────────────────────────────────────────
 
-  Widget _buildTapItem({
-    required IconData icon,
-    required String title,
-    required bool isDark,
-    VoidCallback? onTap,
-    bool showArrow = true,
-    bool destructive = false,
-  }) {
-    final color = destructive ? Colors.red : AppColors.primaryPurple;
+class _ToggleItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final bool isDark;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 20, color: color),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: destructive
-                      ? Colors.red
-                      : (isDark ? AppColors.darkText : AppColors.lightText),
-                ),
-              ),
-            ),
-            if (showArrow)
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 15,
-                color: isDark
-                    ? AppColors.darkTextSecondary
-                    : AppColors.lightTextSecondary,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
+  const _ToggleItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+    required this.isDark,
+  });
 
-  // ─────────────────────────────────────────────────────────────
-  // TOGGLE ITEM
-  // ─────────────────────────────────────────────────────────────
-
-  Widget _buildToggleItem({
-    required IconData icon,
-    required String title,
-    required bool isDark,
-    required bool value,
-    required Function(bool) onChanged,
-  }) {
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.primaryPurple.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primaryPurple.withOpacity(0.12),
+                  AppColors.primaryPurple.withOpacity(0.06),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, size: 20, color: AppColors.primaryPurple),
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.darkText : AppColors.lightText,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.primaryPurple,
+            activeThumbColor: AppColors.primaryPurple,
+            activeTrackColor: AppColors.primaryPurple.withOpacity(0.3),
           ),
         ],
       ),
     );
   }
+}
 
-  // ─────────────────────────────────────────────────────────────
-  // LOGOUT DIALOG
-  // ─────────────────────────────────────────────────────────────
+// ─── Tap Item ─────────────────────────────────────────────────────────────────
 
-  Future<void> _handleLogout() async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              widget.onLogout();
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Logout'),
-          ),
-        ],
+class _TapItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _TapItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primaryPurple.withOpacity(0.12),
+                    AppColors.primaryPurple.withOpacity(0.06),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 20, color: AppColors.primaryPurple),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkText : AppColors.lightText,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 15,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
+          ],
+        ),
       ),
     );
   }

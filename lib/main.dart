@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'data/providers/session_provider.dart';
+import 'data/services/secure_storage_service.dart';
 
 import 'presentation/screens/onboarding/onboarding_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
@@ -103,6 +104,7 @@ class _MyAppState extends State<MyApp> {
   // ─── Logout ─────────────────────────────────────────────────────────────
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
+    await SecureStorageService().clearAuthData();
     await prefs.remove('auth_token');
     await prefs.remove(AppConstants.keyUserToken);
 
@@ -114,7 +116,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
-      return ProviderScope(
+      return const ProviderScope(
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           home: Scaffold(

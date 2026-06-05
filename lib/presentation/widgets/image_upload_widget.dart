@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../data/providers/media_provider.dart';
 import '../../data/models/media_upload_model.dart';
 
@@ -22,7 +21,7 @@ class ImageUploadWidget extends ConsumerStatefulWidget {
   final String? label;
 
   const ImageUploadWidget({
-    Key? key,
+    super.key,
     required this.uploadContext,
     this.userId,
     this.onImageUploaded,
@@ -33,21 +32,13 @@ class ImageUploadWidget extends ConsumerStatefulWidget {
     this.height = 120,
     this.shape = BoxShape.circle,
     this.label,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<ImageUploadWidget> createState() => _ImageUploadWidgetState();
 }
 
 class _ImageUploadWidgetState extends ConsumerState<ImageUploadWidget> {
-  late ImagePicker _imagePicker;
-
-  @override
-  void initState() {
-    super.initState();
-    _imagePicker = ImagePicker();
-  }
-
   Future<void> _handleImageUpload(bool useCamera) async {
     try {
       final response =
@@ -63,7 +54,7 @@ class _ImageUploadWidgetState extends ConsumerState<ImageUploadWidget> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text('Image uploaded successfully'),
               backgroundColor: Colors.green,
             ),
@@ -97,22 +88,22 @@ class _ImageUploadWidgetState extends ConsumerState<ImageUploadWidget> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Select Image Source'),
-        content: Text('Choose where to upload image from:'),
+        title: const Text('Select Image Source'),
+        content: const Text('Choose where to upload image from:'),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _handleImageUpload(false); // Gallery
             },
-            child: Text('Gallery'),
+            child: const Text('Gallery'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _handleImageUpload(true); // Camera
             },
-            child: Text('Camera'),
+            child: const Text('Camera'),
           ),
         ],
       ),
@@ -172,7 +163,7 @@ class _ImageUploadWidgetState extends ConsumerState<ImageUploadWidget> {
           child: GestureDetector(
             onTap: _showImageSourceDialog,
             child: Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.blue,
                 boxShadow: [
@@ -182,8 +173,8 @@ class _ImageUploadWidgetState extends ConsumerState<ImageUploadWidget> {
                   ),
                 ],
               ),
-              padding: EdgeInsets.all(8),
-              child: Icon(
+              padding: const EdgeInsets.all(8),
+              child: const Icon(
                 Icons.camera_alt,
                 color: Colors.white,
                 size: 16,
@@ -225,7 +216,7 @@ class ImageUploadButton extends ConsumerWidget {
   final Color? foregroundColor;
 
   const ImageUploadButton({
-    Key? key,
+    super.key,
     required this.uploadContext,
     this.userId,
     this.onImageUploaded,
@@ -233,7 +224,7 @@ class ImageUploadButton extends ConsumerWidget {
     this.icon = Icons.image,
     this.backgroundColor,
     this.foregroundColor = Colors.white,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -255,7 +246,7 @@ class ImageUploadButton extends ConsumerWidget {
                 onImageUploaded?.call(response.data!.url, response.data!.path);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    const SnackBar(
                       content: Text('Image uploaded successfully'),
                       backgroundColor: Colors.green,
                     ),

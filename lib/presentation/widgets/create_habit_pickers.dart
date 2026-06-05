@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import 'dart:io';
 // ── Color Picker Bottom Sheet ────────────────────────────────────────────────
 void showHabitColorPicker({
   required BuildContext context,

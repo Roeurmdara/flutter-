@@ -83,12 +83,12 @@ class EditProfileForm extends ConsumerStatefulWidget {
   final AlwaysAliveProviderBase<dynamic> profileProvider;
 
   const EditProfileForm({
-    Key? key,
+    super.key,
     required this.profile,
     required this.onCancel,
     required this.onSaveSuccess,
     required this.profileProvider,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<EditProfileForm> createState() => _EditProfileFormState();
@@ -250,7 +250,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
         backgroundColor: _T.surface(ctx),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(_T.radiusLg)),
-        title: Text('Image URL',
+        title: const Text('Image URL',
             style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

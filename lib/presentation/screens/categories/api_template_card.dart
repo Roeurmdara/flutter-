@@ -15,13 +15,13 @@ class APITemplateCard extends StatefulWidget {
   final bool isDark;
 
   const APITemplateCard({
-    Key? key,
+    super.key,
     required this.template,
     required this.categoryColor,
     required this.categoryName,
     required this.categoryIcon,
     required this.isDark,
-  }) : super(key: key);
+  });
 
   @override
   State<APITemplateCard> createState() => _APITemplateCardState();
@@ -172,7 +172,7 @@ class APITemplateDetailSheet extends ConsumerStatefulWidget {
   final VoidCallback onToggle;
 
   const APITemplateDetailSheet({
-    Key? key,
+    super.key,
     required this.template,
     required this.categoryColor,
     required this.categoryName,
@@ -180,7 +180,7 @@ class APITemplateDetailSheet extends ConsumerStatefulWidget {
     required this.isDark,
     required this.isAdded,
     required this.onToggle,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<APITemplateDetailSheet> createState() =>

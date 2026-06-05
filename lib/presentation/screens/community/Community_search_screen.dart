@@ -12,7 +12,7 @@ import 'community_screen.dart' show communityColor, communityEmoji;
 // ─── Community Search Screen ──────────────────────────────────────────────────
 
 class CommunitySearchScreen extends ConsumerStatefulWidget {
-  const CommunitySearchScreen({Key? key}) : super(key: key);
+  const CommunitySearchScreen({super.key});
 
   @override
   ConsumerState<CommunitySearchScreen> createState() =>
@@ -53,7 +53,17 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
       await ref
           .read(communityOperationsProvider.notifier)
           .joinCommunity(community.id);
-      ref.invalidate(communitiesProvider);
+      ref.invalidate(
+        communitiesProvider(
+          const CommunityPaginationParams(page: 1, perPage: 100),
+        ),
+      );
+      ref.invalidate(communityDetailProvider(community.id));
+      ref.invalidate(
+        communityPostsProvider(
+          PostPaginationParams(communityId: community.id, page: 1, perPage: 10),
+        ),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -132,8 +142,17 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
       await ref
           .read(communityOperationsProvider.notifier)
           .leaveCommunity(community.id);
-      ref.invalidate(communitiesProvider);
-      ref.invalidate(communityPostsProvider);
+      ref.invalidate(
+        communitiesProvider(
+          const CommunityPaginationParams(page: 1, perPage: 100),
+        ),
+      );
+      ref.invalidate(communityDetailProvider(community.id));
+      ref.invalidate(
+        communityPostsProvider(
+          PostPaginationParams(communityId: community.id, page: 1, perPage: 10),
+        ),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -227,7 +246,7 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
         // ── Results ──
         Expanded(
           child: allAsync.when(
-            loading: () => Center(
+            loading: () => const Center(
                 child: CircularProgressIndicator(
                     color: AppColors.primaryPurple, strokeWidth: 2.5)),
             error: (_, __) => Center(

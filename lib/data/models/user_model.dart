@@ -108,7 +108,7 @@ class User {
       completedToday: completedToday ?? this.completedToday,
       achievements: achievements ?? this.achievements,
       preferences: preferences ?? this.preferences,
-      token: token ?? this.token,
+      token: token ?? token,
     );
   }
 }

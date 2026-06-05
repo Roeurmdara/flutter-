@@ -1,3 +1,5 @@
+// ignore_for_file: file_names, use_key_in_widget_constructors, prefer_const_constructors, avoid_print, unused_field
+
 // IMAGE UPLOAD IMPLEMENTATION GUIDE
 // This guide shows how to integrate image upload functionality into:
 // 1. Create Community Screen
@@ -10,8 +12,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../presentation/widgets/image_upload_widget.dart';
-import '../../data/models/media_upload_model.dart';
+import 'lib/data/models/media_upload_model.dart';
+import 'lib/data/providers/media_provider.dart';
+import 'lib/presentation/widgets/image_upload_widget.dart';
 
 class UserProfileEditScreen extends ConsumerStatefulWidget {
   @override
@@ -67,10 +70,10 @@ class _UserProfileEditScreenState extends ConsumerState<UserProfileEditScreen> {
             ),
             SizedBox(height: 16),
             TextField(
+              maxLines: 3,
               decoration: InputDecoration(
                 labelText: 'Bio',
                 border: OutlineInputBorder(),
-                maxLines: 3,
               ),
             ),
             SizedBox(height: 24),
@@ -150,10 +153,10 @@ class _CreateCommunityScreenState extends ConsumerState<CreateCommunityScreen> {
             ),
             SizedBox(height: 16),
             TextField(
+              maxLines: 4,
               decoration: InputDecoration(
                 labelText: 'Description',
                 border: OutlineInputBorder(),
-                maxLines: 4,
                 hintText: 'Describe your community...',
               ),
             ),
@@ -231,10 +234,10 @@ class _CreateCommunityPostScreenState
             // Caption input
             TextField(
               controller: _captionController,
+              maxLines: 4,
               decoration: InputDecoration(
                 labelText: 'Write your post',
                 border: OutlineInputBorder(),
-                maxLines: 4,
                 hintText: 'Share your thoughts...',
               ),
             ),

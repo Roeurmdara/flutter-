@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../data/models/habit_model.dart';
 import '../../../data/providers/activity_provider.dart';
 import '../../../data/providers/community_provider.dart';
@@ -12,10 +11,10 @@ class HabitDetailScreen extends ConsumerStatefulWidget {
   final DateTime selectedDate;
 
   const HabitDetailScreen({
-    Key? key,
+    super.key,
     required this.habit,
     required this.selectedDate,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<HabitDetailScreen> createState() => _HabitDetailScreenState();
@@ -1213,7 +1212,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Error Loading Activities',
             style: TextStyle(
               fontSize: 14,

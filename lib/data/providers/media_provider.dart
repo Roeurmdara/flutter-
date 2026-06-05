@@ -1,7 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/media_service.dart';
 import '../models/media_upload_model.dart';
 import '../services/dio_client.dart';
+
+// Sentinel used by `copyWith` to differentiate between an omitted `error`
+// parameter and an explicit `null` (which clears the error).
+const _noError = Object();
 
 /// State for media upload operations
 class MediaUploadState {
@@ -20,27 +25,28 @@ class MediaUploadState {
   bool get isSuccess =>
       lastUploadResponse != null && lastUploadResponse!.success;
 
-  String? get uploadedImageUrl => lastUploadResponse?.data?.url;
+  String? get uploadedImageUrl =>
+      lastUploadResponse?.data?.url ?? lastUploadResponse?.path;
 
-  String? get uploadedImagePath => lastUploadResponse?.data?.path;
+  String? get uploadedImagePath =>
+      lastUploadResponse?.data?.path ?? lastUploadResponse?.path;
 
   MediaUploadState copyWith({
     MediaUploadResponse? lastUploadResponse,
     bool? isUploading,
-    String? error,
+    Object? error = _noError,
     double? uploadProgress,
   }) {
     return MediaUploadState(
       lastUploadResponse: lastUploadResponse ?? this.lastUploadResponse,
       isUploading: isUploading ?? this.isUploading,
-      error: error,
+      error: identical(error, _noError) ? this.error : error as String?,
       uploadProgress: uploadProgress ?? this.uploadProgress,
     );
   }
 
-  void clearError() {
-    // Error is cleared by creating a new state with error = null
-  }
+  /// Return a new state with the error cleared.
+  MediaUploadState clearError() => copyWith(error: null);
 }
 
 /// Notifier for managing media upload state
@@ -51,7 +57,7 @@ class MediaUploadNotifier extends StateNotifier<MediaUploadState> {
 
   /// Upload a single image
   Future<MediaUploadResponse> uploadImage({
-    required dynamic imageFile, // XFile type
+    required XFile imageFile,
     required MediaContext context,
     String? userId,
   }) async {
@@ -145,7 +151,8 @@ class MediaUploadNotifier extends StateNotifier<MediaUploadState> {
 
   /// Set upload progress (for future implementation with progress tracking)
   void setProgress(double progress) {
-    state = state.copyWith(uploadProgress: progress);
+    final p = (progress.clamp(0.0, 1.0) as num).toDouble();
+    state = state.copyWith(uploadProgress: p);
   }
 }
 

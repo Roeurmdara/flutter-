@@ -1,49 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../data/providers/auth_provider.dart';
 import 'forget_password.dart';
-
-// ─── Palette ──────────────────────────────────────────────────────────────────
-class _C {
-// =========================
-// CLEAN MODERN LIGHT COLORS
-// =========================
-
-  static const Color bg = Color(0xFFFFFFFF); // clean white background
-  static const Color ink = Color(0xFF1F2937); // modern dark text
-  static const Color inkSoft = Color(0xFF6B7280); // secondary text
-
-// Purple + Green Theme
-  static const Color accent = Color(0xFF7C3AED); // vibrant purple
-  static const Color accentSecondary = Color(0xFF3D6B4F); // forest green
-
-// Soft UI Colors
-  static const Color accentSoft = Color(0xFFF3E8FF); // soft purple tint
-  static const Color divider = Color(0xFFE5E7EB); // modern border/divider
-  static const Color field = Color(0xFFF8FAFC); // input/card background
-
-  static const Color white = Color(0xFFFFFFFF);
-}
-
-// ─── Typography helpers ────────────────────────────────────────────────────────
-TextStyle _t(double size, FontWeight w, Color c,
-        {double? letterSpacing, double? height}) =>
-    TextStyle(
-      fontSize: size,
-      fontWeight: w,
-      color: c,
-      letterSpacing: letterSpacing,
-      height: height,
-      fontFamily:
-          'Georgia', // Elegant serif — swap to any Google Font you prefer
-    );
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 class LoginScreen extends ConsumerStatefulWidget {
   final VoidCallback onLoginSuccess;
 
-  const LoginScreen({Key? key, required this.onLoginSuccess}) : super(key: key);
+  const LoginScreen({super.key, required this.onLoginSuccess});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -111,7 +78,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Login successful!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
             duration: Duration(seconds: 2),
           ),
         );
@@ -150,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Register successful!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
             duration: Duration(seconds: 2),
           ),
         );
@@ -166,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red.shade600,
+        backgroundColor: AppColors.error,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -177,7 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: _C.bg,
+      backgroundColor: AppColors.lightSurface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
@@ -185,30 +152,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _Header(),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
               _TabRow(isLogin: _isLogin, onSwitch: _switchTab),
-              const SizedBox(height: 36),
+              const SizedBox(height: 32),
 
               // Error message display
               if (authState.error != null)
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    border: Border.all(color: Colors.red.shade300),
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.errorSoft,
+                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline,
-                          color: Colors.red.shade600, size: 20),
+                      const Icon(Icons.error_outline_rounded,
+                          color: AppColors.error, size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           authState.error!,
-                          style: TextStyle(
-                            color: Colors.red.shade600,
+                          style: GoogleFonts.inter(
+                            color: AppColors.error,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -217,8 +184,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       GestureDetector(
                         onTap: () =>
                             ref.read(authProvider.notifier).clearError(),
-                        child: Icon(Icons.close,
-                            color: Colors.red.shade600, size: 18),
+                        child: Icon(Icons.close_rounded,
+                            color: AppColors.error.withOpacity(0.6), size: 18),
                       ),
                     ],
                   ),
@@ -250,7 +217,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             setState(() => _agreeToTerms = v ?? false),
                       ),
               ),
-              const SizedBox(height: 36),
+              const SizedBox(height: 32),
               _SubmitButton(
                 label: _isLogin ? 'Sign in' : 'Create account',
                 isLoading: authState.isLoading,
@@ -280,25 +247,42 @@ class _Header extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Image.asset(
-            'assets/images/meeeee.png',
-            width: 200,
-            height: 200,
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryPurple.withOpacity(0.15),
+                  blurRadius: 40,
+                  spreadRadius: 10,
+                ),
+              ],
+            ),
+            child: Image.asset(
+              'assets/images/meeeee.png',
+              width: 160,
+              height: 160,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             'HabitFlow',
             textAlign: TextAlign.center,
-            style: _t(32, FontWeight.w700, _C.ink, height: 1.1),
+            style: GoogleFonts.poppins(
+              fontSize: 30,
+              fontWeight: FontWeight.w700,
+              color: AppColors.lightText,
+              letterSpacing: -0.5,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             'Build one good day at a time.',
             textAlign: TextAlign.center,
-            style: _t(
-              14,
-              FontWeight.w400,
-              _C.inkSoft,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: AppColors.lightTextSecondary,
               height: 1.5,
               letterSpacing: 0.1,
             ),
@@ -345,21 +329,21 @@ class _Tab extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.only(bottom: 6),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: active ? _C.accent : Colors.transparent,
-              width: 2,
+              color: active ? AppColors.primaryPurple : Colors.transparent,
+              width: 2.5,
             ),
           ),
         ),
         child: Text(
           label,
-          style: _t(
-            15,
-            active ? FontWeight.w600 : FontWeight.w400,
-            active ? _C.ink : _C.inkSoft,
+          style: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+            color: active ? AppColors.lightText : AppColors.lightTextSecondary,
           ),
         ),
       ),
@@ -388,24 +372,28 @@ class _Field extends StatelessWidget {
     return TextField(
       controller: controller,
       obscureText: obscure,
-      style: _t(15, FontWeight.w400, _C.ink),
-      cursorColor: _C.accent,
+      style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w400, color: AppColors.lightText),
+      cursorColor: AppColors.primaryPurple,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: _t(15, FontWeight.w400, _C.inkSoft.withOpacity(0.6)),
-        prefixIcon: Icon(icon, color: _C.inkSoft, size: 18),
+        hintStyle: GoogleFonts.inter(
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          color: AppColors.lightTextSecondary.withOpacity(0.6),
+        ),
+        prefixIcon: Icon(icon, color: AppColors.lightTextSecondary, size: 20),
         suffixIcon: suffix,
         filled: true,
-        fillColor: _C.field,
+        fillColor: AppColors.lightInputFill,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _C.accent, width: 1.5),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.primaryPurple, width: 1.5),
         ),
       ),
     );
@@ -434,7 +422,7 @@ class _LoginFields extends StatelessWidget {
             controller: email,
             hint: 'Username or Email',
             icon: Icons.person_outline_rounded),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         _Field(
           controller: password,
           hint: 'Password',
@@ -452,27 +440,20 @@ class _LoginFields extends StatelessWidget {
               ),
             );
           },
-          style: ButtonStyle(
-            padding: MaterialStateProperty.all(EdgeInsets.zero),
-            minimumSize: MaterialStateProperty.all(Size.zero),
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-
-            // normal + hover color
-            foregroundColor: MaterialStateProperty.resolveWith((states) {
-              if (states.contains(MaterialState.hovered)) {
-                return _C.accent;
-              }
-              return _C.accent.withOpacity(0.7);
-            }),
-
-            // remove hover background
-            overlayColor: MaterialStateProperty.all(Colors.transparent),
-
-            textStyle: MaterialStateProperty.all(
-              const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            foregroundColor: AppColors.primaryPurple,
+          ),
+          child: Text(
+            'Forgot password?',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primaryPurple,
             ),
           ),
-          child: const Text('Forgot password?'),
         )
       ],
     );
@@ -507,12 +488,12 @@ class _RegisterFields extends StatelessWidget {
             controller: name,
             hint: 'Username',
             icon: Icons.person_outline_rounded),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         _Field(
             controller: email,
             hint: 'Email address',
             icon: Icons.mail_outline_rounded),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         _Field(
           controller: password,
           hint: 'Password',
@@ -520,7 +501,7 @@ class _RegisterFields extends StatelessWidget {
           obscure: !showPassword,
           suffix: _EyeButton(show: showPassword, onTap: onTogglePassword),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         _Field(
           controller: confirmPassword,
           hint: 'Confirm password',
@@ -537,19 +518,19 @@ class _RegisterFields extends StatelessWidget {
               onTap: () => onToggleTerms(!agreeToTerms),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                width: 20,
-                height: 20,
+                width: 22,
+                height: 22,
                 margin: const EdgeInsets.only(top: 1),
                 decoration: BoxDecoration(
-                  color: agreeToTerms ? _C.accent : _C.field,
-                  borderRadius: BorderRadius.circular(5),
+                  color: agreeToTerms ? AppColors.primaryPurple : AppColors.lightInputFill,
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: agreeToTerms ? _C.accent : _C.divider,
+                    color: agreeToTerms ? AppColors.primaryPurple : AppColors.lightBorder,
                     width: 1.5,
                   ),
                 ),
                 child: agreeToTerms
-                    ? const Icon(Icons.check, size: 13, color: _C.white)
+                    ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
                     : null,
               ),
             ),
@@ -559,16 +540,29 @@ class _RegisterFields extends StatelessWidget {
                 onTap: () => onToggleTerms(!agreeToTerms),
                 child: RichText(
                   text: TextSpan(
-                    style: _t(13, FontWeight.w400, _C.inkSoft, height: 1.5),
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.lightTextSecondary,
+                      height: 1.5,
+                    ),
                     children: [
                       const TextSpan(text: 'I agree to the '),
                       TextSpan(
                           text: 'Terms of Service',
-                          style: _t(13, FontWeight.w600, _C.accent)),
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryPurple,
+                          )),
                       const TextSpan(text: ' and '),
                       TextSpan(
                           text: 'Privacy Policy',
-                          style: _t(13, FontWeight.w600, _C.accent)),
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryPurple,
+                          )),
                     ],
                   ),
                 ),
@@ -593,8 +587,8 @@ class _EyeButton extends StatelessWidget {
     return IconButton(
       icon: Icon(
         show ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-        size: 18,
-        color: _C.inkSoft,
+        size: 20,
+        color: AppColors.lightTextSecondary,
       ),
       onPressed: onTap,
       splashRadius: 18,
@@ -615,32 +609,46 @@ class _SubmitButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 52,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+      height: 56,
+      child: Container(
         decoration: BoxDecoration(
-          color: _C.accent,
-          borderRadius: BorderRadius.circular(12),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: AppColors.heroGradient,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryPurple.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: isLoading ? null : onPressed,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             splashColor: Colors.white12,
             child: Center(
               child: isLoading
                   ? const SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 22,
+                      height: 22,
                       child: CircularProgressIndicator(
-                        color: _C.white,
-                        strokeWidth: 2,
+                        color: Colors.white,
+                        strokeWidth: 2.5,
                       ),
                     )
                   : Text(label,
-                      style: _t(15, FontWeight.w600, _C.white,
-                          letterSpacing: 0.3)),
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      )),
             ),
           ),
         ),
@@ -655,12 +663,17 @@ class _Divider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: _C.divider, thickness: 1)),
+        const Expanded(child: Divider(color: AppColors.lightBorder, thickness: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Text('or', style: _t(13, FontWeight.w400, _C.inkSoft)),
+          child: Text('or',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: AppColors.lightTextSecondary,
+              )),
         ),
-        const Expanded(child: Divider(color: _C.divider, thickness: 1)),
+        const Expanded(child: Divider(color: AppColors.lightBorder, thickness: 1)),
       ],
     );
   }
@@ -683,6 +696,7 @@ class _SocialRow extends ConsumerWidget {
               child: _SocialBtn(
                 label: 'Google',
                 icon: FontAwesomeIcons.google,
+                brandColor: const Color(0xFFDB4437),
                 onPressed: () =>
                     ref.read(authProvider.notifier).loginWithGoogle(),
                 isLoading: isLoading,
@@ -693,6 +707,7 @@ class _SocialRow extends ConsumerWidget {
               child: _SocialBtn(
                 label: 'GitHub',
                 icon: FontAwesomeIcons.github,
+                brandColor: const Color(0xFF24292F),
                 onPressed: () =>
                     ref.read(authProvider.notifier).loginWithGithub(),
                 isLoading: isLoading,
@@ -708,12 +723,14 @@ class _SocialRow extends ConsumerWidget {
 class _SocialBtn extends ConsumerStatefulWidget {
   final String label;
   final IconData icon;
+  final Color brandColor;
   final VoidCallback onPressed;
   final bool isLoading;
 
   const _SocialBtn({
     required this.label,
     required this.icon,
+    required this.brandColor,
     required this.onPressed,
     this.isLoading = false,
   });
@@ -737,7 +754,7 @@ class __SocialBtnState extends ConsumerState<_SocialBtn> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✓ Authenticated successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
             duration: Duration(seconds: 2),
           ),
         );
@@ -747,7 +764,7 @@ class __SocialBtnState extends ConsumerState<_SocialBtn> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${widget.label} login failed: $e'),
-            backgroundColor: Colors.red.shade600,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -763,7 +780,8 @@ class __SocialBtnState extends ConsumerState<_SocialBtn> {
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
+        color: widget.brandColor.withOpacity(0.06),
+        border: Border.all(color: widget.brandColor.withOpacity(0.2)),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Material(
@@ -775,18 +793,23 @@ class __SocialBtnState extends ConsumerState<_SocialBtn> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (_isButtonLoading || widget.isLoading)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: widget.brandColor,
+                  ),
                 )
               else
-                FaIcon(widget.icon, size: 20),
+                FaIcon(widget.icon, size: 20, color: widget.brandColor),
               const SizedBox(width: 10),
               Text(
                 widget.label,
-                style: const TextStyle(
+                style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: AppColors.lightText,
                 ),
               ),
             ],
