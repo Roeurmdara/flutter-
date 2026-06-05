@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_models.dart';
-import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 import '../services/secure_storage_service.dart';
 
@@ -104,8 +103,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final token = response.data!.token ?? response.data!.user?.token ?? '';
         final userWithToken = _mergeToken(response.data!.user!, token);
 
-        debugPrint('✅ Register token received: ${token.isNotEmpty}');
-
         state = state.copyWith(
           isLoading: false,
           isAuthenticated: true,
@@ -150,15 +147,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
 
-      debugPrint(
-          '🌐 Login token received: ${(response.data?.token ?? response.data?.user?.token ?? '').isNotEmpty}');
-
       if (response.success && response.data?.user != null) {
         // ✅ Token lives on AuthData.token — merge it into user
         final token = response.data!.token ?? response.data!.user?.token ?? '';
         final userWithToken = _mergeToken(response.data!.user!, token);
-
-        debugPrint('✅ Login token merged: ${token.isNotEmpty}');
 
         state = state.copyWith(
           isLoading: false,
@@ -217,8 +209,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     final prefs = await SharedPreferences.getInstance();
 
-    debugPrint('💾 Saving token: ${token.isNotEmpty}');
-
     if (token.isNotEmpty) {
       await prefs.setString('auth_token', token);
       await prefs.setString('user_token', token);
@@ -246,8 +236,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final username = prefs.getString('auth_user_username');
       final avatar = prefs.getString('auth_user_avatar');
       final token = prefs.getString('auth_token');
-
-      debugPrint('🔄 Restoring session, token exists: ${token?.isNotEmpty}');
 
       if (userId != null && email != null && username != null) {
         final user = UserAuthInfo(
@@ -320,8 +308,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final token = response.data!.token ?? response.data!.user?.token ?? '';
         final userWithToken = _mergeToken(response.data!.user!, token);
 
-        debugPrint('✅ Google login token received: ${token.isNotEmpty}');
-
         state = state.copyWith(
           isLoading: false,
           isAuthenticated: true,
@@ -363,8 +349,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (response.success && response.data?.user != null) {
         final token = response.data!.token ?? response.data!.user?.token ?? '';
         final userWithToken = _mergeToken(response.data!.user!, token);
-
-        debugPrint('✅ GitHub login token received: ${token.isNotEmpty}');
 
         state = state.copyWith(
           isLoading: false,

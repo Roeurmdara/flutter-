@@ -70,10 +70,9 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
         final map = jsonDecode(cached) as Map<String, dynamic>;
         final profile = UserProfile.fromJson(map);
         state = state.copyWith(profile: profile);
-        debugPrint('📦 Loaded cached profile: ${profile.username}');
       }
-    } catch (e) {
-      debugPrint('⚠️ Failed to load cached profile: $e');
+    } catch (_) {
+      // Ignore cache read errors; the profile can be fetched from the API.
     }
   }
 
@@ -82,9 +81,8 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('cached_profile', jsonEncode(profile.toJson()));
-      debugPrint('💾 Profile cached: ${profile.username}');
-    } catch (e) {
-      debugPrint('⚠️ Failed to cache profile: $e');
+    } catch (_) {
+      // Ignore cache write errors.
     }
   }
 
@@ -92,14 +90,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   Future<void> fetchUserProfile() async {
     state = state.copyWith(isLoading: true);
 
-    final token = _service.getAuthToken();
-    debugPrint('🔑 Profile token exists: ${token?.isNotEmpty ?? false}');
-
     final response = await _service.getUserProfile();
-
-    debugPrint('📡 Response success: ${response.success}');
-    debugPrint('📡 Response message: ${response.message}');
-    debugPrint('📡 Response data: ${response.data?.username}');
 
     if (response.success && response.data != null) {
       await _cacheProfile(response.data!);
@@ -425,9 +416,6 @@ class FollowingNotifier extends StateNotifier<FollowingState> {
 final userProfileServiceProvider = Provider<UserProfileService>((ref) {
   final service = UserProfileService();
   final token = ref.watch(authProvider).user?.token ?? '';
-  debugPrint('🔧 Building profile service, token exists: ${token.isNotEmpty}');
-  debugPrint('🔧 Auth user: ${ref.watch(authProvider).user?.username}');
-  debugPrint('🔧 Is authenticated: ${ref.watch(authProvider).isAuthenticated}');
   if (token.isNotEmpty) {
     service.setAuthToken(token);
   }
