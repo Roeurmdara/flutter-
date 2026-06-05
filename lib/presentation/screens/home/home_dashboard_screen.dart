@@ -152,147 +152,146 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
   }
 
   Widget _buildGreetingCard(bool isDark, int completionRate, int totalHabits,
-      String userName, int streak) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark ? AppColors.heroGradientDark : AppColors.heroGradient,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryPurple.withOpacity(0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
+    String userName, int streak) {
+  return Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          AppColors.primaryPurple.withOpacity(0.35),
+          AppColors.primaryPurpleDark.withOpacity(0.18),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Left Side: Main content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Good ${_getGreeting()},',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withOpacity(0.8),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$userName! 👋',
-                  style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildGlassChip(
-                        '📋 $totalHabits Today', AppColors.primaryPurpleDark),
-                    const SizedBox(width: 8),
-                    _buildGlassChip(
-                        '🔥 $streak Streak', AppColors.primaryPurpleDark),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 10),
-
-          // Right Side: Progress ring
-          Column(
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(
+        color: Colors.white.withOpacity(0.18),
+        width: 1.2,
+      ),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                height: 90,
-                width: 90,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Background Track Ring
-                    Positioned.fill(
-                      child: CircularProgressIndicator(
-                        value: 1.0,
-                        strokeWidth: 6,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.white.withOpacity(0.15),
-                        ),
-                      ),
-                    ),
-                    // Foreground Progress Ring
-                    Positioned.fill(
-                      child: CircularProgressIndicator(
-                        value: completionRate / 100,
-                        strokeWidth: 6,
-                        strokeCap: StrokeCap.round,
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Colors.white,
-                        ),
-                      ),
-                    ),
-                    // Centered Image with Streak Badge
-                    Builder(
-                      builder: (context) {
-                        final config = _getFlameConfig(streak);
-                        return Align(
-                          alignment: config['alignment'] as Alignment,
-                          child: Stack(
-                            children: [
-                              SizedBox(
-                                height: config['size'] as double,
-                                width: config['size'] as double,
-                                child: Transform.rotate(
-                                  angle: config['angle'] as double,
-                                  child: Image.asset(
-                                    _getStreakGif(streak),
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+              Text(
+                'Good ${_getGreeting()}, $userName!',
+                style: AppTypography.headlineMedium(Colors.white),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Keep streaks alive today',
+                style: AppTypography.bodyMedium(
+                  Colors.white.withOpacity(0.82),
                 ),
               ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$completionRate%',
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  _buildGlassChip(
+                      ' $totalHabits Habits Today', AppColors.primaryPurpleDark),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+
+        const SizedBox(width: 10),
+
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 110,
+              width: 110,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned.fill(
+                    child: CircularProgressIndicator(
+                      value: 1.0,
+                      strokeWidth: 5,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.white.withOpacity(0.15),
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: CircularProgressIndicator(
+                      value: completionRate / 100,
+                      strokeWidth: 5,
+                      strokeCap: StrokeCap.round,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primaryPurple.withOpacity(0.9),
+                      ),
+                    ),
+                  ),
+                  Builder(
+                    builder: (context) {
+                      final config = _getFlameConfig(streak);
+                      return Align(
+                        alignment: config['alignment'] as Alignment,
+                        child: Stack(
+                          children: [
+                            SizedBox(
+                              height: config['size'] as double,
+                              width: config['size'] as double,
+                              child: Transform.rotate(
+                                angle: config['angle'] as double,
+                                child: Image.asset(
+                                  _getStreakGif(streak),
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryPurple,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  '🔥 $streak',
+                                  style: AppTypography.labelSmall(Colors.white)
+                                      .copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              '$completionRate%',
+              style: AppTypography.bodySmall(Colors.white.withOpacity(0.9))
+                  .copyWith(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildDateSelector(bool isDark, DateTime selectedDate) {
     final textColor = isDark ? AppColors.darkText : AppColors.lightText;
@@ -369,23 +368,26 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
   }
 
   Widget _buildDateArrow(IconData icon, bool isDark, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-          ),
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface, // ← button background
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
-        child: Icon(icon, size: 22,
-          color: isDark ? AppColors.darkText : AppColors.lightText),
       ),
-    );
-  }
+      child: Icon(
+        icon,
+        size: 22,
+        color: isDark ? AppColors.darkText : AppColors.lightText, // ← icon color
+      ),
+    ),
+  );
+}
 
   Widget _buildCalendarView(bool isDark, DateTime selectedDate) {
     return Container(
