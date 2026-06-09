@@ -109,7 +109,7 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
       context: context,
       useRootNavigator: true,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), // Rounder dialog corners
         title: const Text(
           'Leave community?',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
@@ -118,22 +118,38 @@ class _CommunitySearchScreenState extends ConsumerState<CommunitySearchScreen> {
           'You will no longer see posts from ${community.name}.',
           style: const TextStyle(fontSize: 14),
         ),
+        actionsPadding: const EdgeInsets.only(right: 16, bottom: 16, left: 16),
         actions: [
           TextButton(
             onPressed: () =>
                 Navigator.of(dialogContext, rootNavigator: true).pop(false),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 44), // Taller button target
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () =>
                 Navigator.of(dialogContext, rootNavigator: true).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFE53935),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(90, 44), // Taller and visually substantial
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14), // Modern, slightly rounded look (not fully pill)
+              ),
+              elevation: 0,
+            ),
             child: const Text(
               'Leave',
-              style: TextStyle(color: Color(0xFFE53935)),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             ),
           ),
         ],
       ),
+    
     );
 
     if (shouldLeave != true) return;
@@ -322,132 +338,157 @@ class _SearchTile extends StatelessWidget {
       ? '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}k'
       : '$n';
 
-  @override
-  Widget build(BuildContext context) {
-    final color = communityColor(community);
-    final emoji = communityEmoji(community);
+@override
+Widget build(BuildContext context) {
+  final color = communityColor(community);
+  final emoji = communityEmoji(community);
 
-    final actionColor = isJoined
-        ? const Color(0xFFE53935)
-        : canJoin
-            ? AppColors.primaryPurple
-            : Colors.grey;
+  final actionColor = isJoined
+      ? const Color(0xFFE53935)
+      : canJoin
+          ? AppColors.primaryPurple
+          : Colors.grey;
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque, // 👈 prevent bubbling issues
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isJoined
-                ? actionColor.withValues(alpha: 0.2)
-                : color.withValues(alpha: 0.12),
-            width: 1,
-          ),
+  return GestureDetector(
+    onTap: onTap,
+    behavior: HitTestBehavior.opaque,
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isJoined
+              ? AppColors.primaryPurple.withValues(alpha: 0.22)
+              : isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.06),
+          width: 0.5,
         ),
-        child: Row(children: [
-          // Cover image (if available) else emoji badge
-          if (community.coverImage != null && community.coverImage!.isNotEmpty)
-            ClipOval(
-              child: Container(
-                width: 60,
-                height: 60,
-                color: color.withValues(alpha: 0.06),
-                child: Image.network(
-                  community.coverImage!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Center(
-                    child: Text(emoji, style: const TextStyle(fontSize: 22)),
-                  ),
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const Center(
-                      child: SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 1.5),
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          ClipOval(
+            child: Container(
+              width: 48,
+              height: 48,
+              color: color.withValues(alpha: 0.1),
+              child: community.coverImage != null &&
+                      community.coverImage!.isNotEmpty
+                  ? Image.network(
+                      community.coverImage!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Center(
+                        child: Text(emoji,
+                            style: const TextStyle(fontSize: 22)),
                       ),
-                    );
-                  },
-                ),
-              ),
-            )
-          else
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color.withValues(alpha: 0.1)),
-              child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 22))),
+                      loadingBuilder: (_, child, progress) => progress == null
+                          ? child
+                          : const Center(
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 1.5),
+                              ),
+                            ),
+                    )
+                  : Center(
+                      child:
+                          Text(emoji, style: const TextStyle(fontSize: 22))),
             ),
-          const SizedBox(width: 14),
+          ),
+          const SizedBox(width: 12),
 
           // Name + member count
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  community.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodyMedium(
-                          isDark ? AppColors.darkText : AppColors.lightText)
-                      .copyWith(fontWeight: FontWeight.w600, fontSize: 15),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        community.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? AppColors.darkText
+                              : AppColors.lightText,
+                        ),
+                      ),
+                    ),
+                    if (isJoined) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryPurple.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Text(
+                          'Joined',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primaryPurple,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   '${_fmt(community.memberCount)} members',
-                  style: AppTypography.bodySmall(isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
 
-          // Join / Leave button
-          TextButton(
-            onPressed: isJoined
-                ? onLeave
-                : canJoin
-                    ? onJoin
-                    : null,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(64, 34),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              backgroundColor: actionColor.withValues(alpha: 0.08),
-              disabledBackgroundColor: Colors.grey.withValues(alpha: 0.08),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: actionColor.withValues(alpha: 0.2),
-                ),
-              ),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              isJoined
-                  ? 'Leave'
-                  : canJoin
-                      ? 'Join'
-                      : 'Closed',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: actionColor,
-              ),
-            ),
-          ),
-        ]),
+          // Join / Leave / Closed button
+OutlinedButton(
+  onPressed: isJoined
+      ? onLeave
+      : canJoin
+          ? onJoin
+          : null,
+  style: OutlinedButton.styleFrom(
+    minimumSize: const Size(60, 42), // Increased height slightly for a taller look
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+    side: BorderSide(
+        color: actionColor.withValues(alpha: 0.35), width: 0.5),
+    shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12)), // Balanced rounding instead of fully pill
+  ),
+  child: Text(
+    isJoined
+        ? 'Leave'
+        : canJoin
+            ? 'Join'
+            : 'Closed',
+    style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600, // Slightly bolder text weight
+        color: actionColor),
+  ),
+),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

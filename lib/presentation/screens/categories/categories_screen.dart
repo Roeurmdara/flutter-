@@ -59,7 +59,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: TextField(
               controller: _searchController,
-              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+              onChanged: (v) {
+                final q = v.trim();
+                setState(() => _query = q.toLowerCase());
+                // keep global search provider in sync so other screens can reuse it
+                ref.read(searchTemplatesProvider.notifier).state = q;
+              },
               style: TextStyle(
                 fontSize: 14,
                 color: isDark ? AppColors.darkText : AppColors.lightText,
@@ -80,6 +85,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                         onTap: () {
                           _searchController.clear();
                           setState(() => _query = '');
+                          ref.read(searchTemplatesProvider.notifier).state = '';
                         },
                         child: Icon(
                           Icons.close_rounded,
@@ -126,7 +132,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   ref.watch(templatesByCategoryProvider(cat.id));
                 }
                 if (_query.isNotEmpty) {
-                  return _buildSearchResults(categories, isDark);
+                  return _buildSearchResults(isDark);
                 }
                 return _buildCategoriesList(categories, isDark, ref);
               },
@@ -138,39 +144,21 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   }
 
   // ── Search results ─────────────────────────────────────────────────────────
-  Widget _buildSearchResults(List<dynamic> categories, bool isDark) {
+  Widget _buildSearchResults(bool isDark) {
+    final templates = ref.watch(searchResultsProvider);
     final results = <_SearchResult>[];
 
-    for (final category in categories) {
-      final categoryId = category.id as String;
-      final color = _hexToColor(category.colorHex as String);
-      final name = category.name as String;
-      final icon = category.icon as String? ?? '📌';
+    for (final template in templates) {
+      final color = _hexToColor(template.color);
+      final name = template.category;
+      final icon = template.icon.isNotEmpty ? template.icon : '📌';
 
-      final templatesAsync = ref.watch(templatesByCategoryProvider(categoryId));
-
-      // Only use data that is already loaded — skip loading/error states
-      if (templatesAsync is AsyncData) {
-        final templates = templatesAsync.value as List<dynamic>;
-        for (final t in templates) {
-          final template = t as HabitTemplate;
-          final matchesTitle = template.title.toLowerCase().contains(_query);
-          final matchesDesc =
-              template.description.toLowerCase().contains(_query);
-          final matchesCategory = name.toLowerCase().contains(_query);
-          final matchesTags =
-              template.tags.any((tag) => tag.toLowerCase().contains(_query));
-
-          if (matchesTitle || matchesDesc || matchesCategory || matchesTags) {
-            results.add(_SearchResult(
-              template: template,
-              categoryColor: color,
-              categoryName: name,
-              categoryIcon: icon,
-            ));
-          }
-        }
-      }
+      results.add(_SearchResult(
+        template: template,
+        categoryColor: color,
+        categoryName: name,
+        categoryIcon: icon,
+      ));
     }
 
     if (results.isEmpty) {

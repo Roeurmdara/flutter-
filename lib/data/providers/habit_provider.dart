@@ -177,10 +177,10 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     }
 
     int currentStreak = 0;
-    DateTime checkDate = _dateOnly(DateTime.now())
-        .subtract(const Duration(days: 1)); // Start from yesterday
+    // Start counting from today so completing today's habits updates the streak immediately
+    DateTime checkDate = _dateOnly(DateTime.now());
 
-    // Work backwards from yesterday to count consecutive days with all habits completed
+    // Work backwards from today to count consecutive days with all habits completed
     while (true) {
       final dateStr = _formatDate(checkDate);
 

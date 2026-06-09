@@ -159,18 +159,16 @@ class CommunityScreen extends ConsumerWidget {
               if (mine.isNotEmpty) ...[
                 _Label('My Communities', mine.length, isDark),
                 const SizedBox(height: 10),
-                ...mine
-                    .map((c) => _CommunityCard(
-                        community: c,
-                        isDark: isDark,
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => CommunityDetailScreen(
-                                      community: c,
-                                      isJoined: true,
-                                    )))))
-                    ,
+                ...mine.map((c) => _CommunityCard(
+                    community: c,
+                    isDark: isDark,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => CommunityDetailScreen(
+                                  community: c,
+                                  isJoined: true,
+                                ))))),
                 const SizedBox(height: 24),
               ],
               if (joined.isNotEmpty) ...[
@@ -225,45 +223,45 @@ class _Label extends StatelessWidget {
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     return Row(
-        children: [
-          Container(
-            width: 3,
-            height: 18,
-            decoration: BoxDecoration(
-              color: AppColors.primaryPurple,
-              borderRadius: BorderRadius.circular(2),
+      children: [
+        Container(
+          width: 3,
+          height: 18,
+          decoration: BoxDecoration(
+            color: AppColors.primaryPurple,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: textColor,
+          ),
+        ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: AppColors.primaryPurple.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: AppColors.primaryPurple.withValues(alpha: 0.14),
             ),
           ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 15,
+          child: Text(
+            '$count',
+            style: GoogleFonts.inter(
+              fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: textColor,
+              color: subColor,
             ),
           ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.primaryPurple.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: AppColors.primaryPurple.withValues(alpha: 0.14),
-              ),
-            ),
-            child: Text(
-              '$count',
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: subColor,
-              ),
-            ),
-          ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 }
 
@@ -299,22 +297,13 @@ class _CommunityCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : color.withValues(alpha: 0.22),
+                ? Colors.white.withValues(alpha: 0.06)
+                : color.withValues(alpha: 0.12),
             width: 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.20)
-                  : color.withValues(alpha: 0.08),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,12 +371,12 @@ class _CommunityCard extends StatelessWidget {
                 _MetaChip(
                   icon: Icons.circle,
                   label: statusLabel,
-                  color: community.isActive ? AppColors.success : subColor,
+                  color: community.isActive ? AppColors.accentBlue : subColor,
                   isDark: isDark,
                 ),
                 const SizedBox(width: 8),
                 _MetaChip(
-                  icon: Icons.lock_open_rounded,
+                  icon: Icons.circle,
                   label: joinLabel,
                   color: color,
                   isDark: isDark,
@@ -431,19 +420,12 @@ class _CommunityCover extends StatelessWidget {
     final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
 
     return Container(
-      width: 58,
-      height: 58,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: 0.22),
-            color.withValues(alpha: 0.08),
-          ],
-        ),
-        border: Border.all(color: color.withValues(alpha: 0.24)),
+        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.08),
+        border: Border.all(color: color.withValues(alpha: 0.14)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(17),
@@ -485,14 +467,14 @@ class _EmojiFallback extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        width: 38,
-        height: 38,
+        width: 32,
+        height: 32,
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
           shape: BoxShape.circle,
         ),
         child: Center(
-          child: Text(emoji, style: const TextStyle(fontSize: 21)),
+          child: Text(emoji, style: const TextStyle(fontSize: 18)),
         ),
       ),
     );
@@ -523,6 +505,16 @@ class _MemberPill extends StatelessWidget {
         children: [
           Icon(Icons.group_rounded, size: 12, color: color),
           const SizedBox(width: 4),
+          // Added "Member" text between the icon and the count
+          Text(
+            'member ',
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight:
+                  FontWeight.w600, // Slightly lighter weight for contrast
+              color: color,
+            ),
+          ),
           Text(
             _fmt(count),
             style: GoogleFonts.inter(
@@ -639,7 +631,6 @@ class _CreateCommunityDialogState
     extends ConsumerState<_CreateCommunityDialog> {
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
-  final _coverUrlCtrl = TextEditingController();
   XFile? _coverImageFile;
   String? _selectedCategoryId;
   bool _isLoading = false;
@@ -650,12 +641,15 @@ class _CreateCommunityDialogState
   void dispose() {
     _nameCtrl.dispose();
     _descCtrl.dispose();
-    _coverUrlCtrl.dispose();
     super.dispose();
   }
 
-  String get _colorHex =>
-      _color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
+  String get _colorHex => _color
+      .toARGB32()
+      .toRadixString(16)
+      .padLeft(8, '0')
+      .substring(2)
+      .toUpperCase();
 
   @override
   Widget build(BuildContext context) {
@@ -684,57 +678,37 @@ class _CreateCommunityDialogState
                     color: text)),
             const SizedBox(height: 20),
 
-            // Cover image picker / URL
-            Text('Cover Image (optional)',
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                    color: sub)),
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _coverUrlCtrl,
-                  style: TextStyle(fontSize: 14, color: text),
-                  decoration: InputDecoration(
-                    hintText: 'Image URL',
-                    hintStyle: TextStyle(fontSize: 14, color: sub),
-                    filled: true,
-                    fillColor: bg,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: _pickImageFromPhone,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryPurple,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10))),
-                child: const Text('Pick'),
-              ),
-            ]),
-            const SizedBox(height: 10),
-            if (_coverImageFile != null)
-              Container(
+            // Cover image picker (minimal): tap to pick, shows preview
+            GestureDetector(
+              onTap: _pickImageFromPhone,
+              child: Container(
                 height: 120,
                 width: double.infinity,
                 decoration: BoxDecoration(
+                  color: bg,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.lightBorder),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(File(_coverImageFile!.path),
-                      fit: BoxFit.cover),
-                ),
+                child: _coverImageFile == null
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.photo_library_outlined,
+                                color: sub, size: 28),
+                            const SizedBox(height: 8),
+                            Text('Pick cover image (optional)',
+                                style: TextStyle(color: sub)),
+                          ],
+                        ),
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(File(_coverImageFile!.path),
+                            fit: BoxFit.cover),
+                      ),
               ),
+            ),
             const SizedBox(height: 14),
 
             // Live preview — mirrors card exactly
@@ -743,8 +717,8 @@ class _CreateCommunityDialogState
               decoration: BoxDecoration(
                   color: bg,
                   borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: _color.withValues(alpha: 0.25), width: 2)),
+                  border: Border.all(
+                      color: _color.withValues(alpha: 0.25), width: 2)),
               child: Row(children: [
                 const SizedBox(width: 12),
                 Container(
@@ -959,8 +933,7 @@ class _CreateCommunityDialogState
     setState(() => _isLoading = true);
     try {
       // Upload cover image if selected and get URL
-      String? coverImageUrl =
-          _coverUrlCtrl.text.trim().isEmpty ? null : _coverUrlCtrl.text.trim();
+      String? coverImageUrl;
 
       if (_coverImageFile != null) {
         try {
@@ -1100,7 +1073,10 @@ class _CreateCommunityDialogState
                   border:
                       sel ? Border.all(color: Colors.white, width: 3) : null,
                   boxShadow: sel
-                      ? [BoxShadow(color: c.withValues(alpha: 0.4), blurRadius: 8)]
+                      ? [
+                          BoxShadow(
+                              color: c.withValues(alpha: 0.4), blurRadius: 8)
+                        ]
                       : [],
                 ),
                 child: sel
@@ -1184,7 +1160,8 @@ class _CreateCommunityDialogState
                 height: 46,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: sel ? _color.withValues(alpha: 0.15) : Colors.transparent,
+                  color:
+                      sel ? _color.withValues(alpha: 0.15) : Colors.transparent,
                   border: sel ? Border.all(color: _color, width: 1.5) : null,
                 ),
                 child: Center(
@@ -1205,8 +1182,6 @@ class _CreateCommunityDialogState
       if (xfile == null) return;
       setState(() {
         _coverImageFile = xfile;
-        // clear URL when a local image is chosen
-        _coverUrlCtrl.text = '';
       });
     } catch (e) {
       // ignore errors silently; user can retry
@@ -1306,7 +1281,8 @@ class _Field extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(
-                color: AppColors.primaryPurple.withValues(alpha: 0.35), width: 1)),
+                color: AppColors.primaryPurple.withValues(alpha: 0.35),
+                width: 1)),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),

@@ -161,9 +161,9 @@ class _CommunityPostsFeedScreenState
                   const SizedBox(height: 6),
                   Text(
                     '${_fmtCount(community.memberCount)} members',
-                    style:
-                        AppTypography.bodySmall(Colors.white.withValues(alpha: 0.75))
-                            .copyWith(fontSize: 13),
+                    style: AppTypography.bodySmall(
+                            Colors.white.withValues(alpha: 0.75))
+                        .copyWith(fontSize: 13),
                   ),
                 ],
               ),
@@ -294,7 +294,8 @@ class _CommunityPostsFeedScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.article_outlined, size: 40, color: muted.withValues(alpha: 0.4)),
+          Icon(Icons.article_outlined,
+              size: 40, color: muted.withValues(alpha: 0.4)),
           const SizedBox(height: 12),
           Text(
             'No posts yet',
@@ -790,7 +791,7 @@ class _AuthorInfoTile extends StatelessWidget {
 
 // ── _AboutTab ─────────────────────────────────────────────────────────────
 
-class _AboutTab extends StatelessWidget {
+class _AboutTab extends ConsumerWidget {
   final dynamic community;
   final bool isDark;
 
@@ -800,10 +801,13 @@ class _AboutTab extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final text = isDark ? AppColors.darkText : AppColors.lightText;
     final sub =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    final creatorId = community.createdBy as String? ?? '';
+    final creatorAsync = ref.watch(userProfileByIdProvider(creatorId));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -852,14 +856,85 @@ class _AboutTab extends StatelessWidget {
                 color: AppColors.primaryPurple.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(
-                community.creatorName?.trim().isNotEmpty == true
-                    ? community.creatorName!.trim()
-                    : 'Creator',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.primaryPurple,
-                  fontWeight: FontWeight.w500,
+              child: creatorAsync.when(
+                data: (response) {
+                  final profile = response.data;
+                  final displayName =
+                      profile?.username?.trim().isNotEmpty == true
+                          ? profile!.username
+                          : (community.creatorName ?? 'Creator');
+                  final avatarUrl =
+                      profile?.avatarUrl ?? community.creatorAvatar;
+                  final validAvatar = _validCreatorImageUrl(avatarUrl);
+                  return Row(
+                    children: [
+                      ClipOval(
+                        child: SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: validAvatar == null
+                              ? _CreatorInitial(displayName)
+                              : Image.network(
+                                  validAvatar,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      _CreatorInitial(displayName),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primaryPurple,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 1),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Loading',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primaryPurple,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                error: (_, __) => Row(
+                  children: [
+                    ClipOval(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child:
+                            _CreatorInitial(community.creatorName ?? 'Creator'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      community.creatorName?.trim().isNotEmpty == true
+                          ? community.creatorName!.trim()
+                          : 'Creator',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primaryPurple,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1282,6 +1357,37 @@ class _ImageActionButton extends StatelessWidget {
   }
 }
 
+class _CreatorInitial extends StatelessWidget {
+  final String name;
+
+  const _CreatorInitial(this.name);
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    return Container(
+      color: AppColors.primaryPurple.withValues(alpha: 0.12),
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: AppColors.primaryPurple,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+String? _validCreatorImageUrl(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || !uri.hasScheme || uri.host.isEmpty) return null;
+  return trimmed;
+}
+
 // ── _CommentsDialog ───────────────────────────────────────────────────────────
 
 class _CommentsDialog extends ConsumerStatefulWidget {
@@ -1478,7 +1584,8 @@ class _CommentsDialogState extends ConsumerState<_CommentsDialog> {
                   padding: const EdgeInsets.all(8),
                   constraints: const BoxConstraints(),
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primaryPurple.withValues(alpha: 0.08),
+                    backgroundColor:
+                        AppColors.primaryPurple.withValues(alpha: 0.08),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4)),
                   ),

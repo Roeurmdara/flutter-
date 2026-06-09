@@ -32,15 +32,16 @@ class JobCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AppCard(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        // Tightened vertical padding keeps the overall card height short
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Left icon/emoji
             if (leadingEmoji != null) ...[
               Container(
-                width: 44,
-                height: 44,
+                width: 30, // Compacted diameter
+                height: 30,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isDark
@@ -48,19 +49,20 @@ class JobCard extends StatelessWidget {
                       : AppColors.primaryPurple.withValues(alpha: 0.08),
                   border: Border.all(
                     color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    width: 0.8,
                   ),
                 ),
                 child: Center(
                   child: Text(
                     leadingEmoji!,
-                    style: const TextStyle(fontSize: 20),
+                    style: const TextStyle(fontSize: 14),
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 8),
             ],
 
-            // Content
+            // Content Area
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,40 +73,27 @@ class JobCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.poppins(
-                      fontSize: 14.5,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: isDark ? AppColors.darkText : AppColors.lightText,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                  ),
                   if (tags.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 3), // Reduced gap to pull tags closer
                     Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
+                      spacing: 4,
+                      runSpacing: 2,
                       children: tags.map((tag) {
                         return Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
+                            horizontal: 5,
+                            vertical: 2, // Tiny padding to save vertical space
                           ),
                           decoration: BoxDecoration(
                             color: isDark
                                 ? Colors.white.withValues(alpha: 0.05)
                                 : AppColors.primaryPurple.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(3),
                             border: Border.all(
                               color: isDark
                                   ? AppColors.darkBorder
@@ -115,7 +104,7 @@ class JobCard extends StatelessWidget {
                           child: Text(
                             tag,
                             style: GoogleFonts.inter(
-                              fontSize: 10,
+                              fontSize: 8.5,
                               fontWeight: FontWeight.w600,
                               color: isDark
                                   ? AppColors.darkTextSecondary
@@ -130,25 +119,26 @@ class JobCard extends StatelessWidget {
               ),
             ),
 
+            // Trailing / Status section
             if (trailing != null || statusLabel != null) ...[
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               if (trailing != null)
                 trailing!
               else if (statusLabel != null)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+                    horizontal: 8,
+                    vertical: 2.5, // Shorter badge padding
                   ),
                   decoration: BoxDecoration(
                     color: (statusColor ?? AppColors.primaryPurple)
                         .withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(100),
                   ),
                   child: Text(
                     statusLabel!,
                     style: GoogleFonts.inter(
-                      fontSize: 11,
+                      fontSize: 9.5,
                       fontWeight: FontWeight.w700,
                       color: statusColor ?? AppColors.primaryPurple,
                     ),

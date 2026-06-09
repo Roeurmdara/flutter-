@@ -125,24 +125,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
 
           // ── Dark gradient scrim (bottom half) ──
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: const [0.25, 0.55, 0.85],
-                  colors: [
-                    Colors.transparent,
-                    const Color(0xFF0E0B1A).withValues(alpha: 0.5),
-                    const Color(0xFF0E0B1A).withValues(alpha: 0.92),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // ── Top bar: logo + skip ──
           SafeArea(
             child: Padding(
               padding:

@@ -5,6 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/habit_model.dart';
 import '../../../data/providers/activity_provider.dart';
 import '../../../data/providers/community_provider.dart';
+import '../../widgets/create_habit_modal.dart';
+import '../../../data/providers/habit_provider.dart';
 
 class HabitDetailScreen extends ConsumerStatefulWidget {
   final Habit habit;
@@ -245,111 +247,37 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Habit Info Section
-            _buildHabitInfoSection(isDark),
-
-            // Activities Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Activities',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color:
-                              isDark ? AppColors.darkText : AppColors.lightText,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() =>
-                              _showAddActivityForm = !_showAddActivityForm);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6366F1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                _showAddActivityForm ? Icons.close : Icons.add,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _showAddActivityForm
-                                    ? 'Cancel'
-                                    : 'Add Activity',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Add Activity Form
-                  if (_showAddActivityForm) ...[
-                    _buildAddActivityForm(isDark),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // Activities List
-                  if (activityState.isLoading)
-                    _buildLoadingState(isDark)
-                  else if (activityState.error != null)
-                    _buildErrorState(activityState.error!, isDark)
-                  else if (activityState.activities.isEmpty)
-                    _buildEmptyActivitiesState(isDark)
-                  else
-                    _buildActivitiesList(activityState, isDark),
-                ],
-              ),
-            ),
-
-            // Community Posts Section (for quick commenting)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Community Posts',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.darkText : AppColors.lightText,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildCommunityPostsSection(isDark, ref),
-                ],
-              ),
-            ),
-          ],
-        ),
+      // Render the create/edit habit form inline so user can update and add activities
+      body: CreateHabitModal(
+        editingHabit: widget.habit,
+        onSubmit: (data) async {
+          try {
+            await ref.read(habitsProvider.notifier).updateHabit(
+                  widget.habit.id,
+                  title: data['title'] as String?,
+                  description: data['description'] as String?,
+                  frequencyType: data['frequencyType'] as String?,
+                  frequencyConfig: (data['frequencyConfig'] as List<dynamic>?)
+                      ?.map((e) => e.toString())
+                      .toList(),
+                  categoryId: data['categoryId'] as String?,
+                  startDate: data['startDate'] as DateTime?,
+                  endDate: data['endDate'] as DateTime?,
+                  emoji: data['emoji'] as String?,
+                  colorHex: data['color'] as String?,
+                );
+          } catch (e) {
+            // ignore - CreateHabitModal shows feedback
+          }
+        },
+        onDelete: () async {
+          try {
+            await ref
+                .read(habitsProvider.notifier)
+                .deleteHabit(widget.habit.id);
+            if (mounted) Navigator.pop(context);
+          } catch (_) {}
+        },
       ),
     );
   }

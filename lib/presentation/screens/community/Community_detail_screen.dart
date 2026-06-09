@@ -222,9 +222,9 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
             const SizedBox(height: 6),
             Text(
               '${_fmtCount(widget.community.memberCount)} members',
-              style: AppTypography.bodySmall(
-                      Colors.white.withValues(alpha: 0.75))
-                  .copyWith(fontSize: 13),
+              style:
+                  AppTypography.bodySmall(Colors.white.withValues(alpha: 0.75))
+                      .copyWith(fontSize: 13),
             ),
           ]),
         ),
@@ -377,26 +377,83 @@ class _AboutTab extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: creatorAsync.when(
-                data: (response) => Text(
-                  _creatorDisplayName(response.data, community),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.primaryPurple,
-                    fontWeight: FontWeight.w500,
-                  ),
+                data: (response) {
+                  final profile = response.data;
+                  final displayName =
+                      profile?.username?.trim().isNotEmpty == true
+                          ? profile!.username
+                          : (community.creatorName ?? 'Creator');
+                  final avatarUrl =
+                      profile?.avatarUrl ?? community.creatorAvatar;
+                  final validAvatar = _validCreatorImageUrl(avatarUrl);
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ClipOval(
+                        child: SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: validAvatar == null
+                              ? _CreatorInitial(displayName)
+                              : Image.network(
+                                  validAvatar,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      _CreatorInitial(displayName),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        displayName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primaryPurple,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 1),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Loading',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primaryPurple,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-                loading: () => const SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 1),
-                ),
-                error: (_, __) => Text(
-                  _creatorFallbackName(community),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.primaryPurple,
-                    fontWeight: FontWeight.w500,
-                  ),
+                error: (_, __) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipOval(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: _CreatorInitial(_creatorFallbackName(community)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _creatorFallbackName(community),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primaryPurple,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -476,8 +533,9 @@ class _AboutTab extends ConsumerWidget {
                       );
                     }
                     return _CreatorAccountPreview(
-                      username:
-                          profile?.username ?? community.creatorName ?? 'Creator',
+                      username: profile?.username ??
+                          community.creatorName ??
+                          'Creator',
                       avatarUrl: profile?.avatarUrl ?? community.creatorAvatar,
                       bio: profile?.bio,
                       isDark: isDark,
