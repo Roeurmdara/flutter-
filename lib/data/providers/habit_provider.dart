@@ -177,7 +177,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     }
 
     int currentStreak = 0;
-    int tempStreak = 0;
     bool isCurrentStreakBroken = false;
 
     // Start counting from today
@@ -216,7 +215,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       });
 
       if (allCompleted) {
-        tempStreak++;
         if (!isCurrentStreakBroken) {
           currentStreak++;
         }
@@ -226,7 +224,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
         if (dateStr != todayStr) {
           isCurrentStreakBroken = true;
         }
-        tempStreak = 0;
       }
 
       checkDate = checkDate.subtract(const Duration(days: 1));

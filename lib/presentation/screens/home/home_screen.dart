@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,6 +15,7 @@ import '../settings/settings_screen.dart';
 import '../profile/edit_profile_form.dart';
 import '../../../data/providers/profile_provider.dart';
 import '../categories/categories_screen.dart';
+import '../../../data/providers/sync_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final Function(bool isDark) onThemeToggle;
@@ -106,6 +107,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Enable real-time API sync connection
+    ref.watch(syncConnectionManagerProvider);
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(

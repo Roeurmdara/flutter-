@@ -162,9 +162,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     return Scaffold(
       backgroundColor: AppColors.lightSurface,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -277,8 +279,8 @@ class _Header extends StatelessWidget {
             ),
             child: Image.asset(
               'assets/images/meeeee.png',
-              width: 160,
-              height: 160,
+              width: 130,
+              height: 130,
             ),
           ),
           const SizedBox(height: 16),
