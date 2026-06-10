@@ -18,15 +18,20 @@ class _ForgetPasswordScreenState
   final TextEditingController _email = TextEditingController();
 
   bool _sent = false;
-  String? _errorMessage;
 
   Future<void> _resetPassword() async {
     final email = _email.text.trim();
 
+    // Clear any previous errors
+    ref.read(authProvider.notifier).clearError();
+
     if (email.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter your email';
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email'),
+          backgroundColor: AppColors.error,
+        ),
+      );
       return;
     }
 
@@ -34,23 +39,24 @@ class _ForgetPasswordScreenState
         RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
     if (!emailRegex.hasMatch(email)) {
-      setState(() {
-        _errorMessage = 'Invalid email format';
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid email format'),
+          backgroundColor: AppColors.error,
+        ),
+      );
       return;
     }
-
-    setState(() {
-      _errorMessage = null;
-    });
 
     final authNotifier =
         ref.read(authProvider.notifier);
 
     // IMPORTANT:
-    // Replace with backend allowed redirect URI
-    const redirectUri =
-        'http://localhost:8080';
+    // Based on your manual test, the server accepts 'null' for redirect_uri.
+    // Using null will ensure the request succeeds and the email is sent.
+    // To eventually "direct back to the app", 'habitflow://callback' must be 
+    // whitelisted in your Keycloak/Backend settings.
+    const String? redirectUri = null;
 
     final success =
         await authNotifier.requestPasswordReset(
@@ -58,27 +64,36 @@ class _ForgetPasswordScreenState
       redirectUri: redirectUri,
     );
 
-    if (success && mounted) {
-      setState(() {
-        _sent = true;
-      });
+if (success && mounted) {
+  setState(() {
+    _sent = true;
+  });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Reset link sent successfully!',
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text(
+        'Reset link sent successfully! Check your email.',
+      ),
+      backgroundColor: AppColors.success,
+    ),
+  );
+
+  // Auto-navigate back to login screen after 2 seconds
+  Future.delayed(const Duration(seconds: 2), () {
+    if (mounted) {
+      Navigator.pop(context);
+    }
+  });
+} else {
+      if (mounted) {
+        final error = ref.read(authProvider).error ?? 'Failed to send reset link';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            backgroundColor: AppColors.error,
           ),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    } else {
-      final authState = ref.read(authProvider);
-
-      setState(() {
-        _errorMessage =
-            authState.error ??
-                'Failed to send reset link';
-      });
+        );
+      }
     }
   }
 
@@ -166,7 +181,7 @@ class _ForgetPasswordScreenState
             const SizedBox(height: 32),
 
             // Error Message
-            if (_errorMessage != null)
+            if (authState.error != null && !_sent)
               Container(
                 padding: const EdgeInsets.all(14),
                 margin: const EdgeInsets.only(bottom: 16),
@@ -184,16 +199,21 @@ class _ForgetPasswordScreenState
                       color: AppColors.error,
                       size: 20,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _errorMessage!,
+                        authState.error!,
                         style: GoogleFonts.inter(
                           color: AppColors.error,
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
+                    ),
+                    GestureDetector(
+                      onTap: () => ref.read(authProvider.notifier).clearError(),
+                      child: Icon(Icons.close_rounded,
+                          color: AppColors.error.withValues(alpha: 0.6), size: 18),
                     ),
                   ],
                 ),
@@ -203,6 +223,7 @@ class _ForgetPasswordScreenState
             TextField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
+              enabled: !_sent && !authState.isLoading,
               style: GoogleFonts.inter(
                 fontSize: 15,
                 color: AppColors.lightText,
@@ -264,7 +285,7 @@ class _ForgetPasswordScreenState
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: authState.isLoading ? null : _resetPassword,
+                    onTap: authState.isLoading || _sent ? null : _resetPassword,
                     borderRadius: BorderRadius.circular(16),
                     splashColor: Colors.white12,
                     child: Center(
@@ -277,14 +298,23 @@ class _ForgetPasswordScreenState
                                 strokeWidth: 2.5,
                               ),
                             )
-                          : Text(
-                              'Send Reset Link',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
+                          : _sent
+                              ? Text(
+                                  'Email Sent!',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  'Send Reset Link',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
                     ),
                   ),
                 ),
@@ -295,34 +325,61 @@ class _ForgetPasswordScreenState
 
             // Success Box
             if (_sent)
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.successSoft,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: AppColors.success.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.check_circle_rounded,
-                      color: AppColors.success,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Reset link sent! Check your email.',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.lightText,
-                        ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.successSoft,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.success.withValues(alpha: 0.3),
                       ),
                     ),
-                  ],
-                ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: AppColors.success,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Reset link sent! Check your email.',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.lightText,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                   child: TextButton(
+                     onPressed: () {
+                       setState(() {
+                         _sent = false;
+                         _email.clear();
+                       });
+                       ref.read(authProvider.notifier).clearError();
+                     },
+                     style: TextButton.styleFrom(
+                       foregroundColor: AppColors.primaryPurple,
+                       textStyle: GoogleFonts.inter(
+                         fontSize: 14,
+                         fontWeight: FontWeight.w600,
+                       ),
+                     ),
+                     child: const Text(
+                       'Send to another email',
+                     ),
+                   ),
+                  ),
+                ],
               ),
           ],
         ),

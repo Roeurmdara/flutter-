@@ -108,7 +108,7 @@ class AuthService {
   /// Request password reset
   Future<AuthResponse> requestPasswordReset({
     required String email,
-    required String redirectUri,
+    String? redirectUri,
   }) async {
     try {
       final request = PasswordResetRequest(

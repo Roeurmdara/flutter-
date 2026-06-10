@@ -1,4 +1,4 @@
-﻿// Registration Request Model
+// Registration Request Model
 class RegisterRequest {
   final String email;
   final String username;
@@ -36,16 +36,16 @@ class LoginRequest {
 // Password Reset Request Model
 class PasswordResetRequest {
   final String email;
-  final String redirectUri;
+  final String? redirectUri;
 
   PasswordResetRequest({
     required this.email,
-    required this.redirectUri,
+    this.redirectUri,
   });
 
   Map<String, dynamic> toJson() => {
         'email': email,
-        'redirect_uri': 'http://habit-api.rattanakmony.com/*',
+        'redirect_uri': redirectUri,
       };
 }
 

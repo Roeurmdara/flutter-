@@ -267,7 +267,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Request password reset
   Future<bool> requestPasswordReset({
     required String email,
-    required String redirectUri,
+    String? redirectUri,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
