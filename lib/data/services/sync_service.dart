@@ -64,11 +64,11 @@ class SyncService {
     try {
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
       _isConnected = true;
-      _reconnectAttempts = 0;
       
       // Catch connection/handshake upgrade failures gracefully to eliminate unhandled exceptions in logs
       _channel!.ready.then((_) {
         debugPrint('🔌 SyncService: WebSocket connection handshake completed.');
+        _reconnectAttempts = 0; // Reset only after a successful connection handshake
       }).catchError((error) {
         debugPrint('❌ SyncService: Handshake failed (server might not be running Reverb/WebSockets): $error');
       });
