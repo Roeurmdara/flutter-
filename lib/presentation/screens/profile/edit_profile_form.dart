@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -96,6 +96,7 @@ class EditProfileForm extends ConsumerStatefulWidget {
 
 class _EditProfileFormState extends ConsumerState<EditProfileForm> {
   late TextEditingController _usernameController;
+  late TextEditingController _emailController;
   late TextEditingController _bioController;
   late TextEditingController _avatarUrlController;
 
@@ -107,10 +108,12 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
   void initState() {
     super.initState();
     final username = widget.profile.username as String? ?? '';
+    final email = widget.profile.email as String? ?? '';
     final bio = widget.profile.bio as String? ?? '';
     final avatarUrl = widget.profile.avatarUrl as String? ?? '';
 
     _usernameController = TextEditingController(text: username);
+    _emailController = TextEditingController(text: email);
     _bioController = TextEditingController(text: bio);
     _avatarUrlController = TextEditingController(text: avatarUrl);
     _previewAvatarUrl = avatarUrl.isNotEmpty ? avatarUrl : null;
@@ -119,6 +122,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
   @override
   void dispose() {
     _usernameController.dispose();
+    _emailController.dispose();
     _bioController.dispose();
     _avatarUrlController.dispose();
     super.dispose();
@@ -389,6 +393,16 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
         ),
         const SizedBox(height: 20),
 
+        _FieldLabel(label: 'Email', context: context),
+        const SizedBox(height: 8),
+        _MinimalTextField(
+          controller: _emailController,
+          hint: 'your email address',
+          context: context,
+          readOnly: true,
+        ),
+        const SizedBox(height: 20),
+
         _FieldLabel(label: 'Bio', context: context),
         const SizedBox(height: 8),
         _MinimalTextField(
@@ -538,26 +552,34 @@ class _MinimalTextField extends StatelessWidget {
   final String hint;
   final int maxLines;
   final BuildContext context;
+  final bool readOnly;
 
   const _MinimalTextField({
     required this.controller,
     required this.hint,
     required this.context,
     this.maxLines = 1,
+    this.readOnly = false,
   });
 
   @override
   Widget build(BuildContext _) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextField(
       controller: controller,
       maxLines: maxLines,
-      style: _T.body(context),
+      readOnly: readOnly,
+      style: _T.body(context).copyWith(
+        color: readOnly ? _T.bodyText(context).withValues(alpha: 0.5) : null,
+      ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle:
             TextStyle(color: _T.hintText(context), fontFamily: _T.fontFamily),
         filled: true,
-        fillColor: _T.field(context),
+        fillColor: readOnly
+            ? (isDark ? const Color(0xFF242426) : const Color(0xFFEBEBEF))
+            : _T.field(context),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         border: OutlineInputBorder(
@@ -565,7 +587,10 @@ class _MinimalTextField extends StatelessWidget {
             borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_T.radius),
-          borderSide: const BorderSide(color: _T.accent, width: 1.0),
+          borderSide: BorderSide(
+            color: readOnly ? Colors.transparent : _T.accent,
+            width: 1.0,
+          ),
         ),
       ),
     );

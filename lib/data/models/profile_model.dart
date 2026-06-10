@@ -1,4 +1,4 @@
-﻿// User Profile Update Request Model
+// User Profile Update Request Model
 class UserProfileUpdateRequest {
   final String username;
   final String? avatarUrl;
@@ -22,11 +22,13 @@ class UserProfileUpdateRequest {
 // User Profile Response Model
 class UserProfile {
   final String username;
+  final String? email;
   final String? avatarUrl;
   final String? bio;
 
   UserProfile({
     required this.username,
+    this.email,
     this.avatarUrl,
     this.bio,
   });
@@ -42,6 +44,7 @@ class UserProfile {
           _stringValue(user?['display_name']) ??
           _stringValue(json['email']) ??
           '',
+      email: _stringValue(json['email']) ?? _stringValue(user?['email']),
       avatarUrl: _stringValue(json['avatar_url']) ??
           _stringValue(json['avatar']) ??
           _stringValue(user?['avatar_url']) ??
@@ -53,6 +56,7 @@ class UserProfile {
   Map<String, dynamic> toJson() {
     return {
       'username': username,
+      'email': email,
       'avatar_url': avatarUrl,
       'bio': bio,
     };
@@ -60,11 +64,13 @@ class UserProfile {
 
   UserProfile copyWith({
     String? username,
+    String? email,
     String? avatarUrl,
     String? bio,
   }) {
     return UserProfile(
       username: username ?? this.username,
+      email: email ?? this.email,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       bio: bio ?? this.bio,
     );
