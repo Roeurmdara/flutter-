@@ -66,6 +66,14 @@ class SyncService {
       _isConnected = true;
       _reconnectAttempts = 0;
       
+      // Catch connection/handshake upgrade failures gracefully to eliminate unhandled exceptions in logs
+      _channel!.ready.then((_) {
+        debugPrint('🔌 SyncService: WebSocket connection handshake completed.');
+      }).catchError((error) {
+        debugPrint('❌ SyncService: Handshake failed (server might not be running Reverb/WebSockets): $error');
+        _handleDisconnect(userId);
+      });
+      
       _subscription = _channel!.stream.listen(
         (message) => _handleIncomingMessage(message, userId),
         onError: (error) {
