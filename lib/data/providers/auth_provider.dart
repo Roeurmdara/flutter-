@@ -319,8 +319,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Login with Google OAuth
-  Future<bool> loginWithGoogle(BuildContext context) async {
+  /// Login with Google OAuth (Option A - Dynamic Custom Tabs)
+  Future<bool> loginWithGoogle([BuildContext? context]) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -361,8 +361,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Login with GitHub OAuth
-  Future<bool> loginWithGithub(BuildContext context) async {
+  /// Login with GitHub OAuth (Option A - Dynamic Custom Tabs)
+  Future<bool> loginWithGithub([BuildContext? context]) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {

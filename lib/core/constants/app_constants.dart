@@ -1,4 +1,4 @@
-﻿/// App Constants
+/// App Constants
 class AppConstants {
   AppConstants._();
 

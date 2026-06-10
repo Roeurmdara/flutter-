@@ -1,9 +1,8 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import '../models/auth_models.dart';
 import 'secure_storage_service.dart';
-import '../../presentation/widgets/oauth_webview.dart';
 
 class AuthService {
   static const String _baseUrl =
@@ -33,7 +32,7 @@ class AuthService {
       );
 
       final response = await _dio.post(
-        '$_baseUrl/register',
+        '$_baseUrl/register', 
         data: request.toJson(),
         options: Options(
           contentType: Headers.jsonContentType,
@@ -151,48 +150,95 @@ class AuthService {
   }
 
   /// Social login with Google or GitHub
-  /// Opens an embedded webview for OAuth authentication and handles callback
-  Future<AuthResponse> socialLogin(String provider, BuildContext context) async {
+  /// Opens a secure system browser (Custom Tab) dynamically for OAuth authentication and handles callback redirect.
+  Future<AuthResponse> socialLogin(String provider) async {
     try {
-      // 1. Open WebView for OAuth authentication
-      final authUrl = '$_apiBaseUrl/auth/social/$provider';
+      debugPrint("AuthService: Requesting dynamic OAuth redirect URL from backend for $provider...");
+      
+      // 1. Fetch Keycloak redirect URL dynamically from Laravel API
+      final urlResponse = await _dio.get('$_apiBaseUrl/auth/social/$provider/url');
+      if (urlResponse.statusCode != 200 || urlResponse.data == null) {
+        return AuthResponse(
+          success: false,
+          message: 'Failed to retrieve social auth URL from backend',
+          status: urlResponse.statusCode ?? 500,
+          error: 'URL retrieval status code: ${urlResponse.statusCode}',
+          errorCode: 'URL_RETRIEVAL_FAILED',
+        );
+      }
 
-      final jsonResult = await Navigator.of(context).push<String>(
-        MaterialPageRoute(
-          builder: (context) => OAuthWebView(
-            url: authUrl,
-            callbackUrl: '$_apiBaseUrl/auth/social/$provider/callback',
-            providerName: provider == 'google' ? 'Google' : 'GitHub',
-          ),
-          fullscreenDialog: true,
+      final urlData = urlResponse.data as Map<String, dynamic>;
+      final dynamicAuthUrl = urlData['data']?['redirect_url']?.toString();
+
+      if (dynamicAuthUrl == null || dynamicAuthUrl.isEmpty) {
+        return AuthResponse(
+          success: false,
+          message: 'Dynamic auth redirect URL was empty',
+          status: 500,
+          error: 'Missing redirect_url in API response',
+          errorCode: 'EMPTY_AUTH_URL',
+        );
+      }
+
+      debugPrint("AuthService: Retrieved dynamic auth URL: $dynamicAuthUrl");
+      debugPrint("AuthService: Launching FlutterWebAuth2...");
+
+      // 2. Open browser tab using flutter_web_auth_2
+      final result = await FlutterWebAuth2.authenticate(
+        url: dynamicAuthUrl,
+        callbackUrlScheme: 'com.habit.app',
+      );
+
+      debugPrint("AuthService: Received callback redirect URL: $result");
+
+      // 3. Extract authorization code and state from URL
+      final uri = Uri.parse(result);
+      final code = uri.queryParameters['code'];
+      final state = uri.queryParameters['state'];
+
+      if (code == null || state == null) {
+        return AuthResponse(
+          success: false,
+          message: 'Failed to complete authentication: Callback redirect missing code or state.',
+          status: 400,
+          error: 'Callback URL query parameters: code=$code, state=$state',
+          errorCode: 'INVALID_CALLBACK',
+        );
+      }
+
+      debugPrint("AuthService: Exchanging code and state with backend callback...");
+
+      // 4. Exchange code and state for app JWT and user data
+      final callbackResponse = await _dio.get(
+        '$_apiBaseUrl/auth/social/$provider/callback',
+        queryParameters: {
+          'code': code,
+          'state': state,
+        },
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+          },
         ),
       );
 
-      if (jsonResult == null || jsonResult.isEmpty) {
+      if (callbackResponse.statusCode != 200 || callbackResponse.data == null) {
         return AuthResponse(
           success: false,
-          message: 'Sign in cancelled',
-          status: 400,
-          error: 'User cancelled oauth login',
-          errorCode: 'CANCELLED',
+          message: 'Backend failed to exchange social authorization code',
+          status: callbackResponse.statusCode ?? 500,
+          error: 'Exchange failed with status: ${callbackResponse.statusCode}',
+          errorCode: 'EXCHANGE_FAILED',
         );
       }
 
-      // 2. Parse JSON response
-      final decoded = jsonDecode(jsonResult);
-      if (decoded is! Map<String, dynamic>) {
-        return AuthResponse(
-          success: false,
-          message: 'Invalid response format from server',
-          status: 200,
-          error: 'Expected JSON map response',
-          errorCode: 'INVALID_RESPONSE',
-        );
-      }
+      final authResponse = AuthResponse.fromJson(
+        callbackResponse.data as Map<String, dynamic>,
+      );
 
-      final authResponse = AuthResponse.fromJson(decoded);
+      debugPrint("AuthService: Exchange successful. Success state: ${authResponse.success}");
 
-      // 3. Save tokens securely if successful (check both data.token and data.user.token)
+      // 5. Save tokens securely if successful (check both data.token and data.user.token)
       final token = authResponse.data?.token ?? authResponse.data?.user?.token;
       if (authResponse.success && token != null && token.isNotEmpty) {
         await _secureStorage.saveAccessToken(token);
@@ -213,25 +259,39 @@ class AuthService {
 
       return authResponse;
     } catch (e) {
+      debugPrint("AuthService: Exception during social login: $e");
+      
+      String errorCode = 'UNKNOWN_ERROR';
+      String message = 'An unexpected error occurred: $e';
+
+      if (e.toString().contains('UserCancelledException')) {
+        errorCode = 'CANCELLED';
+        message = 'Sign in cancelled';
+      } else if (e.toString().contains('PlatformException')) {
+        errorCode = 'PLATFORM_ERROR';
+        message = 'Authentication failed. Please check your browser connection.';
+      }
+
       return AuthResponse(
         success: false,
-        message: 'An unexpected error occurred: $e',
+        message: message,
         status: 500,
         error: e.toString(),
-        errorCode: 'UNKNOWN_ERROR',
+        errorCode: errorCode,
       );
     }
   }
 
   /// Login with Google
-  Future<AuthResponse> loginWithGoogle(BuildContext context) async {
-    return socialLogin('google', context);
+  Future<AuthResponse> loginWithGoogle([BuildContext? context]) async {
+    return socialLogin('google');
   }
 
   /// Login with GitHub
-  Future<AuthResponse> loginWithGithub(BuildContext context) async {
-    return socialLogin('github', context);
+  Future<AuthResponse> loginWithGithub([BuildContext? context]) async {
+    return socialLogin('github');
   }
+
 
   /// Logout and clear auth data
   Future<void> logout() async {
