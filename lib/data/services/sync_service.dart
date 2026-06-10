@@ -78,7 +78,8 @@ class SyncService {
       _subscription = _channel!.stream.listen(
         (message) => _handleIncomingMessage(message, userId),
         onError: (error) {
-          debugPrint('❌ SyncService WebSocket error: $error');
+          // Handshake errors are already caught and logged by ready.catchError.
+          // Just trigger disconnect state and reconnection here.
           _handleDisconnect(userId);
         },
         onDone: () {
