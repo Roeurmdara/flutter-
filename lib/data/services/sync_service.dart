@@ -71,7 +71,6 @@ class SyncService {
         debugPrint('🔌 SyncService: WebSocket connection handshake completed.');
       }).catchError((error) {
         debugPrint('❌ SyncService: Handshake failed (server might not be running Reverb/WebSockets): $error');
-        _handleDisconnect(userId);
       });
       
       _subscription = _channel!.stream.listen(
