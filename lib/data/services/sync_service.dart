@@ -20,7 +20,9 @@ class SyncService {
   // Callback when a sync notification is received
   final List<VoidCallback> _listeners = [];
   
-  SyncService(this._dioClient);
+  SyncService(this._dioClient) {
+    debugPrint('🔌 SyncService: Constructor called (HashCode: $hashCode)');
+  }
   
   void addListener(VoidCallback listener) {
     _listeners.add(listener);
@@ -59,7 +61,7 @@ class SyncService {
     
     _shouldReconnect = true;
     final wsUrl = _getWsUrl();
-    debugPrint('🔌 SyncService: Connecting to $wsUrl');
+    debugPrint('🔌 SyncService [$hashCode]: Connecting to $wsUrl');
     
     try {
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
@@ -109,7 +111,7 @@ class SyncService {
       _reconnectAttempts++;
       // Exponential backoff up to 30 seconds
       final delay = Duration(seconds: (_reconnectAttempts * 2).clamp(1, 30));
-      debugPrint('🔌 SyncService: Reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts)...');
+      debugPrint('🔌 SyncService [$hashCode]: Reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts)...');
       _reconnectTimer?.cancel();
       _reconnectTimer = Timer(delay, () => connect(userId));
     }
