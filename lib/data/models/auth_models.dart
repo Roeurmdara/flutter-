@@ -175,4 +175,40 @@ class UserAuthInfo {
       token: json['token'] as String? ?? json['access_token'] as String?,
     );
   }
+
+  UserAuthInfo copyWith({
+    String? id,
+    String? email,
+    String? role,
+    String? status,
+    String? username,
+    String? avatarUrl,
+    String? bio,
+    String? verifiedAt,
+    String? createdAt,
+    String? updatedAt,
+    String? lastActiveAt,
+    bool? isVerified,
+    bool? isDeleted,
+    String? keycloakSubject,
+    String? token,
+  }) {
+    return UserAuthInfo(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      role: role ?? this.role,
+      status: status ?? this.status,
+      username: username ?? this.username,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      bio: bio ?? this.bio,
+      verifiedAt: verifiedAt ?? this.verifiedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      lastActiveAt: lastActiveAt ?? this.lastActiveAt,
+      isVerified: isVerified ?? this.isVerified,
+      isDeleted: isDeleted ?? this.isDeleted,
+      keycloakSubject: keycloakSubject ?? this.keycloakSubject,
+      token: token ?? this.token,
+    );
+  }
 }

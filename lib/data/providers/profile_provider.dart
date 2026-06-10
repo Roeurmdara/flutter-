@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
@@ -44,8 +44,9 @@ class ProfileState {
 
 class ProfileNotifier extends StateNotifier<ProfileState> {
   final UserProfileService _service;
+  final Ref _ref;
 
-  ProfileNotifier(this._service) : super(const ProfileState()) {
+  ProfileNotifier(this._service, this._ref) : super(const ProfileState()) {
     _loadCachedProfile();
   }
 
@@ -123,6 +124,13 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 
     if (response.success && response.data != null) {
       await _cacheProfile(response.data!);
+      
+      // Sync with AuthNotifier
+      _ref.read(authProvider.notifier).updateUserInfo(
+        username: response.data!.username,
+        avatarUrl: response.data!.avatarUrl,
+      );
+
       // ✅ Bump avatarVersion so the UI rebuilds with a fresh image URL.
       //    This forces CachedNetworkImage to treat the URL as new even if
       //    the URL string itself hasn't changed (same host, different content).
@@ -426,7 +434,7 @@ final userProfileServiceProvider = Provider<UserProfileService>((ref) {
 final profileProvider =
     StateNotifierProvider<ProfileNotifier, ProfileState>((ref) {
   final service = ref.watch(userProfileServiceProvider);
-  return ProfileNotifier(service);
+  return ProfileNotifier(service, ref);
 });
 
 // ── Followers provider ────────────────────────────────────────────────────────

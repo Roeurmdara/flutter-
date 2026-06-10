@@ -264,6 +264,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(error: null, errorCode: null);
   }
 
+  /// Update the current user's profile info in the auth state and SharedPreferences
+  Future<void> updateUserInfo({
+    required String username,
+    String? avatarUrl,
+  }) async {
+    if (state.user == null) return;
+
+    final updatedUser = state.user!.copyWith(
+      username: username,
+      avatarUrl: avatarUrl,
+    );
+
+    state = state.copyWith(user: updatedUser);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_user_username', username);
+    if (avatarUrl != null) {
+      await prefs.setString('auth_user_avatar', avatarUrl);
+    }
+  }
+
   /// Request password reset
   Future<bool> requestPasswordReset({
     required String email,
