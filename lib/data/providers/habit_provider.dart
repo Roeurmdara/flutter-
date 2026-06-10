@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -177,11 +177,15 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     }
 
     int currentStreak = 0;
-    // Start counting from today so completing today's habits updates the streak immediately
-    DateTime checkDate = _dateOnly(DateTime.now());
+    int tempStreak = 0;
+    bool isCurrentStreakBroken = false;
 
-    // Work backwards from today to count consecutive days with all habits completed
-    while (true) {
+    // Start counting from today
+    DateTime checkDate = _dateOnly(DateTime.now());
+    final todayStr = _formatDate(checkDate);
+
+    // Work backwards from today to count consecutive days with all habits completed (up to 365 days)
+    for (int i = 0; i < 365; i++) {
       final dateStr = _formatDate(checkDate);
 
       // Get habits that should be completed on this date
@@ -199,8 +203,11 @@ class HabitsNotifier extends StateNotifier<HabitState> {
         }
       }).toList();
 
-      // If no habits for this date, end streak
-      if (habitsForDate.isEmpty) break;
+      // If no habits for this date, skip it (do not break the streak)
+      if (habitsForDate.isEmpty) {
+        checkDate = checkDate.subtract(const Duration(days: 1));
+        continue;
+      }
 
       // Check if all habits are completed for this date
       final allCompleted = habitsForDate.every((habit) {
@@ -209,12 +216,20 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       });
 
       if (allCompleted) {
-        currentStreak++;
-        checkDate = checkDate.subtract(const Duration(days: 1));
+        tempStreak++;
+        if (!isCurrentStreakBroken) {
+          currentStreak++;
+        }
       } else {
-        // Break in the streak, stop counting
-        break;
+        // Break in the streak, stop counting current streak
+        // If it is today, we don't break the current streak yet (user can still complete it today)
+        if (dateStr != todayStr) {
+          isCurrentStreakBroken = true;
+        }
+        tempStreak = 0;
       }
+
+      checkDate = checkDate.subtract(const Duration(days: 1));
     }
 
     if (currentStreak != state.currentUserStreak) {
