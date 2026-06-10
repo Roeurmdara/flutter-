@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import '../models/habit_model.dart';
 import '../models/activity_model.dart';
 
@@ -165,31 +165,20 @@ class HabitService {
   Future<Habit?> markHabitAsDone(String habitId, DateTime date) async {
     try {
       final response = await _dio.post(
-        '$_baseUrl/habits/$habitId/mark-done',
+        '$_baseUrl/habits/$habitId/tracking',
         data: {
-          'date': _formatDate(date),
+          'period_date': _formatDate(date),
+          'status': 'completed',
         },
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data is Map && response.data['data'] != null
-            ? response.data['data'] as Map<String, dynamic>
-            : null;
-        if (data != null) return Habit.fromJson(data);
-        // If the endpoint did not return the habit, fetch it
-        return await getHabit(habitId);
-      }
-
-      // Treat 204 as success but no body
-      if (response.statusCode == 204) {
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
         return await getHabit(habitId);
       }
 
       throw Exception('Failed to mark habit as done');
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode;
-      // If the endpoint is not found, treat as non-fatal: the app will
-      // keep optimistic local state and persist it. Re-throw other errors.
       if (statusCode == 404) {
         return null;
       }
@@ -202,22 +191,15 @@ class HabitService {
   // Unmark habit as done - returns updated Habit when available
   Future<Habit?> unmarkHabitAsDone(String habitId, DateTime date) async {
     try {
-      final response = await _dio.delete(
-        '$_baseUrl/habits/$habitId/mark-done',
+      final response = await _dio.post(
+        '$_baseUrl/habits/$habitId/tracking',
         data: {
-          'date': _formatDate(date),
+          'period_date': _formatDate(date),
+          'status': 'pending',
         },
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data is Map && response.data['data'] != null
-            ? response.data['data'] as Map<String, dynamic>
-            : null;
-        if (data != null) return Habit.fromJson(data);
-        return await getHabit(habitId);
-      }
-
-      if (response.statusCode == 204) {
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
         return await getHabit(habitId);
       }
 
