@@ -379,10 +379,7 @@ class _AboutTab extends ConsumerWidget {
               child: creatorAsync.when(
                 data: (response) {
                   final profile = response.data;
-                  final displayName =
-                      profile?.username?.trim().isNotEmpty == true
-                          ? profile!.username
-                          : (community.creatorName ?? 'Creator');
+                  final displayName = _creatorDisplayName(profile, community);
                   final avatarUrl =
                       profile?.avatarUrl ?? community.creatorAvatar;
                   final validAvatar = _validCreatorImageUrl(avatarUrl);
@@ -415,9 +412,9 @@ class _AboutTab extends ConsumerWidget {
                     ],
                   );
                 },
-                loading: () => Row(
+                loading: () => const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     SizedBox(
                       width: 16,
                       height: 16,

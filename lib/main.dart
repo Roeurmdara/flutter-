@@ -8,6 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/app_shadcn_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'data/providers/session_provider.dart';
+import 'data/providers/auth_provider.dart';
 import 'data/services/secure_storage_service.dart';
 
 import 'presentation/screens/onboarding/onboarding_screen.dart';
@@ -36,17 +37,21 @@ void main() async {
     ),
   );
 
-  runApp(const MyApp());
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends ConsumerState<MyApp> {
   bool _isDarkMode = false;
   bool _hasSeenOnboarding = false;
   bool _isLoggedIn = false;
@@ -98,6 +103,7 @@ class _MyAppState extends State<MyApp> {
 
   // ─── Login success ───────────────────────────────────────────────────────
   Future<void> _login() async {
+    debugPrint("MyApp: _login called, setting _isLoggedIn = true");
     setState(() {
       _isLoggedIn = true;
     });
@@ -110,6 +116,9 @@ class _MyAppState extends State<MyApp> {
     await prefs.remove('auth_token');
     await prefs.remove(AppConstants.keyUserToken);
 
+    // Sync Riverpod state
+    await ref.read(authProvider.notifier).logout();
+
     setState(() {
       _isLoggedIn = false;
     });
@@ -118,35 +127,31 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
-      return ProviderScope(
-        child: ShadApp.custom(
-          themeMode: ThemeMode.light,
-          theme: appShadcnLightTheme,
-          appBuilder: (context) => MaterialApp(
-            debugShowCheckedModeBanner: false,
-            builder: (context, child) => ShadAppBuilder(child: child!),
-            home: const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ),
+      return ShadApp.custom(
+        themeMode: ThemeMode.light,
+        theme: appShadcnLightTheme,
+        appBuilder: (context) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          builder: (context, child) => ShadAppBuilder(child: child!),
+          home: const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           ),
         ),
       );
     }
 
-    return ProviderScope(
-      child: ShadApp.custom(
+    return ShadApp.custom(
+      themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      theme: appShadcnLightTheme,
+      darkTheme: appShadcnDarkTheme,
+      appBuilder: (context) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: AppConstants.appName,
+        theme: AppTheme.lightTheme(),
+        darkTheme: AppTheme.darkTheme(),
         themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-        theme: appShadcnLightTheme,
-        darkTheme: appShadcnDarkTheme,
-        appBuilder: (context) => MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: AppConstants.appName,
-          theme: AppTheme.lightTheme(),
-          darkTheme: AppTheme.darkTheme(),
-          themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-          builder: (context, child) => ShadAppBuilder(child: child!),
-          home: _buildHome(),
-        ),
+        builder: (context, child) => ShadAppBuilder(child: child!),
+        home: _buildHome(),
       ),
     );
   }

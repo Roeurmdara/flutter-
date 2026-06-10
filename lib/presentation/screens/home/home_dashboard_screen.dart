@@ -70,7 +70,17 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
             : Image.asset('assets/images/meeeee.png', height: 50),
         centerTitle: false,
         titleSpacing: 16,
-      
+        actions: _isSearchOpen
+            ? []
+            : [
+                IconButton(
+                  icon: Icon(
+                    Icons.search_rounded,
+                    color: isDark ? AppColors.darkText : AppColors.lightText,
+                  ),
+                  onPressed: _openSearch,
+                ),
+              ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -176,15 +186,6 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
   }
 
   // ── Modals ───────────────────────────────────────────────────────────────────
-
-  void _showCreateHabitModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const CreateHabitModal(),
-    );
-  }
 
   void _showEditHabitModal(Habit habit) {
     showModalBottomSheet(

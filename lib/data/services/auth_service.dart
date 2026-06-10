@@ -1,13 +1,14 @@
-﻿import 'package:dio/dio.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'dart:convert';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import '../models/auth_models.dart';
 import 'secure_storage_service.dart';
+import '../../presentation/widgets/oauth_webview.dart';
 
 class AuthService {
   static const String _baseUrl =
       'https://habit-api.rattanakmony.com/api/v1/auth';
   static const String _apiBaseUrl = 'https://habit-api.rattanakmony.com/api/v1';
-  static const String _redirectScheme = 'myapp';
 
   final Dio _dio;
   final SecureStorageService _secureStorage;
@@ -150,66 +151,53 @@ class AuthService {
   }
 
   /// Social login with Google or GitHub
-  /// Opens browser for OAuth authentication and handles callback
-  Future<AuthResponse> socialLogin(String provider) async {
+  /// Opens an embedded webview for OAuth authentication and handles callback
+  Future<AuthResponse> socialLogin(String provider, BuildContext context) async {
     try {
-      // 1. Open browser for OAuth authentication
+      // 1. Open WebView for OAuth authentication
       final authUrl = '$_apiBaseUrl/auth/social/$provider';
 
-      final result = await FlutterWebAuth2.authenticate(
-        url: authUrl,
-        callbackUrlScheme: _redirectScheme,
-      );
-
-      // 2. Parse callback URL to extract code and state
-      final uri = Uri.parse(result);
-      final code = uri.queryParameters['code'];
-      final state = uri.queryParameters['state'];
-
-      if (code == null || code.isEmpty) {
-        return AuthResponse(
-          success: false,
-          message: 'No authorization code received',
-          status: 400,
-          error: 'Missing authorization code',
-          errorCode: 'NO_AUTH_CODE',
-        );
-      }
-
-      // 3. Exchange code for tokens via backend callback endpoint
-      final response = await _dio.get(
-        '$_apiBaseUrl/auth/social/$provider/callback',
-        queryParameters: {
-          'code': code,
-          if (state != null) 'state': state,
-        },
-        options: Options(
-          followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
+      final jsonResult = await Navigator.of(context).push<String>(
+        MaterialPageRoute(
+          builder: (context) => OAuthWebView(
+            url: authUrl,
+            callbackUrl: '$_apiBaseUrl/auth/social/$provider/callback',
+            providerName: provider == 'google' ? 'Google' : 'GitHub',
+          ),
+          fullscreenDialog: true,
         ),
       );
 
-      if (response.statusCode != 200) {
+      if (jsonResult == null || jsonResult.isEmpty) {
         return AuthResponse(
           success: false,
-          message: 'Authentication failed: ${response.statusMessage}',
-          status: response.statusCode ?? 500,
-          error: 'OAuth callback failed',
-          errorCode: 'OAUTH_FAILED',
+          message: 'Sign in cancelled',
+          status: 400,
+          error: 'User cancelled oauth login',
+          errorCode: 'CANCELLED',
         );
       }
 
-      final authResponse = AuthResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-
-      // 4. Save tokens securely if successful
-      // ✅ Replace with this
-      if (authResponse.success && authResponse.data?.token != null) {
-        await _secureStorage.saveAccessToken(
-          authResponse.data!.token!,
+      // 2. Parse JSON response
+      final decoded = jsonDecode(jsonResult);
+      if (decoded is! Map<String, dynamic>) {
+        return AuthResponse(
+          success: false,
+          message: 'Invalid response format from server',
+          status: 200,
+          error: 'Expected JSON map response',
+          errorCode: 'INVALID_RESPONSE',
         );
-        final refreshToken = authResponse.data!.refreshToken;
+      }
+
+      final authResponse = AuthResponse.fromJson(decoded);
+
+      // 3. Save tokens securely if successful (check both data.token and data.user.token)
+      final token = authResponse.data?.token ?? authResponse.data?.user?.token;
+      if (authResponse.success && token != null && token.isNotEmpty) {
+        await _secureStorage.saveAccessToken(token);
+        
+        final refreshToken = authResponse.data?.refreshToken;
         if (refreshToken != null && refreshToken.isNotEmpty) {
           await _secureStorage.saveRefreshToken(refreshToken);
         }
@@ -225,36 +213,24 @@ class AuthService {
 
       return authResponse;
     } catch (e) {
-      // Handle specific errors
-      String errorCode = 'UNKNOWN_ERROR';
-      String message = 'An unexpected error occurred';
-
-      if (e.toString().contains('UserCancelledException')) {
-        errorCode = 'CANCELLED';
-        message = 'Sign in cancelled';
-      } else if (e.toString().contains('PlatformException')) {
-        errorCode = 'PLATFORM_ERROR';
-        message = 'Authentication failed. Please try again.';
-      }
-
       return AuthResponse(
         success: false,
-        message: message,
+        message: 'An unexpected error occurred: $e',
         status: 500,
         error: e.toString(),
-        errorCode: errorCode,
+        errorCode: 'UNKNOWN_ERROR',
       );
     }
   }
 
   /// Login with Google
-  Future<AuthResponse> loginWithGoogle() async {
-    return socialLogin('google');
+  Future<AuthResponse> loginWithGoogle(BuildContext context) async {
+    return socialLogin('google', context);
   }
 
   /// Login with GitHub
-  Future<AuthResponse> loginWithGithub() async {
-    return socialLogin('github');
+  Future<AuthResponse> loginWithGithub(BuildContext context) async {
+    return socialLogin('github', context);
   }
 
   /// Logout and clear auth data

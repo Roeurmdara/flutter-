@@ -1,4 +1,5 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_models.dart';
 import '../services/auth_service.dart';
@@ -298,11 +299,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Login with Google OAuth
-  Future<bool> loginWithGoogle() async {
+  Future<bool> loginWithGoogle(BuildContext context) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final response = await _authService.loginWithGoogle();
+      final response = await _authService.loginWithGoogle(context);
 
       if (response.success && response.data?.user != null) {
         final token = response.data!.token ?? response.data!.user?.token ?? '';
@@ -340,11 +341,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Login with GitHub OAuth
-  Future<bool> loginWithGithub() async {
+  Future<bool> loginWithGithub(BuildContext context) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final response = await _authService.loginWithGithub();
+      final response = await _authService.loginWithGithub(context);
 
       if (response.success && response.data?.user != null) {
         final token = response.data!.token ?? response.data!.user?.token ?? '';

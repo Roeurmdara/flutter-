@@ -860,7 +860,7 @@ class _AboutTab extends ConsumerWidget {
                 data: (response) {
                   final profile = response.data;
                   final displayName =
-                      profile?.username?.trim().isNotEmpty == true
+                      profile?.username.trim().isNotEmpty == true
                           ? profile!.username
                           : (community.creatorName ?? 'Creator');
                   final avatarUrl =
@@ -894,9 +894,9 @@ class _AboutTab extends ConsumerWidget {
                     ],
                   );
                 },
-                loading: () => Row(
+                loading: () => const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     SizedBox(
                       width: 16,
                       height: 16,

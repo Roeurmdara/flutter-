@@ -58,6 +58,7 @@ dependencies:
   image_picker: ^1.1.0
   image_cropper: ^12.2.1
   shadcn_ui: ^0.53.6
+  webview_flutter: ^4.13.1
 
 dev_dependencies:
   flutter_test:

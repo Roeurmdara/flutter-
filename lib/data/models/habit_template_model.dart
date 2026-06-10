@@ -1,4 +1,4 @@
-﻿// Habit Template Model
+// Habit Template Model
 class HabitTemplate {
   final String id;
   final String title;
@@ -74,9 +74,9 @@ class HabitTemplate {
     }
 
     return HabitTemplate(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
       category: categoryName,
       categoryId: json['category_id'] as String? ?? '',
       icon: icon,

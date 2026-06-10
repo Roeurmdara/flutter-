@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -38,6 +38,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         vsync: this, duration: const Duration(milliseconds: 320));
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _fadeCtrl.forward();
+
+    // Safety check: if already authenticated in Riverpod, trigger login success
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(authProvider).isAuthenticated) {
+        widget.onLoginSuccess();
+      }
+    });
   }
 
   @override
@@ -141,6 +148,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      debugPrint("LoginScreen: ref.listen authProvider: previous=${previous?.isAuthenticated}, next=${next.isAuthenticated}");
+      if (next.isAuthenticated && !(previous?.isAuthenticated ?? false)) {
+        debugPrint("LoginScreen: Transition to authenticated! Calling widget.onLoginSuccess()");
+        if (mounted) {
+          widget.onLoginSuccess();
+        }
+      }
+    });
+
     final authState = ref.watch(authProvider);
 
     return Scaffold(
@@ -452,7 +469,7 @@ class _LoginFields extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: AppColors.primaryPurple,
-            ),
+            ).copyWith(inherit: false),
           ),
         )
       ],
@@ -698,7 +715,7 @@ class _SocialRow extends ConsumerWidget {
                 icon: FontAwesomeIcons.google,
                 brandColor: const Color(0xFFDB4437),
                 onPressed: () =>
-                    ref.read(authProvider.notifier).loginWithGoogle(),
+                    ref.read(authProvider.notifier).loginWithGoogle(context),
                 isLoading: isLoading,
               ),
             ),
@@ -709,7 +726,7 @@ class _SocialRow extends ConsumerWidget {
                 icon: FontAwesomeIcons.github,
                 brandColor: const Color(0xFF24292F),
                 onPressed: () =>
-                    ref.read(authProvider.notifier).loginWithGithub(),
+                    ref.read(authProvider.notifier).loginWithGithub(context),
                 isLoading: isLoading,
               ),
             ),
@@ -724,7 +741,7 @@ class _SocialBtn extends ConsumerStatefulWidget {
   final String label;
   final IconData icon;
   final Color brandColor;
-  final VoidCallback onPressed;
+  final Future<void> Function() onPressed;
   final bool isLoading;
 
   const _SocialBtn({
@@ -745,10 +762,10 @@ class __SocialBtnState extends ConsumerState<_SocialBtn> {
   Future<void> _handlePress() async {
     setState(() => _isButtonLoading = true);
     try {
-      widget.onPressed();
-      // Wait a bit for the auth state to update
-      await Future.delayed(const Duration(milliseconds: 500));
+      debugPrint("_SocialBtn: _handlePress initiated for ${widget.label}");
+      await widget.onPressed();
       final authState = ref.read(authProvider);
+      debugPrint("_SocialBtn: onPressed completed. authState.isAuthenticated = ${authState.isAuthenticated}");
       if (authState.isAuthenticated && mounted) {
         // Navigation will be handled by the main app logic
         ScaffoldMessenger.of(context).showSnackBar(

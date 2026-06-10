@@ -432,7 +432,7 @@ Widget build(BuildContext context) {
                           color: AppColors.primaryPurple.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(99),
                         ),
-                        child: Text(
+                        child: const Text(
                           'Joined',
                           style: TextStyle(
                             fontSize: 10,

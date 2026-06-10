@@ -11,7 +11,6 @@ import '../../widgets/shadcn/app_button.dart';
 import '../../widgets/shadcn/app_card.dart';
 import '../../widgets/shadcn/job_card.dart';
 import '../../widgets/create_habit_modal.dart';
-import '../habit/habit_detail_screen.dart';
 import 'home_dashboard_helpers.dart';
 
 // ── Greeting Card ─────────────────────────────────────────────────────────────
@@ -30,13 +29,13 @@ Widget buildGreetingCard(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          AppColors.primaryPurple.withOpacity(0.35),
-          AppColors.primaryPurpleDark.withOpacity(0.18),
+          AppColors.primaryPurple.withValues(alpha: 0.35),
+          AppColors.primaryPurpleDark.withValues(alpha: 0.18),
         ],
       ),
       borderRadius: BorderRadius.circular(24),
       border: Border.all(
-        color: Colors.white.withOpacity(0.18),
+        color: Colors.white.withValues(alpha: 0.18),
         width: 1.2,
       ),
     ),
@@ -55,7 +54,7 @@ Widget buildGreetingCard(
               const SizedBox(height: 3),
               Text(
                 'Keep streaks alive today',
-                style: AppTypography.bodyMedium(Colors.white.withOpacity(0.82)),
+                style: AppTypography.bodyMedium(Colors.white.withValues(alpha: 0.82)),
               ),
               const SizedBox(height: 15),
               Row(
@@ -82,7 +81,7 @@ Widget buildGreetingCard(
                       value: 1.0,
                       strokeWidth: 5,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.white.withOpacity(0.15)),
+                          Colors.white.withValues(alpha: 0.15)),
                     ),
                   ),
                   Positioned.fill(
@@ -91,7 +90,7 @@ Widget buildGreetingCard(
                       strokeWidth: 5,
                       strokeCap: StrokeCap.round,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryPurple.withOpacity(0.9)),
+                          AppColors.primaryPurple.withValues(alpha: 0.9)),
                     ),
                   ),
                   Builder(
@@ -144,7 +143,7 @@ Widget buildGreetingCard(
             const SizedBox(height: 5),
             Text(
               '$completionRate%',
-              style: AppTypography.bodySmall(Colors.white.withOpacity(0.9))
+              style: AppTypography.bodySmall(Colors.white.withValues(alpha: 0.9))
                   .copyWith(fontWeight: FontWeight.bold),
             ),
           ],
