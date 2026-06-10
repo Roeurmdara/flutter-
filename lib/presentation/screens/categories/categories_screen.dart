@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -121,21 +121,48 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
           // ── Body ────────────────────────────────────────────────────────
           Expanded(
-            child: categoriesAsync.when(
-              loading: () => _buildLoadingState(isDark),
-              error: (error, stack) =>
-                  _buildErrorState(error.toString(), isDark, ref),
-              data: (categories) {
-                if (categories.isEmpty) return _buildEmptyState(isDark);
-                // Always watch all category templates so they're cached
-                for (final cat in categories) {
-                  ref.watch(templatesByCategoryProvider(cat.id));
-                }
-                if (_query.isNotEmpty) {
-                  return _buildSearchResults(isDark);
-                }
-                return _buildCategoriesList(categories, isDark, ref);
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(categoriesProvider);
+                try {
+                  final categories = await ref.read(categoriesProvider.future);
+                  for (final cat in categories) {
+                    ref.invalidate(templatesByCategoryProvider(cat.id));
+                  }
+                } catch (_) {}
               },
+              color: AppColors.primaryPurple,
+              child: categoriesAsync.when(
+                loading: () => _buildLoadingState(isDark),
+                error: (error, stack) => SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Container(
+                    height: MediaQuery.of(context).size.height * 0.6,
+                    alignment: Alignment.center,
+                    child: _buildErrorState(error.toString(), isDark, ref),
+                  ),
+                ),
+                data: (categories) {
+                  if (categories.isEmpty) {
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Container(
+                        height: MediaQuery.of(context).size.height * 0.6,
+                        alignment: Alignment.center,
+                        child: _buildEmptyState(isDark),
+                      ),
+                    );
+                  }
+                  // Always watch all category templates so they're cached
+                  for (final cat in categories) {
+                    ref.watch(templatesByCategoryProvider(cat.id));
+                  }
+                  if (_query.isNotEmpty) {
+                    return _buildSearchResults(isDark);
+                  }
+                  return _buildCategoriesList(categories, isDark, ref);
+                },
+              ),
             ),
           ),
         ],

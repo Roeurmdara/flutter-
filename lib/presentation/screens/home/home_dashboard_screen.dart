@@ -124,7 +124,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
         
           
               const SizedBox(height: 18),
-              if (habitState.isLoading)
+              if (habitState.isLoading && habitState.habits.isEmpty)
                 const Center(child: CircularProgressIndicator())
               else if (habitsForDate.isEmpty)
                 buildEmptyState(isDark)

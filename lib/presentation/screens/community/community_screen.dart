@@ -125,37 +125,66 @@ class CommunityScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: allAsync.when(
-        loading: () => const Center(
-            child: CircularProgressIndicator(
-                color: AppColors.primaryPurple, strokeWidth: 1.5)),
-        error: (error, _) => Center(
-            child: Text(error.toString(),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(communitiesProvider(
+            const CommunityPaginationParams(page: 1, perPage: 100),
+          ));
+          try {
+            await ref.read(communitiesProvider(
+              const CommunityPaginationParams(page: 1, perPage: 100),
+            ).future);
+          } catch (_) {}
+        },
+        color: AppColors.primaryPurple,
+        child: allAsync.when(
+          loading: () => const Center(
+              child: CircularProgressIndicator(
+                  color: AppColors.primaryPurple, strokeWidth: 1.5)),
+          error: (error, _) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              alignment: Alignment.center,
+              child: Text(
+                error.toString(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 13,
-                    color: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary))),
-        data: (response) {
-          final all = response.communities;
-          final mine = all.where((c) => createdIds.contains(c.id)).toList();
-          final joined = all
-              .where(
-                  (c) => joinedIds.contains(c.id) && !createdIds.contains(c.id))
-              .toList();
-          final discover = all
-              .where((c) =>
-                  !createdIds.contains(c.id) && !joinedIds.contains(c.id))
-              .toList();
+                  fontSize: 13,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
+                ),
+              ),
+            ),
+          ),
+          data: (response) {
+            final all = response.communities;
+            final mine = all.where((c) => createdIds.contains(c.id)).toList();
+            final joined = all
+                .where((c) =>
+                    joinedIds.contains(c.id) && !createdIds.contains(c.id))
+                .toList();
+            final discover = all
+                .where((c) =>
+                    !createdIds.contains(c.id) && !joinedIds.contains(c.id))
+                .toList();
 
-          if (all.isEmpty) {
-            return _EmptyState(isDark: isDark);
-          }
+            if (all.isEmpty) {
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Container(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  alignment: Alignment.center,
+                  child: _EmptyState(isDark: isDark),
+                ),
+              );
+            }
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 104),
-            children: [
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 104),
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
               if (mine.isNotEmpty) ...[
                 _Label('My Communities', mine.length, isDark),
                 const SizedBox(height: 10),
@@ -204,8 +233,9 @@ class CommunityScreen extends ConsumerWidget {
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // ─── Section label ────────────────────────────────────────────────────────────
