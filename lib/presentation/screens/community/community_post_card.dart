@@ -162,21 +162,7 @@ class CommunityPostCard extends ConsumerWidget {
                   _validImageUrl(post.imageUrl)!,
                   post.title.trim().isNotEmpty ? post.title.trim() : 'Post Image',
                 ),
-                child: Stack(
-                  children: [
-                    _PostImage(imageUrl: _validImageUrl(post.imageUrl)!),
-                    // Ribbon/Bookmark icon at top right
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Icon(
-                        Icons.bookmark_rounded,
-                        size: 26,
-                        color: Colors.white.withValues(alpha: 0.95),
-                      ),
-                    ),
-                  ],
-                ),
+                child: _PostImage(imageUrl: _validImageUrl(post.imageUrl)!),
               ),
               const SizedBox(height: 16),
             ],

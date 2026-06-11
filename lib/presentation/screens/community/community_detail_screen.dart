@@ -33,10 +33,18 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
   void initState() {
     super.initState();
     _tab = TabController(length: 2, vsync: this);
+    _tab.addListener(_handleTabChange);
+  }
+
+  void _handleTabChange() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
+    _tab.removeListener(_handleTabChange);
     _tab.dispose();
     super.dispose();
   }
@@ -207,43 +215,46 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
       ),
       body: Column(children: [
         // ── Purple header ──
-        Container(
-          width: double.infinity,
-          color: AppColors.primaryPurple,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-          child: Column(children: [
-            Text(
-              widget.community.name,
-              style: AppTypography.headlineLarge(Colors.white).copyWith(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.2),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${_fmtCount(widget.community.memberCount)} members',
-              style:
-                  AppTypography.bodySmall(Colors.white.withValues(alpha: 0.75))
-                      .copyWith(fontSize: 13),
-            ),
-          ]),
-        ),
+        if (_tab.index == 0)
+          Container(
+            width: double.infinity,
+            color: AppColors.primaryPurple,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Column(children: [
+              Text(
+                widget.community.name,
+                style: AppTypography.headlineLarge(Colors.white).copyWith(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${_fmtCount(widget.community.memberCount)} members',
+                style:
+                    AppTypography.bodySmall(Colors.white.withValues(alpha: 0.75))
+                        .copyWith(fontSize: 13),
+              ),
+            ]),
+          ),
 
         // ── Single Transform wrapping BOTH TabBar + TabBarView ──
         Expanded(
           child: Transform.translate(
-            offset: const Offset(0, -16),
+            offset: _tab.index == 0 ? const Offset(0, -16) : Offset.zero,
             child: Column(children: [
               // TabBar
               Container(
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkSurface : Colors.white,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: _tab.index == 0
+                      ? const BorderRadius.vertical(top: Radius.circular(20))
+                      : BorderRadius.zero,
                 ),
                 child: ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: _tab.index == 0
+                      ? const BorderRadius.vertical(top: Radius.circular(20))
+                      : BorderRadius.zero,
                   child: TabBar(
                     controller: _tab,
                     labelColor: AppColors.primaryPurple,
