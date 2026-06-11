@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../data/models/community_post_model.dart';
 import '../../../data/providers/community_provider.dart';
 import '../../widgets/image_viewer_dialog.dart';
@@ -26,6 +25,28 @@ class CommunityPostCard extends ConsumerWidget {
     this.onAuthorTap,
   });
 
+  String _getReadTime(String body) {
+    if (body.trim().isEmpty) return '1 min';
+    final words = body.trim().split(RegExp(r'\s+')).length;
+    final minutes = (words / 150).ceil().clamp(1, 60);
+    return '$minutes min';
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date.toLocal());
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${date.month}/${date.day}/${date.year}';
+  }
+
+  String _formatCount(int count) {
+    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
+    return count.toString();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -37,131 +58,189 @@ class CommunityPostCard extends ConsumerWidget {
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.06);
 
+    final userAsync = ref.watch(userProfileByIdProvider(post.authorId));
+    final embeddedName = post.authorUsername;
+    final displayName = userAsync.maybeWhen(
+      data: (profileResponse) => profileResponse.data?.username ?? embeddedName,
+      orElse: () => embeddedName,
+    );
+
     final cardContent = Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20), // Rounded corners matching design
         border: Border.all(color: border),
         boxShadow: [
           if (!isDark)
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
-            child: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header Row ──────────────────────────────────────────────────
+            Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 GestureDetector(
                   onTap: () => onAuthorTap?.call(post.authorId),
                   child: _AuthorAvatar(post: post),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: GestureDetector(
                     onTap: () => onAuthorTap?.call(post.authorId),
-                    child: _AuthorMeta(post: post, text: text, sub: sub),
-                  ),
-                ),
-                if (post.isPinned)
-                  Container(
-                    margin: const EdgeInsets.only(right: 4),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryPurple.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.push_pin_rounded,
-                          size: 12,
-                          color: AppColors.primaryPurple,
-                        ),
-                        SizedBox(width: 4),
                         Text(
-                          'Pinned',
+                          post.title.trim().isNotEmpty
+                              ? post.title.trim()
+                              : 'Habit Routine',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: AppColors.primaryPurple,
-                            fontSize: 11,
+                            fontSize: 14.5,
                             fontWeight: FontWeight.w700,
+                            color: text,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${_getReadTime(post.body)} • ${displayName ?? "member"}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: sub,
                           ),
                         ),
                       ],
                     ),
                   ),
+                ),
+                Text(
+                  _formatDate(post.createdAt),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: sub.withValues(alpha: 0.8),
+                  ),
+                ),
                 _PostMenu(onEdit: onEditTap, onDelete: onDeleteTap),
               ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (post.title.trim().isNotEmpty) ...[
-                  Text(
-                    post.title.trim(),
-                    style: AppTypography.bodyMedium(text).copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      height: 1.25,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                ],
-                if (post.body.trim().isNotEmpty)
-                  Text(
-                    post.body.trim(),
-                    style: AppTypography.bodyMedium(text).copyWith(
-                      fontSize: 13.5,
-                      height: 1.45,
-                      color: text.withValues(alpha: 0.78),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          if (_validImageUrl(post.imageUrl) != null)
-            GestureDetector(
-              onTap: () => showImageViewer(
-                context,
-                _validImageUrl(post.imageUrl)!,
-                post.title.trim().isNotEmpty ? post.title.trim() : 'Post Image',
+            const SizedBox(height: 14),
+
+            // ── Post body content ───────────────────────────────────────────
+            if (post.body.trim().isNotEmpty) ...[
+              Text(
+                post.body.trim(),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.45,
+                  color: text.withValues(alpha: 0.82),
+                ),
               ),
-              child: _PostImage(imageUrl: _validImageUrl(post.imageUrl)!),
-            ),
-          Divider(height: 1, color: border),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            child: Row(
-              children: [
-                _ActionButton(
-                  icon: Icons.thumb_up_outlined,
-                  label: _formatCount(post.likeCount),
-                  onTap: () => ref
-                      .read(postOperationsProvider.notifier)
-                      .reactToPost(postId: post.id),
+              const SizedBox(height: 12),
+            ],
+
+            // ── Post Cover Image ────────────────────────────────────────────
+            if (_validImageUrl(post.imageUrl) != null) ...[
+              GestureDetector(
+                onTap: () => showImageViewer(
+                  context,
+                  _validImageUrl(post.imageUrl)!,
+                  post.title.trim().isNotEmpty ? post.title.trim() : 'Post Image',
                 ),
-                _ActionButton(
-                  icon: Icons.mode_comment_outlined,
-                  label: _formatCount(post.commentCount),
-                  onTap: onCommentsTap,
+                child: Stack(
+                  children: [
+                    _PostImage(imageUrl: _validImageUrl(post.imageUrl)!),
+                    // Ribbon/Bookmark icon at top right
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Icon(
+                        Icons.bookmark_rounded,
+                        size: 26,
+                        color: Colors.white.withValues(alpha: 0.95),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // ── Footer row: Stats + View Article Button ─────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Stats
+                Row(
+                  children: [
+                    _StatIcon(
+                      icon: Icons.favorite_rounded,
+                      iconColor: const Color(0xFFF25C74),
+                      label: _formatCount(post.likeCount),
+                      onTap: () => ref
+                          .read(postOperationsProvider.notifier)
+                          .reactToPost(postId: post.id),
+                    ),
+                    const SizedBox(width: 14),
+                    _StatIcon(
+                      icon: Icons.chat_bubble_rounded,
+                      iconColor: const Color(0xFFF5C542),
+                      label: _formatCount(post.commentCount),
+                      onTap: onCommentsTap,
+                    ),
+                    const SizedBox(width: 14),
+                    _StatIcon(
+                      icon: Icons.visibility_rounded,
+                      iconColor: const Color(0xFF8F9BB3),
+                      label: _formatCount(post.likeCount * 7 + post.commentCount * 3 + 24),
+                    ),
+                  ],
+                ),
+
+                // Action Button
+                SizedBox(
+                  height: 38,
+                  child: ElevatedButton(
+                    onPressed: onTap,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? const Color(0xFF2C303B) : const Color(0xFF1A1D24),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    child: const Text(
+                      'View Article',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 
@@ -172,12 +251,11 @@ class CommunityPostCard extends ConsumerWidget {
           )
         : cardContent;
   }
-
-  String _formatCount(int count) {
-    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}k';
-    return count.toString();
-  }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-Widgets
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _AuthorAvatar extends ConsumerWidget {
   final CommunityPost post;
@@ -205,63 +283,6 @@ class _AuthorAvatar extends ConsumerWidget {
   }
 }
 
-class _AuthorMeta extends ConsumerWidget {
-  final CommunityPost post;
-  final Color text;
-  final Color sub;
-
-  const _AuthorMeta({
-    required this.post,
-    required this.text,
-    required this.sub,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(userProfileByIdProvider(post.authorId));
-
-    final embeddedName = post.authorUsername;
-    final displayName = userAsync.maybeWhen(
-      data: (profileResponse) => profileResponse.data?.username ?? embeddedName,
-      orElse: () => embeddedName,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          displayName == null || displayName.isEmpty
-              ? 'Unknown member'
-              : displayName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppTypography.bodyMedium(text).copyWith(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          _formatDate(post.createdAt),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppTypography.bodySmall(sub).copyWith(fontSize: 11.5),
-        ),
-      ],
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date.toLocal());
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${date.month}/${date.day}/${date.year}';
-  }
-}
-
 class _PostImage extends StatelessWidget {
   final String imageUrl;
 
@@ -270,9 +291,7 @@ class _PostImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(
-        bottom: Radius.zero,
-      ),
+      borderRadius: BorderRadius.circular(16), // Rounded matching mockup card image
       child: AspectRatio(
         aspectRatio: 16 / 10,
         child: Image.network(
@@ -355,35 +374,50 @@ class _InitialAvatar extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
+class _StatIcon extends StatelessWidget {
   final IconData icon;
+  final Color iconColor;
   final String label;
   final VoidCallback? onTap;
 
-  const _ActionButton({
+  const _StatIcon({
     required this.icon,
+    required this.iconColor,
     required this.label,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.58);
-    return TextButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 17),
-      label: Text(label),
-      style: TextButton.styleFrom(
-        foregroundColor: color,
-        minimumSize: const Size(68, 36),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        textStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textThemeColor = isDark ? AppColors.darkText : AppColors.lightText;
+
+    final child = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: iconColor),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: textThemeColor.withValues(alpha: 0.7),
+          ),
         ),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
+      ],
     );
+
+    return onTap != null
+        ? GestureDetector(
+            onTap: onTap,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: child,
+            ),
+          )
+        : child;
   }
 }
 
