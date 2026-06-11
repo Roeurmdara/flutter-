@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/community_model.dart';
@@ -279,6 +279,7 @@ class PostOperationsNotifier extends StateNotifier<AsyncValue<void>> {
       _ref.invalidate(postCommentsProvider(
         CommentPaginationParams(postId: postId),
       ));
+      _ref.invalidate(communityPostsProvider);
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -296,6 +297,7 @@ class PostOperationsNotifier extends StateNotifier<AsyncValue<void>> {
       _ref.invalidate(postCommentsProvider(
         CommentPaginationParams(postId: postId),
       ));
+      _ref.invalidate(communityPostsProvider);
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
