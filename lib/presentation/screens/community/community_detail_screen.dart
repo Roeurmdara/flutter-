@@ -494,112 +494,117 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
             ? forestGreen
             : Colors.grey;
 
-    return Scaffold(
-      backgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        toolbarHeight: 50,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 20,
-            color: isDark ? Colors.white : Colors.black87,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
-        title: Text(
-          _tab.index == 0 ? 'Community' : widget.community.name,
-          style: GoogleFonts.poppins(
-            fontSize: _tab.index == 0 ? 22 : 18,
-            fontWeight: FontWeight.w700,
-            color: text,
-          ),
-          overflow: TextOverflow.ellipsis,
-        ),
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.more_horiz_rounded,
-              color: text,
-              size: 28,
+    return AnimatedBuilder(
+      animation: _tab,
+      builder: (context, child) {
+        return Scaffold(
+          backgroundColor:
+              isDark ? AppColors.darkBackground : AppColors.lightBackground,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            toolbarHeight: 50,
+            leading: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 20,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+              onPressed: () => Navigator.pop(context),
             ),
-            onPressed: () => _showCommunityOptions(context),
+            titleSpacing: 0,
+            title: Text(
+              _tab.index == 0 ? 'Community' : widget.community.name,
+              style: GoogleFonts.poppins(
+                fontSize: _tab.index == 0 ? 22 : 18,
+                fontWeight: FontWeight.w700,
+                color: text,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+            centerTitle: false,
+            actions: [
+              IconButton(
+                icon: Icon(
+                  Icons.more_horiz_rounded,
+                  color: text,
+                  size: 28,
+                ),
+                onPressed: () => _showCommunityOptions(context),
+              ),
+              const SizedBox(width: 8),
+            ],
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: NestedScrollView(
-        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-          return [
-            if (_tab.index == 0)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 16),
+          body: NestedScrollView(
+            headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+              return [
+                if (_tab.index == 0)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 16),
 
-                      // Avatar Card Stack
-                      CommunityCardStack(
-                        community: widget.community,
-                        color: color,
-                        isDark: isDark,
-                        onMembersTap: () => _showMembersBottomSheet(context),
+                          // Avatar Card Stack
+                          CommunityCardStack(
+                            community: widget.community,
+                            color: color,
+                            isDark: isDark,
+                            onMembersTap: () => _showMembersBottomSheet(context),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Action Buttons Row
+                          _buildActionButtons(context, detailActionColor, isJoined),
+                          const SizedBox(height: 24),
+                        ],
                       ),
-
-                      const SizedBox(height: 24),
-
-                      // Action Buttons Row
-                      _buildActionButtons(context, detailActionColor, isJoined),
-                      const SizedBox(height: 24),
-                    ],
+                    ),
+                  ),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverTabBarDelegate(
+                    child: Container(
+                      color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                      child: TabBar(
+                        controller: _tab,
+                        labelColor: AppColors.primaryPurple,
+                        unselectedLabelColor: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
+                        indicatorColor: AppColors.primaryPurple,
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        dividerColor: Colors.transparent,
+                        labelStyle: AppTypography.bodyMedium(AppColors.primaryPurple)
+                            .copyWith(fontSize: 14, fontWeight: FontWeight.w600),
+                        tabs: const [Tab(text: 'About'), Tab(text: 'Feed')],
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _SliverTabBarDelegate(
-                child: Container(
-                  color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-                  child: TabBar(
-                    controller: _tab,
-                    labelColor: AppColors.primaryPurple,
-                    unselectedLabelColor: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary,
-                    indicatorColor: AppColors.primaryPurple,
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    dividerColor: Colors.transparent,
-                    labelStyle: AppTypography.bodyMedium(AppColors.primaryPurple)
-                        .copyWith(fontSize: 14, fontWeight: FontWeight.w600),
-                    tabs: const [Tab(text: 'About'), Tab(text: 'Feed')],
-                  ),
+              ];
+            },
+            body: TabBarView(
+              controller: _tab,
+              children: [
+                AboutTab(
+                  community: widget.community,
                 ),
-              ),
+                CommunityPostsFeedScreen(
+                  communityId: widget.community.id,
+                  communityName: widget.community.name,
+                  showAppBar: false,
+                  canCreatePosts: isJoined,
+                ),
+              ],
             ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tab,
-          children: [
-            AboutTab(
-              community: widget.community,
-            ),
-            CommunityPostsFeedScreen(
-              communityId: widget.community.id,
-              communityName: widget.community.name,
-              showAppBar: false,
-              canCreatePosts: isJoined,
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
