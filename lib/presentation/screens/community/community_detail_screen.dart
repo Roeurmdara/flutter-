@@ -510,6 +510,27 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
           ),
           onPressed: () => Navigator.pop(context),
         ),
+        titleSpacing: 0,
+        title: Text(
+          'Community',
+          style: GoogleFonts.poppins(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: text,
+          ),
+        ),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.more_horiz_rounded,
+              color: text,
+              size: 28,
+            ),
+            onPressed: () => _showCommunityOptions(context),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: NestedScrollView(
         headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
@@ -520,29 +541,7 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Community',
-                          style: GoogleFonts.poppins(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: text,
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.more_horiz_rounded,
-                            color: text,
-                            size: 28,
-                          ),
-                          onPressed: () => _showCommunityOptions(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
 
                     // Avatar Card Stack
                     CommunityCardStack(
