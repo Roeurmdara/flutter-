@@ -205,115 +205,68 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
       backgroundColor:
           isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryPurple,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        toolbarHeight: 60,
+        toolbarHeight: 50,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 18, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(children: [
-        // ── Purple header ──
-        if (_tab.index == 0)
+      body: Column(
+        children: [
+          // TabBar
           Container(
-            width: double.infinity,
-            color: AppColors.primaryPurple,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-            child: Column(children: [
-              Text(
-                widget.community.name,
-                style: AppTypography.headlineLarge(Colors.white).copyWith(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.2),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${_fmtCount(widget.community.memberCount)} members',
-                style:
-                    AppTypography.bodySmall(Colors.white.withValues(alpha: 0.75))
-                        .copyWith(fontSize: 13),
-              ),
-            ]),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+            ),
+            child: TabBar(
+              controller: _tab,
+              labelColor: AppColors.primaryPurple,
+              unselectedLabelColor: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+              indicatorColor: AppColors.primaryPurple,
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelStyle: AppTypography.bodyMedium(AppColors.primaryPurple)
+                  .copyWith(fontSize: 14, fontWeight: FontWeight.w600),
+              tabs: const [Tab(text: 'About'), Tab(text: 'Feed')],
+            ),
           ),
 
-        // ── Single Transform wrapping BOTH TabBar + TabBarView ──
-        Expanded(
-          child: Transform.translate(
-            offset: _tab.index == 0 ? const Offset(0, -16) : Offset.zero,
-            child: Column(children: [
-              // TabBar
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : Colors.white,
-                  borderRadius: _tab.index == 0
-                      ? const BorderRadius.vertical(top: Radius.circular(20))
-                      : BorderRadius.zero,
+          // TabBarView
+          Expanded(
+            child: TabBarView(
+              controller: _tab,
+              children: [
+                _AboutTab(
+                  community: widget.community,
+                  isDark: isDark,
+                  isJoined: isJoined,
+                  canJoin: widget.community.isActive,
+                  color: color,
+                  onJoin: _joinCommunity,
+                  onLeave: _confirmLeaveCommunity,
                 ),
-                child: ClipRRect(
-                  borderRadius: _tab.index == 0
-                      ? const BorderRadius.vertical(top: Radius.circular(20))
-                      : BorderRadius.zero,
-                  child: TabBar(
-                    controller: _tab,
-                    labelColor: AppColors.primaryPurple,
-                    unselectedLabelColor: isDark
-                        ? AppColors.darkTextSecondary
-                        : AppColors.lightTextSecondary,
-                    indicatorColor: AppColors.primaryPurple,
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    dividerColor: Colors.transparent,
-                    splashBorderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(20)),
-                    splashFactory: InkRipple.splashFactory,
-                    overlayColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.pressed)) {
-                        return AppColors.primaryPurple.withValues(alpha: 0.08);
-                      }
-                      return Colors.transparent;
-                    }),
-                    labelStyle:
-                        AppTypography.bodyMedium(AppColors.primaryPurple)
-                            .copyWith(
-                                fontSize: 14, fontWeight: FontWeight.w600),
-                    tabs: const [Tab(text: 'About'), Tab(text: 'Feed')],
-                  ),
+                CommunityPostsFeedScreen(
+                  communityId: widget.community.id,
+                  communityName: widget.community.name,
+                  showAppBar: false,
+                  canCreatePosts: isJoined,
                 ),
-              ),
-
-              // TabBarView — fills remaining space, NO second Transform.translate
-              Expanded(
-                child: TabBarView(controller: _tab, children: [
-                  _AboutTab(
-                    community: widget.community,
-                    isDark: isDark,
-                    isJoined: isJoined,
-                    canJoin: widget.community.isActive,
-                    color: color,
-                    onJoin: _joinCommunity,
-                    onLeave: _confirmLeaveCommunity,
-                  ),
-                  CommunityPostsFeedScreen(
-                    communityId: widget.community.id,
-                    communityName: widget.community.name,
-                    showAppBar: false,
-                    canCreatePosts: isJoined,
-                  ),
-                ]),
-              ),
-            ]),
+              ],
+            ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
-
-  String _fmtCount(int n) => n >= 1000
-      ? '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}k'
-      : '$n';
 }
 
 // ─── About Tab ────────────────────────────────────────────────────────────────
@@ -340,283 +293,572 @@ class _AboutTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final text = isDark ? AppColors.darkText : AppColors.lightText;
-    final sub =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final sub = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
+    const forestGreen = Color(0xFF1B3D2F);
     final detailActionColor = isJoined
         ? const Color(0xFFD32F2F)
         : canJoin
-            ? AppColors.primaryPurple
+            ? forestGreen
             : Colors.grey;
 
     // Fetch creator profile
-    final creatorAsync =
-        ref.watch(userProfileByIdProvider(community.createdBy));
+    final creatorAsync = ref.watch(userProfileByIdProvider(community.createdBy));
 
     final membersAsync = ref.watch(communityMembersProvider(
       CommunityMembersPaginationParams(communityId: community.id, page: 1, perPage: 10),
     ));
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Colors.black.withValues(alpha: 0.04)),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('About',
-              style: AppTypography.bodyMedium(text)
-                  .copyWith(fontWeight: FontWeight.w600, fontSize: 15)),
-          const SizedBox(height: 12),
-          Text(community.description,
-              style: AppTypography.bodySmall(sub)
-                  .copyWith(height: 1.6, fontSize: 13.5)),
-          const SizedBox(height: 18),
-          Text('Created by',
-              style: AppTypography.bodySmall(sub).copyWith(fontSize: 11)),
-          const SizedBox(height: 6),
-          GestureDetector(
-            onTap: () => _showCreatorProfile(context, community, ref),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primaryPurple.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: creatorAsync.when(
-                data: (response) {
-                  final profile = response.data;
-                  final displayName = _creatorDisplayName(profile, community);
-                  final avatarUrl =
-                      profile?.avatarUrl ?? community.creatorAvatar;
-                  final validAvatar = _validCreatorImageUrl(avatarUrl);
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ClipOval(
-                        child: SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: validAvatar == null
-                              ? _CreatorInitial(displayName)
-                              : Image.network(
-                                  validAvatar,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      _CreatorInitial(displayName),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        displayName,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primaryPurple,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-                loading: () => const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 1),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Loading',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primaryPurple,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                error: (_, __) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipOval(
-                      child: SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: _CreatorInitial(_creatorFallbackName(community)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _creatorFallbackName(community),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primaryPurple,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Header Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Community',
+                style: GoogleFonts.poppins(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: text,
                 ),
               ),
-            ),
+              IconButton(
+                icon: Icon(
+                  Icons.more_horiz_rounded,
+                  color: text,
+                  size: 28,
+                ),
+                onPressed: () => _showCommunityOptions(context),
+              ),
+            ],
           ),
-          membersAsync.maybeWhen(
-            data: (membersResp) {
-              final members = membersResp.members;
-              if (members.isEmpty) return const SizedBox.shrink();
+          const SizedBox(height: 32),
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 18),
-                  Text('Members',
-                      style: AppTypography.bodySmall(sub).copyWith(fontSize: 11)),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () => _showMembersBottomSheet(context, ref),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          // Overlapping avatar pile
-                          SizedBox(
-                            height: 32,
-                            width: 32.0 + (members.take(5).length - 1) * 20.0,
-                            child: Stack(
-                              children: List.generate(
-                                members.take(5).length,
-                                (index) {
-                                  final member = members[index];
-                                  final avatarUrl = member.avatar;
-                                  final name = member.username;
-                                  return Positioned(
-                                    left: index * 20.0,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: isDark ? AppColors.darkSurface : Colors.white,
-                                          width: 2,
-                                        ),
+          // 2. Avatar Card Stack
+          _buildCommunityCardStack(context, ref),
+
+          const SizedBox(height: 24),
+
+          // 3. Action Buttons Row
+          _buildActionButtons(context, detailActionColor),
+
+          const SizedBox(height: 32),
+
+          // 4. Details Section
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.04),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark ? Colors.black12 : Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'About',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: text,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  community.description,
+                  style: AppTypography.bodySmall(sub).copyWith(
+                    height: 1.6,
+                    fontSize: 13.5,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Created by',
+                  style: AppTypography.bodySmall(sub).copyWith(fontSize: 11),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () => _showCreatorProfile(context, community, ref),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryPurple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: creatorAsync.when(
+                      data: (response) {
+                        final profile = response.data;
+                        final displayName = _creatorDisplayName(profile, community);
+                        final avatarUrl = profile?.avatarUrl ?? community.creatorAvatar;
+                        final validAvatar = _validCreatorImageUrl(avatarUrl);
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ClipOval(
+                              child: SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: validAvatar == null
+                                    ? _CreatorInitial(displayName)
+                                    : Image.network(
+                                        validAvatar,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            _CreatorInitial(displayName),
                                       ),
-                                      child: ClipOval(
-                                        child: SizedBox(
-                                          width: 28,
-                                          height: 28,
-                                          child: avatarUrl == null || avatarUrl.trim().isEmpty
-                                              ? Container(
-                                                  color: AppColors.primaryPurple.withValues(alpha: 0.12),
-                                                  alignment: Alignment.center,
-                                                  child: Text(
-                                                    name.isEmpty ? '?' : name[0].toUpperCase(),
-                                                    style: const TextStyle(
-                                                      color: AppColors.primaryPurple,
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                )
-                                              : Image.network(
-                                                  avatarUrl,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) => Container(
-                                                    color: AppColors.primaryPurple.withValues(alpha: 0.12),
-                                                    alignment: Alignment.center,
-                                                    child: Text(
-                                                      name.isEmpty ? '?' : name[0].toUpperCase(),
-                                                      style: const TextStyle(
-                                                        color: AppColors.primaryPurple,
-                                                        fontSize: 11,
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
                               ),
                             ),
+                            const SizedBox(width: 8),
+                            Text(
+                              displayName,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primaryPurple,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                      loading: () => const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 1),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _membersDescription(members, community.memberCount),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: text,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                const Row(
-                                  children: [
-                                    Text(
-                                      'See all members',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.primaryPurple,
-                                      ),
-                                    ),
-                                    SizedBox(width: 3),
-                                    Icon(
-                                      Icons.arrow_forward_ios_rounded,
-                                      size: 10,
-                                      color: AppColors.primaryPurple,
-                                    ),
-                                  ],
-                                ),
-                              ],
+                          SizedBox(width: 8),
+                          Text(
+                            'Loading',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primaryPurple,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      error: (_, __) => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ClipOval(
+                            child: SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: _CreatorInitial(_creatorFallbackName(community)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _creatorFallbackName(community),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primaryPurple,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ],
-              );
-            },
-            orElse: () => const SizedBox.shrink(),
-          ),
-          const SizedBox(height: 24),
-          const Divider(height: 1, thickness: 0.5),
-          const SizedBox(height: 20),
+                ),
+                membersAsync.maybeWhen(
+                  data: (membersResp) {
+                    final members = membersResp.members;
+                    if (members.isEmpty) return const SizedBox.shrink();
 
-          // ── Join / Leave ──
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 18),
+                        Text(
+                          'Members',
+                          style: AppTypography.bodySmall(sub).copyWith(fontSize: 11),
+                        ),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: () => _showMembersBottomSheet(context, ref),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                // Overlapping avatar pile
+                                SizedBox(
+                                  height: 32,
+                                  width: 32.0 + (members.take(5).length - 1) * 20.0,
+                                  child: Stack(
+                                    children: List.generate(
+                                      members.take(5).length,
+                                      (index) {
+                                        final member = members[index];
+                                        final avatarUrl = member.avatar;
+                                        final name = member.username;
+                                        return Positioned(
+                                          left: index * 20.0,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: isDark ? AppColors.darkSurface : Colors.white,
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: ClipOval(
+                                              child: SizedBox(
+                                                width: 28,
+                                                height: 28,
+                                                child: avatarUrl == null || avatarUrl.trim().isEmpty
+                                                    ? Container(
+                                                        color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                                                        alignment: Alignment.center,
+                                                        child: Text(
+                                                          name.isEmpty ? '?' : name[0].toUpperCase(),
+                                                          style: const TextStyle(
+                                                            color: AppColors.primaryPurple,
+                                                            fontSize: 11,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      )
+                                                    : Image.network(
+                                                        avatarUrl,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (_, __, ___) => Container(
+                                                          color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                                                          alignment: Alignment.center,
+                                                          child: Text(
+                                                            name.isEmpty ? '?' : name[0].toUpperCase(),
+                                                            style: const TextStyle(
+                                                              color: AppColors.primaryPurple,
+                                                              fontSize: 11,
+                                                              fontWeight: FontWeight.bold,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _membersDescription(members, community.memberCount),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: text,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      const Row(
+                                        children: [
+                                          Text(
+                                            'See all members',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.primaryPurple,
+                                            ),
+                                          ),
+                                          SizedBox(width: 3),
+                                          Icon(
+                                            Icons.arrow_forward_ios_rounded,
+                                            size: 10,
+                                            color: AppColors.primaryPurple,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  orElse: () => const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommunityCardStack(BuildContext context, WidgetRef ref) {
+    final text = isDark ? AppColors.darkText : AppColors.lightText;
+    final cardBgColor = isDark ? AppColors.darkSurface : const Color(0xFFE8F1FF);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        // The card
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(top: 45),
+          padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
+          decoration: BoxDecoration(
+            color: cardBgColor,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.transparent,
+            ),
+          ),
+          child: Column(
+            children: [
+              // Community Name & Join Type Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      community.name,
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: text,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    community.joinType.toUpperCase(),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Stats Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: _buildStatColumn(
+                      label: 'Members',
+                      count: community.memberCount.toString(),
+                      isDark: isDark,
+                      onTap: () => _showMembersBottomSheet(context, ref),
+                    ),
+                  ),
+                  Container(
+                    height: 32,
+                    width: 1,
+                    color: isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.08),
+                  ),
+                  Expanded(
+                    child: _buildStatColumn(
+                      label: 'Join Type',
+                      count: community.joinType.toUpperCase(),
+                      isDark: isDark,
+                    ),
+                  ),
+                  Container(
+                    height: 32,
+                    width: 1,
+                    color: isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.08),
+                  ),
+                  Expanded(
+                    child: _buildStatColumn(
+                      label: 'Status',
+                      count: community.status.toUpperCase(),
+                      isDark: isDark,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Floating Avatar (Custom Emoji, Cover Image or Initial)
+        Positioned(
+          top: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isDark ? AppColors.darkBackground : Colors.white,
+                width: 4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: _buildAvatarWidget(size: 90),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvatarWidget({required double size}) {
+    // 1. Cover Image
+    if (community.coverImage != null && community.coverImage!.trim().isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          community.coverImage!,
+          fit: BoxFit.cover,
+          width: size,
+          height: size,
+          errorBuilder: (_, __, ___) => _buildEmojiOrInitialAvatar(size),
+        ),
+      );
+    }
+    return _buildEmojiOrInitialAvatar(size);
+  }
+
+  Widget _buildEmojiOrInitialAvatar(double size) {
+    // 2. Custom Emoji
+    if (community.customEmoji != null && community.customEmoji!.trim().isNotEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color.withValues(alpha: 0.15),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          community.customEmoji!,
+          style: TextStyle(fontSize: size * 0.45),
+        ),
+      );
+    }
+
+    // 3. Initial
+    final initial = community.name.isNotEmpty ? community.name[0].toUpperCase() : '?';
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color,
+            color.withValues(alpha: 0.7),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: GoogleFonts.poppins(
+            fontSize: size * 0.38,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatColumn({
+    required String label,
+    required String count,
+    required bool isDark,
+    VoidCallback? onTap,
+  }) {
+    final labelColor = isDark ? AppColors.darkTextSecondary : const Color(0xFF6B7280);
+    final countColor = isDark ? AppColors.darkText : AppColors.lightText;
+
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: labelColor,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          count,
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: countColor,
+          ),
+        ),
+      ],
+    );
+
+    if (onTap != null) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: content,
+      );
+    }
+    return content;
+  }
+
+  Widget _buildActionButtons(BuildContext context, Color detailActionColor) {
+    return Row(
+      children: [
+        // Join / Leave community button
+        Expanded(
+          child: SizedBox(
+            height: 48,
+            child: ElevatedButton(
               onPressed: isJoined
                   ? onLeave
                   : canJoin
                       ? onJoin
                       : null,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: detailActionColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(
-                    color: detailActionColor.withValues(alpha: 0.4),
-                    width: 1.2,
-                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: Text(
@@ -625,17 +867,98 @@ class _AboutTab extends ConsumerWidget {
                     : canJoin
                         ? 'Join community'
                         : 'Community closed',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: detailActionColor,
+                  color: Colors.white,
                 ),
               ),
             ),
           ),
-        ]),
+        ),
+        const SizedBox(width: 12),
+        // Secondary icon button (Share)
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.15),
+              width: 1.5,
+            ),
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.share_outlined,
+              color: isDark ? AppColors.darkText : Colors.black.withValues(alpha: 0.7),
+            ),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Share link copied to clipboard!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            padding: EdgeInsets.zero,
+            splashRadius: 24,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showCommunityOptions(BuildContext context) {
+    final text = isDark ? AppColors.darkText : AppColors.lightText;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Community Options',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: text,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.info_outline_rounded),
+                title: const Text('View Guidelines'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Show guidelines snackbar
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Guidelines: Be respectful and post content related to the community topic.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+              if (isJoined)
+                ListTile(
+                  leading: const Icon(Icons.exit_to_app_rounded, color: Colors.red),
+                  title: const Text('Leave Community', style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    onLeave();
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
