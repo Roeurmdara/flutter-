@@ -512,12 +512,13 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
         ),
         titleSpacing: 0,
         title: Text(
-          'Community',
+          _tab.index == 0 ? 'Community' : widget.community.name,
           style: GoogleFonts.poppins(
-            fontSize: 22,
+            fontSize: _tab.index == 0 ? 22 : 18,
             fontWeight: FontWeight.w700,
             color: text,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
         centerTitle: false,
         actions: [
@@ -535,31 +536,32 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
       body: NestedScrollView(
         headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
           return [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
+            if (_tab.index == 0)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
 
-                    // Avatar Card Stack
-                    CommunityCardStack(
-                      community: widget.community,
-                      color: color,
-                      isDark: isDark,
-                      onMembersTap: () => _showMembersBottomSheet(context),
-                    ),
+                      // Avatar Card Stack
+                      CommunityCardStack(
+                        community: widget.community,
+                        color: color,
+                        isDark: isDark,
+                        onMembersTap: () => _showMembersBottomSheet(context),
+                      ),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Action Buttons Row
-                    _buildActionButtons(context, detailActionColor, isJoined),
-                    const SizedBox(height: 24),
-                  ],
+                      // Action Buttons Row
+                      _buildActionButtons(context, detailActionColor, isJoined),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
-            ),
             SliverPersistentHeader(
               pinned: true,
               delegate: _SliverTabBarDelegate(
