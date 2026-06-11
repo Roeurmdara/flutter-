@@ -306,8 +306,10 @@ class CommunityPostService {
       if (response.statusCode != null &&
           response.statusCode! >= 200 &&
           response.statusCode! < 300) {
-        return CommentsListResponse.fromJson(
+        final commentsResp = CommentsListResponse.fromJson(
             response.data as Map<String, dynamic>);
+        await _savePersistentComments(postId, commentsResp.data);
+        return commentsResp;
       } else {
         // Fallback to local comments in memory/storage if GET is not supported (405) or not found (404)
         if (response.statusCode == 405 || response.statusCode == 404) {

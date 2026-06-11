@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/exceptions/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/community_model.dart';
-import '../../../data/models/profile_model.dart';
 import '../../../data/providers/session_provider.dart';
 import '../../../data/providers/community_provider.dart';
 import 'community_posts_feed_screen.dart';
 import 'community_screen.dart' show communityColor;
+import 'widgets/about_tab.dart';
+import 'widgets/community_card_stack.dart';
 
 class CommunityDetailScreen extends ConsumerStatefulWidget {
   final Community community;
@@ -33,10 +35,18 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
   void initState() {
     super.initState();
     _tab = TabController(length: 2, vsync: this);
+    _tab.addListener(_handleTabChange);
+  }
+
+  void _handleTabChange() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
+    _tab.removeListener(_handleTabChange);
     _tab.dispose();
     super.dispose();
   }
@@ -182,6 +192,291 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
     }
   }
 
+  void _showCommunityOptions(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final text = isDark ? AppColors.darkText : AppColors.lightText;
+    final isJoined = ref
+        .watch(sessionProvider)
+        .joinedCommunityIds
+        .contains(widget.community.id);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Community Options',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: text,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.info_outline_rounded),
+                title: const Text('View Guidelines'),
+                onTap: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Guidelines: Be respectful and post content related to the community topic.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+              if (isJoined)
+                ListTile(
+                  leading: const Icon(Icons.exit_to_app_rounded, color: Colors.red),
+                  title: const Text('Leave Community', style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmLeaveCommunity();
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMembersBottomSheet(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final text = isDark ? AppColors.darkText : AppColors.lightText;
+    final sub = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Consumer(
+          builder: (context, refInSheet, child) {
+            final membersAsyncInSheet = refInSheet.watch(communityMembersProvider(
+              CommunityMembersPaginationParams(
+                communityId: widget.community.id,
+                page: 1,
+                perPage: 100,
+              ),
+            ));
+
+            return Container(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.black12,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Members (${widget.community.memberCount})',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: text,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: membersAsyncInSheet.when(
+                      data: (response) {
+                        final list = response.members;
+                        if (list.isEmpty) {
+                          return const Center(child: Text('No members found'));
+                        }
+                        return ListView.separated(
+                          itemCount: list.length,
+                          separatorBuilder: (_, __) => Divider(
+                            color: isDark ? Colors.white10 : Colors.grey[200],
+                            height: 1,
+                          ),
+                          itemBuilder: (context, idx) {
+                            final member = list[idx];
+                            final displayName = member.username;
+                            final avatarUrl = member.avatar;
+                            final isCreator = member.userId == widget.community.createdBy;
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: Row(
+                                children: [
+                                  ClipOval(
+                                    child: SizedBox(
+                                      width: 38,
+                                      height: 38,
+                                      child: avatarUrl == null || avatarUrl.trim().isEmpty
+                                          ? Container(
+                                              color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                displayName.isEmpty ? '?' : displayName[0].toUpperCase(),
+                                                style: const TextStyle(
+                                                  color: AppColors.primaryPurple,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            )
+                                          : Image.network(
+                                              avatarUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => Container(
+                                                color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  displayName.isEmpty ? '?' : displayName[0].toUpperCase(),
+                                                  style: const TextStyle(
+                                                    color: AppColors.primaryPurple,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          displayName,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: text,
+                                          ),
+                                        ),
+                                        if (member.role == 'admin' || isCreator) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            isCreator ? 'Owner' : 'Admin',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.primaryPurple,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      error: (err, _) => Center(
+                        child: Text(
+                          'Error loading members: $err',
+                          style: TextStyle(color: sub),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context, Color detailActionColor, bool isJoined) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 48,
+            child: ElevatedButton(
+              onPressed: isJoined
+                  ? _confirmLeaveCommunity
+                  : widget.community.isActive
+                      ? _joinCommunity
+                      : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: detailActionColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                isJoined
+                    ? 'Leave community'
+                    : widget.community.isActive
+                        ? 'Join community'
+                        : 'Community closed',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : Colors.black.withValues(alpha: 0.15),
+              width: 1.5,
+            ),
+          ),
+          child: IconButton(
+            icon: Icon(
+              Icons.share_outlined,
+              color: isDark ? AppColors.darkText : Colors.black.withValues(alpha: 0.7),
+            ),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Share link copied to clipboard!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            padding: EdgeInsets.zero,
+            splashRadius: 24,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -190,60 +485,88 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
         .joinedCommunityIds
         .contains(widget.community.id);
     final color = communityColor(widget.community);
+    final text = isDark ? AppColors.darkText : AppColors.lightText;
+
+    const forestGreen = Color(0xFF1B3D2F);
+    final detailActionColor = isJoined
+        ? const Color(0xFFD32F2F)
+        : widget.community.isActive
+            ? forestGreen
+            : Colors.grey;
 
     return Scaffold(
       backgroundColor:
           isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        backgroundColor: AppColors.primaryPurple,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        toolbarHeight: 60,
+        toolbarHeight: 50,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 18, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-      ),
-      body: Column(children: [
-        // ── Purple header ──
-        Container(
-          width: double.infinity,
-          color: AppColors.primaryPurple,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-          child: Column(children: [
-            Text(
-              widget.community.name,
-              style: AppTypography.headlineLarge(Colors.white).copyWith(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.2),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${_fmtCount(widget.community.memberCount)} members',
-              style:
-                  AppTypography.bodySmall(Colors.white.withValues(alpha: 0.75))
-                      .copyWith(fontSize: 13),
-            ),
-          ]),
+        titleSpacing: 0,
+        title: Text(
+          _tab.index == 0 ? 'Community' : widget.community.name,
+          style: GoogleFonts.poppins(
+            fontSize: _tab.index == 0 ? 22 : 18,
+            fontWeight: FontWeight.w700,
+            color: text,
+          ),
+          overflow: TextOverflow.ellipsis,
         ),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.more_horiz_rounded,
+              color: text,
+              size: 28,
+            ),
+            onPressed: () => _showCommunityOptions(context),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: NestedScrollView(
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          return [
+            if (_tab.index == 0)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
 
-        // ── Single Transform wrapping BOTH TabBar + TabBarView ──
-        Expanded(
-          child: Transform.translate(
-            offset: const Offset(0, -16),
-            child: Column(children: [
-              // TabBar
-              Container(
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : Colors.white,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(20)),
+                      // Avatar Card Stack
+                      CommunityCardStack(
+                        community: widget.community,
+                        color: color,
+                        isDark: isDark,
+                        onMembersTap: () => _showMembersBottomSheet(context),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Action Buttons Row
+                      _buildActionButtons(context, detailActionColor, isJoined),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
-                child: ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _SliverTabBarDelegate(
+                child: Container(
+                  color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
                   child: TabBar(
                     controller: _tab,
                     labelColor: AppColors.primaryPurple,
@@ -253,503 +576,52 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
                     indicatorColor: AppColors.primaryPurple,
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
-                    splashBorderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(20)),
-                    splashFactory: InkRipple.splashFactory,
-                    overlayColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.pressed)) {
-                        return AppColors.primaryPurple.withValues(alpha: 0.08);
-                      }
-                      return Colors.transparent;
-                    }),
-                    labelStyle:
-                        AppTypography.bodyMedium(AppColors.primaryPurple)
-                            .copyWith(
-                                fontSize: 14, fontWeight: FontWeight.w600),
+                    labelStyle: AppTypography.bodyMedium(AppColors.primaryPurple)
+                        .copyWith(fontSize: 14, fontWeight: FontWeight.w600),
                     tabs: const [Tab(text: 'About'), Tab(text: 'Feed')],
                   ),
                 ),
               ),
-
-              // TabBarView — fills remaining space, NO second Transform.translate
-              Expanded(
-                child: TabBarView(controller: _tab, children: [
-                  _AboutTab(
-                    community: widget.community,
-                    isDark: isDark,
-                    isJoined: isJoined,
-                    canJoin: widget.community.isActive,
-                    color: color,
-                    onJoin: _joinCommunity,
-                    onLeave: _confirmLeaveCommunity,
-                  ),
-                  CommunityPostsFeedScreen(
-                    communityId: widget.community.id,
-                    communityName: widget.community.name,
-                    showAppBar: false,
-                    canCreatePosts: isJoined,
-                  ),
-                ]),
-              ),
-            ]),
-          ),
-        ),
-      ]),
-    );
-  }
-
-  String _fmtCount(int n) => n >= 1000
-      ? '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}k'
-      : '$n';
-}
-
-// ─── About Tab ────────────────────────────────────────────────────────────────
-
-class _AboutTab extends ConsumerWidget {
-  final Community community;
-  final bool isDark;
-  final bool isJoined;
-  final bool canJoin;
-  final Color color;
-  final VoidCallback onJoin;
-  final VoidCallback onLeave;
-
-  const _AboutTab({
-    required this.community,
-    required this.isDark,
-    required this.isJoined,
-    required this.canJoin,
-    required this.color,
-    required this.onJoin,
-    required this.onLeave,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final text = isDark ? AppColors.darkText : AppColors.lightText;
-    final sub =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-
-    final detailActionColor = isJoined
-        ? const Color(0xFFD32F2F)
-        : canJoin
-            ? AppColors.primaryPurple
-            : Colors.grey;
-
-    // Fetch creator profile
-    final creatorAsync =
-        ref.watch(userProfileByIdProvider(community.createdBy));
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Colors.black.withValues(alpha: 0.04)),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('About',
-              style: AppTypography.bodyMedium(text)
-                  .copyWith(fontWeight: FontWeight.w600, fontSize: 15)),
-          const SizedBox(height: 12),
-          Text(community.description,
-              style: AppTypography.bodySmall(sub)
-                  .copyWith(height: 1.6, fontSize: 13.5)),
-          const SizedBox(height: 14),
-          Text('${community.memberCount} members',
-              style: AppTypography.bodySmall(sub).copyWith(fontSize: 12)),
-          const SizedBox(height: 12),
-          Text('Created by',
-              style: AppTypography.bodySmall(sub).copyWith(fontSize: 11)),
-          const SizedBox(height: 6),
-          GestureDetector(
-            onTap: () => _showCreatorProfile(context, community, ref),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.primaryPurple.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: creatorAsync.when(
-                data: (response) {
-                  final profile = response.data;
-                  final displayName = _creatorDisplayName(profile, community);
-                  final avatarUrl =
-                      profile?.avatarUrl ?? community.creatorAvatar;
-                  final validAvatar = _validCreatorImageUrl(avatarUrl);
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ClipOval(
-                        child: SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: validAvatar == null
-                              ? _CreatorInitial(displayName)
-                              : Image.network(
-                                  validAvatar,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      _CreatorInitial(displayName),
-                                ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        displayName,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primaryPurple,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  );
-                },
-                loading: () => const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 1),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Loading',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primaryPurple,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                error: (_, __) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipOval(
-                      child: SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: _CreatorInitial(_creatorFallbackName(community)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _creatorFallbackName(community),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primaryPurple,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          const Divider(height: 1, thickness: 0.5),
-          const SizedBox(height: 20),
-
-          // ── Join / Leave ──
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
-              onPressed: isJoined
-                  ? onLeave
-                  : canJoin
-                      ? onJoin
-                      : null,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(
-                    color: detailActionColor.withValues(alpha: 0.4),
-                    width: 1.2,
-                  ),
-                ),
-              ),
-              child: Text(
-                isJoined
-                    ? 'Leave community'
-                    : canJoin
-                        ? 'Join community'
-                        : 'Community closed',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: detailActionColor,
-                ),
-              ),
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  void _showCreatorProfile(
-      BuildContext context, Community community, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Consumer(
-        builder: (context, refInModal, child) {
-          final creatorId = community.createdBy;
-          final creatorAsync =
-              refInModal.watch(userProfileByIdProvider(creatorId));
-          return Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Creator',
-                  style: AppTypography.headlineSmall(
-                    isDark ? AppColors.darkText : AppColors.lightText,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                creatorAsync.when(
-                  data: (response) {
-                    final profile = response.data;
-                    if (profile == null && community.creatorName == null) {
-                      return _CreatorIdFallback(
-                        displayName: _creatorFallbackName(community),
-                        isDark: isDark,
-                      );
-                    }
-                    return _CreatorAccountPreview(
-                      username: profile?.username ??
-                          community.creatorName ??
-                          'Creator',
-                      avatarUrl: profile?.avatarUrl ?? community.creatorAvatar,
-                      bio: profile?.bio,
-                      isDark: isDark,
-                    );
-                  },
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-                  error: (_, __) => _CreatorIdFallback(
-                    displayName: _creatorFallbackName(community),
-                    isDark: isDark,
-                    message: 'Creator profile is unavailable right now.',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Close'),
-                  ),
-                ),
-              ],
-            ),
-          );
+          ];
         },
-      ),
-    );
-  }
-}
-
-class _CreatorAccountPreview extends StatelessWidget {
-  final String username;
-  final String? avatarUrl;
-  final String? bio;
-  final bool isDark;
-
-  const _CreatorAccountPreview({
-    required this.username,
-    required this.avatarUrl,
-    required this.bio,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final textColor = isDark ? AppColors.darkText : AppColors.lightText;
-    final subColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-    final validAvatar = _validCreatorImageUrl(avatarUrl);
-    final displayName = username.trim().isEmpty ? 'Unknown user' : username;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              ClipOval(
-                child: SizedBox(
-                  width: 52,
-                  height: 52,
-                  child: validAvatar == null
-                      ? _CreatorInitial(displayName)
-                      : Image.network(
-                          validAvatar,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              _CreatorInitial(displayName),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '@$displayName',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.primaryPurple,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (bio != null && bio!.trim().isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Text(
-              bio!.trim(),
-              style: AppTypography.bodySmall(subColor).copyWith(height: 1.45),
+        body: TabBarView(
+          controller: _tab,
+          children: [
+            AboutTab(
+              community: widget.community,
+            ),
+            CommunityPostsFeedScreen(
+              communityId: widget.community.id,
+              communityName: widget.community.name,
+              showAppBar: false,
+              canCreatePosts: isJoined,
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _CreatorIdFallback extends StatelessWidget {
-  final String displayName;
-  final bool isDark;
-  final String? message;
-
-  const _CreatorIdFallback({
-    required this.displayName,
-    required this.isDark,
-    this.message,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final subColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (message != null) ...[
-            Text(
-              message!,
-              style: AppTypography.bodySmall(subColor),
-            ),
-            const SizedBox(height: 12),
-          ],
-          Text(
-            displayName,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: isDark ? AppColors.darkText : AppColors.lightText,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CreatorInitial extends StatelessWidget {
-  final String name;
-
-  const _CreatorInitial(this.name);
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
-    return Container(
-      color: AppColors.primaryPurple.withValues(alpha: 0.12),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: const TextStyle(
-          color: AppColors.primaryPurple,
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
         ),
       ),
     );
   }
 }
 
-String? _validCreatorImageUrl(String? value) {
-  final trimmed = value?.trim();
-  if (trimmed == null || trimmed.isEmpty) return null;
-  final uri = Uri.tryParse(trimmed);
-  if (uri == null || !uri.hasScheme || uri.host.isEmpty) return null;
-  return trimmed;
-}
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
 
-String _creatorDisplayName(UserProfile? profile, Community community) {
-  final profileName = profile?.username.trim();
-  if (profileName != null && profileName.isNotEmpty) return profileName;
-  return _creatorFallbackName(community);
-}
+  _SliverTabBarDelegate({required this.child});
 
-String _creatorFallbackName(Community community) {
-  final embeddedName = community.creatorName?.trim();
-  if (embeddedName != null && embeddedName.isNotEmpty) return embeddedName;
-  return 'Creator';
+  @override
+  double get minExtent => 48;
+  @override
+  double get maxExtent => 48;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return oldDelegate.child != child;
+  }
 }
