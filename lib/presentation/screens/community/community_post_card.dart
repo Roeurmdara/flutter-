@@ -25,12 +25,6 @@ class CommunityPostCard extends ConsumerWidget {
     this.onAuthorTap,
   });
 
-  String _getReadTime(String body) {
-    if (body.trim().isEmpty) return '1 min';
-    final words = body.trim().split(RegExp(r'\s+')).length;
-    final minutes = (words / 150).ceil().clamp(1, 60);
-    return '$minutes min';
-  }
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
@@ -115,7 +109,7 @@ class CommunityPostCard extends ConsumerWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          '${_getReadTime(post.body)} • ${displayName ?? "member"}',
+                          displayName ?? "member",
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
