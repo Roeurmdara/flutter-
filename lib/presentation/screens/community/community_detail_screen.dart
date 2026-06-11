@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/exceptions/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -7,6 +8,7 @@ import '../../../data/models/community_model.dart';
 import '../../../data/models/profile_model.dart';
 import '../../../data/providers/session_provider.dart';
 import '../../../data/providers/community_provider.dart';
+import '../../../data/services/community_service.dart';
 import 'community_posts_feed_screen.dart';
 import 'community_screen.dart' show communityColor;
 
@@ -351,6 +353,10 @@ class _AboutTab extends ConsumerWidget {
     final creatorAsync =
         ref.watch(userProfileByIdProvider(community.createdBy));
 
+    final membersAsync = ref.watch(communityMembersProvider(
+      CommunityMembersPaginationParams(communityId: community.id, page: 1, perPage: 10),
+    ));
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Container(
@@ -372,10 +378,7 @@ class _AboutTab extends ConsumerWidget {
           Text(community.description,
               style: AppTypography.bodySmall(sub)
                   .copyWith(height: 1.6, fontSize: 13.5)),
-          const SizedBox(height: 14),
-          Text('${community.memberCount} members',
-              style: AppTypography.bodySmall(sub).copyWith(fontSize: 12)),
-          const SizedBox(height: 12),
+          const SizedBox(height: 18),
           Text('Created by',
               style: AppTypography.bodySmall(sub).copyWith(fontSize: 11)),
           const SizedBox(height: 6),
@@ -466,6 +469,133 @@ class _AboutTab extends ConsumerWidget {
               ),
             ),
           ),
+          membersAsync.maybeWhen(
+            data: (membersResp) {
+              final members = membersResp.members;
+              if (members.isEmpty) return const SizedBox.shrink();
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 18),
+                  Text('Members',
+                      style: AppTypography.bodySmall(sub).copyWith(fontSize: 11)),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () => _showMembersBottomSheet(context, ref),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          // Overlapping avatar pile
+                          SizedBox(
+                            height: 32,
+                            width: 32.0 + (members.take(5).length - 1) * 20.0,
+                            child: Stack(
+                              children: List.generate(
+                                members.take(5).length,
+                                (index) {
+                                  final member = members[index];
+                                  final avatarUrl = member.avatar;
+                                  final name = member.username;
+                                  return Positioned(
+                                    left: index * 20.0,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isDark ? AppColors.darkSurface : Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: ClipOval(
+                                        child: SizedBox(
+                                          width: 28,
+                                          height: 28,
+                                          child: avatarUrl == null || avatarUrl.trim().isEmpty
+                                              ? Container(
+                                                  color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                                                  alignment: Alignment.center,
+                                                  child: Text(
+                                                    name.isEmpty ? '?' : name[0].toUpperCase(),
+                                                    style: const TextStyle(
+                                                      color: AppColors.primaryPurple,
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                )
+                                              : Image.network(
+                                                  avatarUrl,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) => Container(
+                                                    color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      name.isEmpty ? '?' : name[0].toUpperCase(),
+                                                      style: const TextStyle(
+                                                        color: AppColors.primaryPurple,
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _membersDescription(members, community.memberCount),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: text,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Row(
+                                  children: [
+                                    Text(
+                                      'See all members',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primaryPurple,
+                                      ),
+                                    ),
+                                    SizedBox(width: 3),
+                                    Icon(
+                                      Icons.arrow_forward_ios_rounded,
+                                      size: 10,
+                                      color: AppColors.primaryPurple,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
           const SizedBox(height: 24),
           const Divider(height: 1, thickness: 0.5),
           const SizedBox(height: 20),
@@ -506,6 +636,175 @@ class _AboutTab extends ConsumerWidget {
           ),
         ]),
       ),
+    );
+  }
+
+  String _membersDescription(List<CommunityMember> members, int totalCount) {
+    if (members.isEmpty) return 'No members joined yet';
+    final names = members.take(2).map((m) => m.username).join(', ');
+    if (totalCount <= 2) {
+      return '$names joined';
+    } else {
+      final remaining = totalCount - 2;
+      return '$names and $remaining others';
+    }
+  }
+
+  void _showMembersBottomSheet(BuildContext context, WidgetRef ref) {
+    final text = isDark ? AppColors.darkText : AppColors.lightText;
+    final sub = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Consumer(
+          builder: (context, refInSheet, child) {
+            final membersAsyncInSheet = refInSheet.watch(communityMembersProvider(
+              CommunityMembersPaginationParams(
+                communityId: community.id,
+                page: 1,
+                perPage: 100,
+              ),
+            ));
+
+            return Container(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.black12,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Members (${community.memberCount})',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: text,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: membersAsyncInSheet.when(
+                      data: (response) {
+                        final list = response.members;
+                        if (list.isEmpty) {
+                          return const Center(child: Text('No members found'));
+                        }
+                        return ListView.separated(
+                          itemCount: list.length,
+                          separatorBuilder: (_, __) => Divider(
+                            color: isDark ? Colors.white10 : Colors.grey[200],
+                            height: 1,
+                          ),
+                          itemBuilder: (context, idx) {
+                            final member = list[idx];
+                            final displayName = member.username;
+                            final avatarUrl = member.avatar;
+                            final isCreator = member.userId == community.createdBy;
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: Row(
+                                children: [
+                                  ClipOval(
+                                    child: SizedBox(
+                                      width: 38,
+                                      height: 38,
+                                      child: avatarUrl == null || avatarUrl.trim().isEmpty
+                                          ? Container(
+                                              color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                displayName.isEmpty ? '?' : displayName[0].toUpperCase(),
+                                                style: const TextStyle(
+                                                  color: AppColors.primaryPurple,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            )
+                                          : Image.network(
+                                              avatarUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => Container(
+                                                color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  displayName.isEmpty ? '?' : displayName[0].toUpperCase(),
+                                                  style: const TextStyle(
+                                                    color: AppColors.primaryPurple,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          displayName,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: text,
+                                          ),
+                                        ),
+                                        if (member.role == 'admin' || isCreator) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            isCreator ? 'Owner' : 'Admin',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.primaryPurple,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      error: (err, _) => Center(
+                        child: Text(
+                          'Error loading members: $err',
+                          style: TextStyle(color: sub),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
