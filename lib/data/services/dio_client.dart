@@ -6,6 +6,7 @@ import 'secure_storage_service.dart';
 class DioClient {
   final Dio _dio;
   final SecureStorageService _secureStorage;
+  static Future<String?>? _refreshFuture;
 
   static const String _baseUrl = 'https://habit-api.rattanakmony.com/api/v1';
 
@@ -46,9 +47,16 @@ class DioClient {
           }
           return handler.next(response);
         },
-        onError: (error, handler) {
-          if (error.response?.statusCode == 401) {
-            _secureStorage.clearAuthData();
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401 &&
+              !error.requestOptions.extra.containsKey('authRetry') &&
+              !_isAuthRequest(error.requestOptions.path)) {
+            final retryResponse =
+                await _refreshAndRetry(error.requestOptions);
+            if (retryResponse != null) {
+              return handler.resolve(retryResponse);
+            }
+            await _secureStorage.clearAuthData();
           }
           return handler.next(error);
         },
@@ -83,51 +91,10 @@ class DioClient {
     }
 
     try {
-      final refreshDio = Dio(
-        BaseOptions(
-          baseUrl: _baseUrl,
-          connectTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
-          validateStatus: (status) => status != null && status < 500,
-        ),
-      );
-
-      final refreshResponse = await refreshDio.post<Map<String, dynamic>>(
-        '/auth/refresh',
-        data: {'refresh_token': refreshToken},
-        options: Options(contentType: Headers.jsonContentType),
-      );
-
-      if (refreshResponse.statusCode == null ||
-          refreshResponse.statusCode! < 200 ||
-          refreshResponse.statusCode! >= 300 ||
-          refreshResponse.data == null) {
+      final accessToken = await _refreshAccessToken(refreshToken);
+      if (accessToken == null) {
         await _secureStorage.clearAuthData();
         return null;
-      }
-
-      final data = refreshResponse.data!['data'];
-      if (data is! Map<String, dynamic>) {
-        await _secureStorage.clearAuthData();
-        return null;
-      }
-
-      final tokens = data['tokens'];
-      final accessToken = tokens is Map<String, dynamic>
-          ? tokens['access_token'] as String?
-          : data['access_token'] as String?;
-      final newRefreshToken = tokens is Map<String, dynamic>
-          ? tokens['refresh_token'] as String?
-          : data['refresh_token'] as String?;
-
-      if (accessToken == null || accessToken.isEmpty) {
-        await _secureStorage.clearAuthData();
-        return null;
-      }
-
-      await _secureStorage.saveAccessToken(accessToken);
-      if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
-        await _secureStorage.saveRefreshToken(newRefreshToken);
       }
 
       requestOptions.headers['Authorization'] = 'Bearer $accessToken';
@@ -137,6 +104,66 @@ class DioClient {
       await _secureStorage.clearAuthData();
       return null;
     }
+  }
+
+  Future<String?> _refreshAccessToken(String refreshToken) {
+    final currentRefresh = _refreshFuture;
+    if (currentRefresh != null) {
+      return currentRefresh;
+    }
+
+    _refreshFuture = _performRefresh(refreshToken);
+    return _refreshFuture!.whenComplete(() {
+      _refreshFuture = null;
+    });
+  }
+
+  Future<String?> _performRefresh(String refreshToken) async {
+    final refreshDio = Dio(
+      BaseOptions(
+        baseUrl: _baseUrl,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        validateStatus: (status) => status != null && status < 500,
+      ),
+    );
+
+    final refreshResponse = await refreshDio.post<Map<String, dynamic>>(
+      '/auth/refresh',
+      data: {'refresh_token': refreshToken},
+      options: Options(contentType: Headers.jsonContentType),
+    );
+
+    if (refreshResponse.statusCode == null ||
+        refreshResponse.statusCode! < 200 ||
+        refreshResponse.statusCode! >= 300 ||
+        refreshResponse.data == null) {
+      return null;
+    }
+
+    final data = refreshResponse.data!['data'];
+    if (data is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final tokens = data['tokens'];
+    final accessToken = tokens is Map<String, dynamic>
+        ? tokens['access_token'] as String?
+        : data['access_token'] as String?;
+    final newRefreshToken = tokens is Map<String, dynamic>
+        ? tokens['refresh_token'] as String?
+        : data['refresh_token'] as String?;
+
+    if (accessToken == null || accessToken.isEmpty) {
+      return null;
+    }
+
+    await _secureStorage.saveAccessToken(accessToken);
+    if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+      await _secureStorage.saveRefreshToken(newRefreshToken);
+    }
+
+    return accessToken;
   }
 
   /// Helper method for GET requests

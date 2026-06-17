@@ -35,19 +35,25 @@ class SecureStorageService {
     await _storage.write(key: _refreshTokenKey, value: token);
   }
 
-  /// Get access token - check both SecureStorage and SharedPreferences
+  /// Get access token - prefer SecureStorage, then migrate legacy prefs token.
   Future<String?> getAccessToken() async {
+    final secureToken = await _storage.read(key: _accessTokenKey);
+    if (secureToken != null && secureToken.isNotEmpty) {
+      return secureToken;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final sharedToken = prefs.getString(_sharedPrefTokenKey);
       if (sharedToken != null && sharedToken.isNotEmpty) {
+        await _storage.write(key: _accessTokenKey, value: sharedToken);
         return sharedToken;
       }
     } catch (e) {
       // SharedPreferences might not be available on all platforms
     }
 
-    return _storage.read(key: _accessTokenKey);
+    return null;
   }
 
   /// Get refresh token

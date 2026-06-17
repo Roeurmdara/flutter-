@@ -363,22 +363,35 @@ class CommunityMember {
   });
 
   factory CommunityMember.fromJson(Map<String, dynamic> json) {
-    final user = json['user'] is Map<String, dynamic>
-        ? json['user'] as Map<String, dynamic>
-        : null;
+    final user = _objectValue(json['user']) ??
+        _objectValue(json['profile']) ??
+        _objectValue(json['member']) ??
+        _objectValue(json['account']);
 
     return CommunityMember(
       id: _stringValue(json['id']) ?? '',
       communityId: _stringValue(json['community_id']) ?? '',
-      userId: _stringValue(json['user_id']) ?? _stringValue(json['id']) ?? '',
+      userId: _stringValue(json['user_id']) ??
+          _stringValue(json['member_user_id']) ??
+          _stringValue(json['profile_id']) ??
+          _stringValue(user?['id']) ??
+          _stringValue(user?['user_id']) ??
+          _stringValue(json['id']) ??
+          '',
       username: _stringValue(json['username']) ??
+          _stringValue(json['name']) ??
+          _stringValue(json['display_name']) ??
           _stringValue(user?['username']) ??
           _stringValue(user?['name']) ??
+          _stringValue(user?['display_name']) ??
+          _stringValue(user?['email']) ??
           '',
       avatar: _stringValue(json['avatar']) ??
           _stringValue(json['avatar_url']) ??
+          _stringValue(json['profile_photo_url']) ??
           _stringValue(user?['avatar']) ??
-          _stringValue(user?['avatar_url']),
+          _stringValue(user?['avatar_url']) ??
+          _stringValue(user?['profile_photo_url']),
       role: _stringValue(json['role']) ?? 'member',
       status: _stringValue(json['status']) ?? 'active',
       joinedAt: _dateValue(json['joined_at']),
@@ -439,6 +452,12 @@ String? _stringValue(Object? value) {
   if (value == null) return null;
   final text = value.toString().trim();
   return text.isEmpty ? null : text;
+}
+
+Map<String, dynamic>? _objectValue(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return null;
 }
 
 int? _intValue(Object? value) {

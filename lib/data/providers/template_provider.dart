@@ -1,33 +1,15 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
 import 'package:collection/collection.dart'; // Added for firstWhereOrNull
 import 'package:flutter/foundation.dart';
 import '../models/habit_template_model.dart';
 import '../services/template_service.dart';
-import 'auth_provider.dart';
+import '../services/dio_client.dart';
 
 // ─── Template Service Provider ───────────────────────────────────────────
 
 final templateServiceProvider = Provider((ref) {
-  final dio = Dio();
-  final authState = ref.watch(authProvider);
-  final secureStorage = ref.watch(secureStorageProvider);
-  final token = authState.user?.token ?? '';
-
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final activeToken =
-            token.isNotEmpty ? token : await secureStorage.getAccessToken();
-        if (activeToken != null && activeToken.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $activeToken';
-        }
-        return handler.next(options);
-      },
-    ),
-  );
-
-  return TemplateService(dio);
+  final dioClient = DioClient();
+  return TemplateService(dioClient.dio);
 });
 
 // ─── Sample Template Data (Fallback) ─────────────────────────────────────

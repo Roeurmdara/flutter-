@@ -5,6 +5,9 @@ import '../../../data/models/community_post_model.dart';
 import '../../../data/providers/community_provider.dart';
 import '../../widgets/image_viewer_dialog.dart';
 
+final _likedPostsProvider = StateProvider<Set<String>>((ref) => {});
+final _commentedPostsProvider = StateProvider<Set<String>>((ref) => {});
+
 class CommunityPostCard extends ConsumerWidget {
   final CommunityPost post;
   final String communityId;
@@ -24,7 +27,6 @@ class CommunityPostCard extends ConsumerWidget {
     this.onDeleteTap,
     this.onAuthorTap,
   });
-
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
@@ -59,11 +61,16 @@ class CommunityPostCard extends ConsumerWidget {
       orElse: () => embeddedName,
     );
 
+    final likedPosts = ref.watch(_likedPostsProvider);
+    final commentedPosts = ref.watch(_commentedPostsProvider);
+    final isLiked = likedPosts.contains(post.id);
+    final isCommented = commentedPosts.contains(post.id);
+
     final cardContent = Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.circular(20), // Rounded corners matching design
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: border),
         boxShadow: [
           if (!isDark)
@@ -154,69 +161,53 @@ class CommunityPostCard extends ConsumerWidget {
                 onTap: () => showImageViewer(
                   context,
                   _validImageUrl(post.imageUrl)!,
-                  post.title.trim().isNotEmpty ? post.title.trim() : 'Post Image',
+                  post.title.trim().isNotEmpty
+                      ? post.title.trim()
+                      : 'Post Image',
                 ),
                 child: _PostImage(imageUrl: _validImageUrl(post.imageUrl)!),
               ),
               const SizedBox(height: 16),
             ],
 
-            // ── Footer row: Stats + View Article Button ─────────────────────
+            // ── Footer row: Stats ───────────────────────────────────────────
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Stats
-                Row(
-                  children: [
-                    _StatIcon(
-                      icon: Icons.favorite_rounded,
-                      iconColor: const Color(0xFFF25C74),
-                      label: _formatCount(post.likeCount),
-                      onTap: () => ref
-                          .read(postOperationsProvider.notifier)
-                          .reactToPost(postId: post.id),
-                    ),
-                    const SizedBox(width: 14),
-                    _StatIcon(
-                      icon: Icons.chat_bubble_rounded,
-                      iconColor: const Color(0xFFF5C542),
-                      label: _formatCount(post.commentCount),
-                      onTap: onCommentsTap,
-                    ),
-                    const SizedBox(width: 14),
-                    _StatIcon(
-                      icon: Icons.visibility_rounded,
-                      iconColor: const Color(0xFF8F9BB3),
-                      label: _formatCount(post.likeCount * 7 + post.commentCount * 3 + 24),
-                    ),
-                  ],
+                _StatIcon(
+                  icon: Icons.favorite_rounded,
+                  activeColor: const Color(0xFFF25C74),
+                  label: _formatCount(post.likeCount),
+                  isActive: isLiked,
+                  onTap: () {
+                    final current = ref.read(_likedPostsProvider);
+                    final updated = Set<String>.from(current);
+                    current.contains(post.id)
+                        ? updated.remove(post.id)
+                        : updated.add(post.id);
+                    ref.read(_likedPostsProvider.notifier).state = updated;
+                    ref
+                        .read(postOperationsProvider.notifier)
+                        .reactToPost(postId: post.id);
+                  },
                 ),
-
-                // Action Button
-                SizedBox(
-                  height: 38,
-                  child: ElevatedButton(
-                    onPressed: onTap,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark ? const Color(0xFF2C303B) : const Color(0xFF1A1D24),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                    ),
-                    child: const Text(
-                      'View Article',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.1,
-                      ),
-                    ),
-                  ),
+                const SizedBox(width: 14),
+                _StatIcon(
+                  icon: Icons.chat_bubble_rounded,
+                  activeColor: const Color(0xFFF5C542),
+                  label: _formatCount(post.commentCount),
+                  isActive: isCommented,
+                  onTap: () {
+                    final current = ref.read(_commentedPostsProvider);
+                    final updated = Set<String>.from(current);
+                    current.contains(post.id)
+                        ? updated.remove(post.id)
+                        : updated.add(post.id);
+                    ref.read(_commentedPostsProvider.notifier).state = updated;
+                    onCommentsTap?.call();
+                  },
                 ),
+                const SizedBox(width: 14),
+              
               ],
             ),
           ],
@@ -271,7 +262,7 @@ class _PostImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16), // Rounded matching mockup card image
+      borderRadius: BorderRadius.circular(16),
       child: AspectRatio(
         aspectRatio: 16 / 10,
         child: Image.network(
@@ -283,7 +274,10 @@ class _PostImage extends StatelessWidget {
             alignment: Alignment.center,
             child: Icon(
               Icons.broken_image_outlined,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.45),
             ),
           ),
           loadingBuilder: (context, child, progress) {
@@ -356,14 +350,16 @@ class _InitialAvatar extends StatelessWidget {
 
 class _StatIcon extends StatelessWidget {
   final IconData icon;
-  final Color iconColor;
+  final Color activeColor;
   final String label;
+  final bool isActive;
   final VoidCallback? onTap;
 
   const _StatIcon({
     required this.icon,
-    required this.iconColor,
+    required this.activeColor,
     required this.label,
+    this.isActive = false,
     this.onTap,
   });
 
@@ -371,6 +367,7 @@ class _StatIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textThemeColor = isDark ? AppColors.darkText : AppColors.lightText;
+    final iconColor = isActive ? activeColor : const Color(0xFF8F9BB3);
 
     final child = Row(
       mainAxisSize: MainAxisSize.min,
@@ -388,16 +385,16 @@ class _StatIcon extends StatelessWidget {
       ],
     );
 
-    return onTap != null
-        ? GestureDetector(
-            onTap: onTap,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: child,
-            ),
-          )
-        : child;
+    if (onTap == null) return child;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: child,
+      ),
+    );
   }
 }
 

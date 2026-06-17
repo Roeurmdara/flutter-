@@ -3,35 +3,12 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../services/habit_service.dart';
+import '../services/dio_client.dart';
 import '../models/habit_model.dart';
-import 'auth_provider.dart';
 
 final habitServiceProvider = Provider((ref) {
-  final dio = Dio();
-
-  // Watch auth state to get the token
-  final authState = ref.watch(authProvider);
-  final token = authState.user?.token ?? '';
-
-  dio.interceptors.add(
-    InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        var authToken = token;
-        if (authToken.isEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          authToken = prefs.getString('auth_token') ??
-              prefs.getString('user_token') ??
-              '';
-        }
-        if (authToken.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $authToken';
-        }
-        return handler.next(options);
-      },
-    ),
-  );
-
-  return HabitService(dio);
+  final dioClient = DioClient();
+  return HabitService(dioClient.dio);
 });
 
 // State for habits by date
@@ -553,6 +530,62 @@ class HabitsNotifier extends StateNotifier<HabitState> {
         prefs.setString(_kSelectedDateKey, selectedDate.toIso8601String());
       });
     } catch (_) {}
+    // Start a background sync with server for the selected date so completion
+    // state is consistent across devices/accounts. This won't block the UI.
+    _syncSelectedDateFromServer(selectedDate);
+  }
+
+  // Background sync: query the server for activities on the selected date
+  // for each habit and update the local completedDatesMap accordingly. This
+  // ensures that marking a habit as done on another device/account is
+  // reflected when the same account opens this device.
+  void _syncSelectedDateFromServer(DateTime date) async {
+    try {
+      final dateStr = _formatDate(date);
+      final updatedDatesMap =
+          Map<String, Set<String>>.from(state.completedDatesMap);
+
+      // Query activities for each habit in parallel. IMPORTANT:
+      // - If the server call succeeds we apply its result.
+      // - If the server call fails (network / server error) we SKIP updating
+      //   that habit so local optimistic state remains intact.
+      final futures = state.habits.map((habit) async {
+        try {
+          final resp =
+              await _service.getActivities(habitId: habit.id, date: date);
+          final hasCompleted = resp.data.any((a) => a.isCompleted);
+          return MapEntry(habit.id, hasCompleted);
+        } catch (_) {
+          // Return null to signal a failed fetch for this habit.
+          return null;
+        }
+      }).toList();
+
+      final rawResults = await Future.wait(futures);
+      final results =
+          rawResults.where((e) => e != null).cast<MapEntry<String, bool>>();
+
+      for (final entry in results) {
+        final habitId = entry.key;
+        final isCompleted = entry.value;
+        final currentSet = updatedDatesMap[habitId] ?? <String>{};
+        if (isCompleted) {
+          updatedDatesMap[habitId] = {...currentSet, dateStr};
+        } else {
+          // If server reports not completed, remove local record for that date
+          updatedDatesMap[habitId] =
+              currentSet.where((d) => d != dateStr).toSet();
+        }
+      }
+
+      // Apply and persist
+      state = state.copyWith(completedDatesMap: updatedDatesMap);
+      await _saveLocalCompletedDates();
+      _updateCompletionStatus(state.habits);
+      _updateStreak();
+    } catch (_) {
+      // ignore sync errors; local cache remains authoritative until server responds
+    }
   }
 
   // Get habits for selected date

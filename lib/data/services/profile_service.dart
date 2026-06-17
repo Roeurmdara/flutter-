@@ -3,15 +3,19 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/profile_model.dart';
 import '../models/follower_model.dart';
+import 'secure_storage_service.dart';
 
 class UserProfileService {
   static const String _baseUrl =
       'https://habit-api.rattanakmony.com/api/v1/users';
 
   final Dio _dio;
+  final SecureStorageService _secureStorage;
   String? _authToken;
 
-  UserProfileService({Dio? dio}) : _dio = dio ?? Dio();
+  UserProfileService({Dio? dio, SecureStorageService? secureStorage})
+      : _dio = dio ?? Dio(),
+        _secureStorage = secureStorage ?? SecureStorageService();
 
   /// Set authentication token for subsequent requests
   void setAuthToken(String token) {
@@ -23,6 +27,12 @@ class UserProfileService {
 
   Future<String?> _getAuthToken() async {
     if (_authToken != null && _authToken!.isNotEmpty) {
+      return _authToken;
+    }
+
+    final secureToken = await _secureStorage.getAccessToken();
+    if (secureToken != null && secureToken.isNotEmpty) {
+      _authToken = secureToken;
       return _authToken;
     }
 

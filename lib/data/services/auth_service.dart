@@ -32,7 +32,7 @@ class AuthService {
       );
 
       final response = await _dio.post(
-        '$_baseUrl/register', 
+        '$_baseUrl/register',
         data: request.toJson(),
         options: Options(
           contentType: Headers.jsonContentType,
@@ -44,6 +44,29 @@ class AuthService {
       final authResponse = AuthResponse.fromJson(
         response.data as Map<String, dynamic>,
       );
+
+      // Persist tokens and user data when login succeeds so refresh works
+      try {
+        final token =
+            authResponse.data?.token ?? authResponse.data?.user?.token;
+        final refreshToken = authResponse.data?.refreshToken;
+        if (authResponse.success && token != null && token.isNotEmpty) {
+          await _secureStorage.saveAccessToken(token);
+          if (refreshToken != null && refreshToken.isNotEmpty) {
+            await _secureStorage.saveRefreshToken(refreshToken);
+          }
+
+          if (authResponse.data?.user != null) {
+            await _secureStorage.saveUserData(
+              userId: authResponse.data!.user!.id,
+              email: authResponse.data!.user!.email,
+              username: authResponse.data!.user!.username,
+            );
+          }
+        }
+      } catch (e) {
+        // ignore storage errors here — login still returns success to caller
+      }
 
       return authResponse;
     } on DioException catch (e) {
@@ -90,6 +113,7 @@ class AuthService {
         response.data as Map<String, dynamic>,
       );
 
+      await _persistAuthData(authResponse);
       return authResponse;
     } on DioException catch (e) {
       return _authErrorResponse(e, fallbackMessage: 'Login failed');
@@ -153,10 +177,12 @@ class AuthService {
   /// Opens a secure system browser (Custom Tab) dynamically for OAuth authentication and handles callback redirect.
   Future<AuthResponse> socialLogin(String provider) async {
     try {
-      debugPrint("AuthService: Requesting dynamic OAuth redirect URL from backend for $provider...");
-      
+      debugPrint(
+          "AuthService: Requesting dynamic OAuth redirect URL from backend for $provider...");
+
       // 1. Fetch Keycloak redirect URL dynamically from Laravel API
-      final urlResponse = await _dio.get('$_apiBaseUrl/auth/social/$provider/url');
+      final urlResponse =
+          await _dio.get('$_apiBaseUrl/auth/social/$provider/url');
       if (urlResponse.statusCode != 200 || urlResponse.data == null) {
         return AuthResponse(
           success: false,
@@ -199,14 +225,16 @@ class AuthService {
       if (code == null || state == null) {
         return AuthResponse(
           success: false,
-          message: 'Failed to complete authentication: Callback redirect missing code or state.',
+          message:
+              'Failed to complete authentication: Callback redirect missing code or state.',
           status: 400,
           error: 'Callback URL query parameters: code=$code, state=$state',
           errorCode: 'INVALID_CALLBACK',
         );
       }
 
-      debugPrint("AuthService: Exchanging code and state with backend callback...");
+      debugPrint(
+          "AuthService: Exchanging code and state with backend callback...");
 
       // 4. Exchange code and state for app JWT and user data
       final callbackResponse = await _dio.get(
@@ -236,13 +264,14 @@ class AuthService {
         callbackResponse.data as Map<String, dynamic>,
       );
 
-      debugPrint("AuthService: Exchange successful. Success state: ${authResponse.success}");
+      debugPrint(
+          "AuthService: Exchange successful. Success state: ${authResponse.success}");
 
       // 5. Save tokens securely if successful (check both data.token and data.user.token)
       final token = authResponse.data?.token ?? authResponse.data?.user?.token;
       if (authResponse.success && token != null && token.isNotEmpty) {
         await _secureStorage.saveAccessToken(token);
-        
+
         final refreshToken = authResponse.data?.refreshToken;
         if (refreshToken != null && refreshToken.isNotEmpty) {
           await _secureStorage.saveRefreshToken(refreshToken);
@@ -260,7 +289,7 @@ class AuthService {
       return authResponse;
     } catch (e) {
       debugPrint("AuthService: Exception during social login: $e");
-      
+
       String errorCode = 'UNKNOWN_ERROR';
       String message = 'An unexpected error occurred: $e';
 
@@ -269,7 +298,8 @@ class AuthService {
         message = 'Sign in cancelled';
       } else if (e.toString().contains('PlatformException')) {
         errorCode = 'PLATFORM_ERROR';
-        message = 'Authentication failed. Please check your browser connection.';
+        message =
+            'Authentication failed. Please check your browser connection.';
       }
 
       return AuthResponse(
@@ -292,7 +322,6 @@ class AuthService {
     return socialLogin('github');
   }
 
-
   /// Logout and clear auth data
   Future<void> logout() async {
     await _secureStorage.clearAuthData();
@@ -304,6 +333,28 @@ class AuthService {
 
   Future<void> saveRefreshToken(String token) async {
     await _secureStorage.saveRefreshToken(token);
+  }
+
+  Future<void> _persistAuthData(AuthResponse authResponse) async {
+    final token = authResponse.data?.token ?? authResponse.data?.user?.token;
+    final refreshToken = authResponse.data?.refreshToken;
+    if (!authResponse.success || token == null || token.isEmpty) {
+      return;
+    }
+
+    await _secureStorage.saveAccessToken(token);
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await _secureStorage.saveRefreshToken(refreshToken);
+    }
+
+    final user = authResponse.data?.user;
+    if (user != null) {
+      await _secureStorage.saveUserData(
+        userId: user.id,
+        email: user.email,
+        username: user.username,
+      );
+    }
   }
 
   /// Check if user is logged in

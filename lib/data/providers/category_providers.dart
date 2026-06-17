@@ -1,12 +1,15 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/habit_category_model.dart';
 import '../models/discover_template_model.dart';
+import '../services/dio_client.dart';
 import '../services/habit_category_service.dart';
 import 'auth_provider.dart';
 
 // Service provider
 final habitCategoryServiceProvider = Provider<HabitCategoryService>((ref) {
+  final dioClient = DioClient(secureStorage: ref.watch(secureStorageProvider));
   return HabitCategoryService(
+    dio: dioClient.dio,
     secureStorage: ref.watch(secureStorageProvider),
   );
 });

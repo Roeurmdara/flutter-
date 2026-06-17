@@ -8,57 +8,13 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/exceptions/api_exception.dart';
 import '../../../data/providers/community_provider.dart';
 import '../../../data/providers/category_providers.dart';
-import '../../../data/models/community_model.dart';
 import '../../../data/providers/session_provider.dart';
 import '../../../data/providers/media_provider.dart';
 import '../../../data/models/media_upload_model.dart';
 import 'community_detail_screen.dart';
 import 'community_search_screen.dart';
 import '../../../core/theme/app_typography.dart';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-Color communityColor(Community c) {
-  if (c.customColor != null) {
-    try {
-      return Color(
-          int.parse('FF${c.customColor!.replaceAll('#', '')}', radix: 16));
-    } catch (_) {}
-  }
-  const fallback = {
-    'fitness': Color(0xFFFF6B6B),
-    'health': Color(0xFF10B981),
-    'productivity': Color(0xFF3B82F6),
-    'learning': Color(0xFF8B5CF6),
-    'mindfulness': Color(0xFFFBBF24),
-    'nutrition': Color(0xFF06B6D4),
-    'social': Color(0xFFEC4899),
-    'work': Color(0xFF6366F1),
-  };
-  return fallback[c.categoryId.toLowerCase()] ?? const Color(0xFF7C3AED);
-}
-
-String communityEmoji(Community c) {
-  if (c.customEmoji != null && c.customEmoji!.isNotEmpty) return c.customEmoji!;
-  const fallback = {
-    'fitness': '💪',
-    'health': '🏥',
-    'productivity': '⚡',
-    'learning': '📚',
-    'mindfulness': '🧘',
-    'nutrition': '🥗',
-    'social': '👥',
-    'work': '💼',
-    'hobby': '🎨',
-    'gaming': '🎮',
-    'sports': '⚽',
-    'music': '🎵',
-  };
-  return fallback[c.categoryId.toLowerCase()] ?? '🌟';
-}
-
-String _fmt(int n) =>
-    n >= 1000 ? '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}k' : '$n';
+import 'widgets/community_card.dart';
 
 // ─── Community Screen ─────────────────────────────────────────────────────────
 
@@ -185,57 +141,51 @@ class CommunityScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 104),
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
-              if (mine.isNotEmpty) ...[
-                _Label('My Communities', mine.length, isDark),
-                const SizedBox(height: 10),
-                ...mine.map((c) => _CommunityCard(
-                    community: c,
-                    isDark: isDark,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => CommunityDetailScreen(
-                                  community: c,
-                                  isJoined: true,
-                                ))))),
-                const SizedBox(height: 24),
+                if (mine.isNotEmpty) ...[
+                  _Label('My Communities', mine.length, isDark),
+                  const SizedBox(height: 10),
+                  ...mine.map((c) => CommunityCard(
+                      community: c,
+                      isDark: isDark,
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => CommunityDetailScreen(
+                                  community: c, isJoined: true))))),
+                  const SizedBox(height: 24),
+                ],
+                if (joined.isNotEmpty) ...[
+                  _Label('Joined', joined.length, isDark),
+                  const SizedBox(height: 10),
+                  ...joined.map((c) => CommunityCard(
+                      community: c,
+                      isDark: isDark,
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => CommunityDetailScreen(
+                                  community: c, isJoined: true))))),
+                  const SizedBox(height: 24),
+                ],
+                if (discover.isNotEmpty) ...[
+                  _Label('Discover', discover.length, isDark),
+                  const SizedBox(height: 10),
+                  ...discover.map((c) => CommunityCard(
+                      community: c,
+                      isDark: isDark,
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => CommunityDetailScreen(
+                                  community: c, isJoined: false))))),
+                ],
               ],
-              if (joined.isNotEmpty) ...[
-                _Label('Joined', joined.length, isDark),
-                const SizedBox(height: 10),
-                ...joined.map((c) => _CommunityCard(
-                    community: c,
-                    isDark: isDark,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => CommunityDetailScreen(
-                                  community: c,
-                                  isJoined: true,
-                                ))))),
-                const SizedBox(height: 24),
-              ],
-              if (discover.isNotEmpty) ...[
-                _Label('Discover', discover.length, isDark),
-                const SizedBox(height: 10),
-                ...discover.map((c) => _CommunityCard(
-                    community: c,
-                    isDark: isDark,
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => CommunityDetailScreen(
-                                  community: c,
-                                  isJoined: false,
-                                ))))),
-              ],
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 // ─── Section label ────────────────────────────────────────────────────────────
@@ -295,316 +245,7 @@ class _Label extends StatelessWidget {
   }
 }
 
-// ─── Community card ───────────────────────────────────────────────────────────
-
-class _CommunityCard extends StatelessWidget {
-  final Community community;
-  final bool isDark;
-  final VoidCallback onTap;
-  const _CommunityCard(
-      {required this.community, required this.isDark, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = communityColor(community);
-    final emoji = communityEmoji(community);
-    final bgColor =
-        isDark ? AppColors.darkSurfaceElevated : AppColors.lightSurface;
-    final nameColor = isDark ? AppColors.darkText : AppColors.lightText;
-    final subColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-    final description = community.description.trim();
-    final statusLabel = community.isActive ? 'Active' : 'Closed';
-    final joinLabel = community.joinType.isEmpty
-        ? 'Open'
-        : '${community.joinType[0].toUpperCase()}${community.joinType.substring(1)}';
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.06)
-                : color.withValues(alpha: 0.12),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _CommunityCover(
-                  imageUrl: community.coverImage,
-                  emoji: emoji,
-                  color: color,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                community.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.2,
-                                  color: nameColor,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            _MemberPill(
-                              count: community.memberCount,
-                              color: color,
-                              isDark: isDark,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          description.isEmpty
-                              ? 'No description yet'
-                              : description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            height: 1.35,
-                            color: subColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _MetaChip(
-                  icon: Icons.circle,
-                  label: statusLabel,
-                  color: community.isActive ? AppColors.accentBlue : subColor,
-                  isDark: isDark,
-                ),
-                const SizedBox(width: 8),
-                _MetaChip(
-                  icon: Icons.circle,
-                  label: joinLabel,
-                  color: color,
-                  isDark: isDark,
-                ),
-                const Spacer(),
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 16,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CommunityCover extends StatelessWidget {
-  final String? imageUrl;
-  final String emoji;
-  final Color color;
-
-  const _CommunityCover({
-    required this.imageUrl,
-    required this.emoji,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
-
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: color.withValues(alpha: 0.08),
-        border: Border.all(color: color.withValues(alpha: 0.14)),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(17),
-        child: hasImage
-            ? Image.network(
-                imageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _EmojiFallback(
-                  emoji: emoji,
-                  color: color,
-                ),
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 1.5,
-                        color: color,
-                      ),
-                    ),
-                  );
-                },
-              )
-            : _EmojiFallback(emoji: emoji, color: color),
-      ),
-    );
-  }
-}
-
-class _EmojiFallback extends StatelessWidget {
-  final String emoji;
-  final Color color;
-
-  const _EmojiFallback({required this.emoji, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Text(emoji, style: const TextStyle(fontSize: 18)),
-        ),
-      ),
-    );
-  }
-}
-
-class _MemberPill extends StatelessWidget {
-  final int count;
-  final Color color;
-  final bool isDark;
-
-  const _MemberPill({
-    required this.count,
-    required this.color,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: isDark ? 0.18 : 0.10),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.group_rounded, size: 12, color: color),
-          const SizedBox(width: 4),
-          // Added "Member" text between the icon and the count
-          Text(
-            'member ',
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight:
-                  FontWeight.w600, // Slightly lighter weight for contrast
-              color: color,
-            ),
-          ),
-          Text(
-            _fmt(count),
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetaChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final bool isDark;
-
-  const _MetaChip({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.black.withValues(alpha: 0.035),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.06)
-              : Colors.black.withValues(alpha: 0.05),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: icon == Icons.circle ? 7 : 13, color: color),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// Community card and small sub-widgets are moved to widgets/community_card.dart
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
@@ -710,35 +351,48 @@ class _CreateCommunityDialogState
 
             // Cover image picker (minimal): tap to pick, shows preview
             GestureDetector(
-              onTap: _pickImageFromPhone,
-              child: Container(
-                height: 120,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.lightBorder),
-                ),
-                child: _coverImageFile == null
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.photo_library_outlined,
-                                color: sub, size: 28),
-                            const SizedBox(height: 8),
-                            Text('Pick cover image (optional)',
-                                style: TextStyle(color: sub)),
-                          ],
-                        ),
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(File(_coverImageFile!.path),
-                            fit: BoxFit.cover),
-                      ),
+            onTap: _pickImageFromPhone,
+            child: Container(
+              height: 160,
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.lightBorder),
               ),
+              child: _coverImageFile == null
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: text.withValues(alpha: 0.05),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.add, color: text, size: 28),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Upload Cover Image',
+                            style: TextStyle(fontWeight: FontWeight.w600, color: text),
+                          ),
+                          Text(
+                            'Optional background banner',
+                            style: TextStyle(fontSize: 12, color: sub),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.file(
+                        File(_coverImageFile!.path),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
             ),
+          ),
             const SizedBox(height: 14),
 
             // Live preview — mirrors card exactly
@@ -841,60 +495,7 @@ class _CreateCommunityDialogState
                 ),
             const SizedBox(height: 20),
 
-            // Customize label
-            Text('Customize',
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                    color: sub)),
-            const SizedBox(height: 10),
-
-            // Color + Emoji buttons
-            Row(children: [
-              Expanded(
-                child: _PickerButton(
-                  onTap: () => _pickColor(isDark),
-                  color: _color.withValues(alpha: 0.1),
-                  child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                            width: 14,
-                            height: 14,
-                            decoration: BoxDecoration(
-                                color: _color, shape: BoxShape.circle)),
-                        const SizedBox(width: 8),
-                        Text('Color',
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: _color)),
-                      ]),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _PickerButton(
-                  onTap: () => _pickEmoji(isDark),
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.black.withValues(alpha: 0.04),
-                  child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(_emoji, style: const TextStyle(fontSize: 18)),
-                        const SizedBox(width: 8),
-                        Text('Emoji',
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: sub)),
-                      ]),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 24),
+          
 
             // Actions
             Row(children: [
@@ -988,8 +589,7 @@ class _CreateCommunityDialogState
                 description: _descCtrl.text.trim(),
                 categoryId: _selectedCategoryId!,
                 coverImage: coverImageUrl,
-                customColor: _colorHex,
-                customEmoji: _emoji,
+            
               );
       try {
         await ref.read(communityServiceProvider).joinCommunity(newCommunity.id);

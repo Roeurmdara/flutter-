@@ -13,6 +13,26 @@ import '../services/secure_storage_service.dart';
 import 'session_provider.dart';
 import 'profile_provider.dart';
 
+// Batch fetch user profiles for a list of user IDs. Returns a map of userId -> UserProfile.
+final batchUserProfilesProvider = FutureProvider.family<
+    Map<String, UserProfile>,
+    List<String>>((ref, ids) async {
+  final service = ref.watch(userProfileServiceProvider);
+  final uniqueIds = ids.where((id) => id.isNotEmpty).toSet().toList();
+  final results = await Future.wait(
+    uniqueIds.map((id) => service.getUserProfileById(id)),
+  );
+
+  final Map<String, UserProfile> map = {};
+  for (var i = 0; i < uniqueIds.length; i++) {
+    final res = results[i];
+    if (res.success && res.data != null) {
+      map[uniqueIds[i]] = res.data!;
+    }
+  }
+  return map;
+});
+
 // ─── Service providers ────────────────────────────────────────
 final dioClientProvider = Provider<DioClient>((ref) {
   return DioClient(secureStorage: SecureStorageService());
@@ -27,7 +47,11 @@ final communityPostServiceProvider = Provider<CommunityPostService>((ref) {
 });
 
 final habitCategoryServiceProvider = Provider<HabitCategoryService>((ref) {
-  return HabitCategoryService();
+  final dioClient = ref.watch(dioClientProvider);
+  return HabitCategoryService(
+    dio: dioClient.dio,
+    secureStorage: SecureStorageService(),
+  );
 });
 
 // using userProfileServiceProvider from profile_provider.dart

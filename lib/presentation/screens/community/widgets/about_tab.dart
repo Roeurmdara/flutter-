@@ -5,7 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../data/models/community_model.dart';
 import '../../../../data/providers/community_provider.dart';
-import '../../../../data/services/community_service.dart';
+// import '../../../../data/services/community_service.dart'; // not used
 import 'creator_preview_widget.dart';
 
 class AboutTab extends ConsumerWidget {
@@ -20,13 +20,16 @@ class AboutTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final text = isDark ? AppColors.darkText : AppColors.lightText;
-    final sub = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final sub =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     // Fetch creator profile
-    final creatorAsync = ref.watch(userProfileByIdProvider(community.createdBy));
+    final creatorAsync =
+        ref.watch(userProfileByIdProvider(community.createdBy));
 
     final membersAsync = ref.watch(communityMembersProvider(
-      CommunityMembersPaginationParams(communityId: community.id, page: 1, perPage: 10),
+      CommunityMembersPaginationParams(
+          communityId: community.id, page: 1, perPage: 10),
     ));
 
     return SingleChildScrollView(
@@ -45,7 +48,9 @@ class AboutTab extends ConsumerWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black12 : Colors.black.withValues(alpha: 0.02),
+              color: isDark
+                  ? Colors.black12
+                  : Colors.black.withValues(alpha: 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -79,7 +84,8 @@ class AboutTab extends ConsumerWidget {
             GestureDetector(
               onTap: () => _showCreatorProfile(context, community, ref),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.primaryPurple.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -88,7 +94,8 @@ class AboutTab extends ConsumerWidget {
                   data: (response) {
                     final profile = response.data;
                     final displayName = creatorDisplayName(profile, community);
-                    final avatarUrl = profile?.avatarUrl ?? community.creatorAvatar;
+                    final avatarUrl =
+                        profile?.avatarUrl ?? community.creatorAvatar;
                     final validAvatar = validCreatorImageUrl(avatarUrl);
                     return Row(
                       mainAxisSize: MainAxisSize.min,
@@ -173,7 +180,8 @@ class AboutTab extends ConsumerWidget {
                     const SizedBox(height: 18),
                     Text(
                       'Members',
-                      style: AppTypography.bodySmall(sub).copyWith(fontSize: 11),
+                      style:
+                          AppTypography.bodySmall(sub).copyWith(fontSize: 11),
                     ),
                     const SizedBox(height: 8),
                     InkWell(
@@ -183,104 +191,98 @@ class AboutTab extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
                           children: [
-                            // Overlapping avatar pile
-                            SizedBox(
-                              height: 32,
-                              width: 32.0 + (members.take(5).length - 1) * 20.0,
-                              child: Stack(
-                                children: List.generate(
-                                  members.take(5).length,
-                                  (index) {
-                                    final member = members[index];
-                                    final avatarUrl = member.avatar;
-                                    final name = member.username;
-                                    return Positioned(
-                                      left: index * 20.0,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: isDark ? AppColors.darkSurface : Colors.white,
-                                            width: 2,
-                                          ),
-                                        ),
-                                        child: ClipOval(
-                                          child: SizedBox(
-                                            width: 28,
-                                            height: 28,
-                                            child: avatarUrl == null || avatarUrl.trim().isEmpty
-                                                ? Container(
-                                                    color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                            // Show up to 3 member previews (avatar + short name)
+                            Row(
+                              children: members.take(3).map((member) {
+                                final avatarUrl = member.avatar;
+                                final name = member.username.isEmpty
+                                    ? (member.userId.isNotEmpty
+                                        ? member.userId
+                                        : 'Member')
+                                    : member.username;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 12.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ClipOval(
+                                        child: SizedBox(
+                                          width: 36,
+                                          height: 36,
+                                          child: avatarUrl == null ||
+                                                  avatarUrl.trim().isEmpty
+                                              ? Container(
+                                                  color: AppColors.primaryPurple
+                                                      .withValues(alpha: 0.12),
+                                                  alignment: Alignment.center,
+                                                  child: Text(
+                                                    name[0].toUpperCase(),
+                                                    style: const TextStyle(
+                                                      color: AppColors
+                                                          .primaryPurple,
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                )
+                                              : Image.network(
+                                                  avatarUrl,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) =>
+                                                      Container(
+                                                    color: AppColors
+                                                        .primaryPurple
+                                                        .withValues(
+                                                            alpha: 0.12),
                                                     alignment: Alignment.center,
                                                     child: Text(
-                                                      name.isEmpty ? '?' : name[0].toUpperCase(),
+                                                      name[0].toUpperCase(),
                                                       style: const TextStyle(
-                                                        color: AppColors.primaryPurple,
-                                                        fontSize: 11,
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  )
-                                                : Image.network(
-                                                    avatarUrl,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (_, __, ___) => Container(
-                                                      color: AppColors.primaryPurple.withValues(alpha: 0.12),
-                                                      alignment: Alignment.center,
-                                                      child: Text(
-                                                        name.isEmpty ? '?' : name[0].toUpperCase(),
-                                                        style: const TextStyle(
-                                                          color: AppColors.primaryPurple,
-                                                          fontSize: 11,
-                                                          fontWeight: FontWeight.bold,
-                                                        ),
+                                                        color: AppColors
+                                                            .primaryPurple,
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                                   ),
-                                          ),
+                                                ),
                                         ),
                                       ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _membersDescription(members, community.memberCount),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: text,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  const Row(
-                                    children: [
-                                      Text(
-                                        'See all members',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.primaryPurple,
+                                      const SizedBox(height: 6),
+                                      SizedBox(
+                                        width: 64,
+                                        child: Text(
+                                          name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              color: sub,
+                                              fontWeight: FontWeight.w600),
                                         ),
-                                      ),
-                                      SizedBox(width: 3),
-                                      Icon(
-                                        Icons.arrow_forward_ios_rounded,
-                                        size: 10,
-                                        color: AppColors.primaryPurple,
                                       ),
                                     ],
                                   ),
-                                ],
-                              ),
+                                );
+                              }).toList(),
+                            ),
+                            const Spacer(),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: const [
+                                Text(
+                                  'See all members',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryPurple,
+                                  ),
+                                ),
+                                SizedBox(height: 3),
+                              ],
                             ),
                           ],
                         ),
@@ -297,21 +299,13 @@ class AboutTab extends ConsumerWidget {
     );
   }
 
-  String _membersDescription(List<CommunityMember> members, int totalCount) {
-    if (members.isEmpty) return 'No members joined yet';
-    final names = members.take(2).map((m) => m.username).join(', ');
-    if (totalCount <= 2) {
-      return '$names joined';
-    } else {
-      final remaining = totalCount - 2;
-      return '$names and $remaining others';
-    }
-  }
+  // members description helper removed; showing explicit previews instead
 
   void _showMembersBottomSheet(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final text = isDark ? AppColors.darkText : AppColors.lightText;
-    final sub = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final sub =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     showModalBottomSheet(
       context: context,
@@ -322,7 +316,8 @@ class AboutTab extends ConsumerWidget {
       builder: (context) {
         return Consumer(
           builder: (context, refInSheet, child) {
-            final membersAsyncInSheet = refInSheet.watch(communityMembersProvider(
+            final membersAsyncInSheet =
+                refInSheet.watch(communityMembersProvider(
               CommunityMembersPaginationParams(
                 communityId: community.id,
                 page: 1,
@@ -373,7 +368,8 @@ class AboutTab extends ConsumerWidget {
                             final member = list[idx];
                             final displayName = member.username;
                             final avatarUrl = member.avatar;
-                            final isCreator = member.userId == community.createdBy;
+                            final isCreator =
+                                member.userId == community.createdBy;
 
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -383,14 +379,20 @@ class AboutTab extends ConsumerWidget {
                                     child: SizedBox(
                                       width: 38,
                                       height: 38,
-                                      child: avatarUrl == null || avatarUrl.trim().isEmpty
+                                      child: avatarUrl == null ||
+                                              avatarUrl.trim().isEmpty
                                           ? Container(
-                                              color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                                              color: AppColors.primaryPurple
+                                                  .withValues(alpha: 0.12),
                                               alignment: Alignment.center,
                                               child: Text(
-                                                displayName.isEmpty ? '?' : displayName[0].toUpperCase(),
+                                                displayName.isEmpty
+                                                    ? '?'
+                                                    : displayName[0]
+                                                        .toUpperCase(),
                                                 style: const TextStyle(
-                                                  color: AppColors.primaryPurple,
+                                                  color:
+                                                      AppColors.primaryPurple,
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -399,13 +401,19 @@ class AboutTab extends ConsumerWidget {
                                           : Image.network(
                                               avatarUrl,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) => Container(
-                                                color: AppColors.primaryPurple.withValues(alpha: 0.12),
+                                              errorBuilder: (_, __, ___) =>
+                                                  Container(
+                                                color: AppColors.primaryPurple
+                                                    .withValues(alpha: 0.12),
                                                 alignment: Alignment.center,
                                                 child: Text(
-                                                  displayName.isEmpty ? '?' : displayName[0].toUpperCase(),
+                                                  displayName.isEmpty
+                                                      ? '?'
+                                                      : displayName[0]
+                                                          .toUpperCase(),
                                                   style: const TextStyle(
-                                                    color: AppColors.primaryPurple,
+                                                    color:
+                                                        AppColors.primaryPurple,
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.bold,
                                                   ),
@@ -417,7 +425,8 @@ class AboutTab extends ConsumerWidget {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           displayName,
@@ -427,7 +436,8 @@ class AboutTab extends ConsumerWidget {
                                             color: text,
                                           ),
                                         ),
-                                        if (member.role == 'admin' || isCreator) ...[
+                                        if (member.role == 'admin' ||
+                                            isCreator) ...[
                                           const SizedBox(height: 2),
                                           Text(
                                             isCreator ? 'Owner' : 'Admin',

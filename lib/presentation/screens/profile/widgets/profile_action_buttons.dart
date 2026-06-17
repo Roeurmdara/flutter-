@@ -24,7 +24,7 @@ class ProfileActionButtons extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onEditProfileTap,
               style: ElevatedButton.styleFrom(
-                backgroundColor: forestGreen,
+                backgroundColor:  AppColors.primaryPurple,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(

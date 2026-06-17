@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import '../services/profile_service.dart';
+import '../services/dio_client.dart';
 import '../models/profile_model.dart';
 import '../models/follower_model.dart';
 import 'auth_provider.dart';
@@ -124,12 +125,12 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 
     if (response.success && response.data != null) {
       await _cacheProfile(response.data!);
-      
+
       // Sync with AuthNotifier
       _ref.read(authProvider.notifier).updateUserInfo(
-        username: response.data!.username,
-        avatarUrl: response.data!.avatarUrl,
-      );
+            username: response.data!.username,
+            avatarUrl: response.data!.avatarUrl,
+          );
 
       // ✅ Bump avatarVersion so the UI rebuilds with a fresh image URL.
       //    This forces CachedNetworkImage to treat the URL as new even if
@@ -422,11 +423,9 @@ class FollowingNotifier extends StateNotifier<FollowingState> {
 
 // ── Service provider ──────────────────────────────────────────────────────────
 final userProfileServiceProvider = Provider<UserProfileService>((ref) {
-  final service = UserProfileService();
-  final token = ref.watch(authProvider).user?.token ?? '';
-  if (token.isNotEmpty) {
-    service.setAuthToken(token);
-  }
+  // Use shared DioClient so requests go through the auth interceptor
+  final dioClient = DioClient();
+  final service = UserProfileService(dio: dioClient.dio);
   return service;
 });
 

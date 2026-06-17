@@ -1,7 +1,9 @@
+﻿
 import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:habit_tracker/core/theme/app_typography.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/providers/profile_provider.dart';
 import '../../../data/providers/habit_provider.dart';
@@ -10,6 +12,7 @@ import 'following_screen.dart';
 import 'edit_profile_form.dart';
 import 'widgets/profile_stats_card.dart';
 import 'widgets/profile_action_buttons.dart';
+
 
 class ProfileScreen extends ConsumerStatefulWidget {
   final VoidCallback? onNavigateToSettings;
@@ -77,87 +80,86 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final habitState = ref.watch(habitsProvider);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      body: SafeArea(
-        child: profileState.isLoading && profile == null
-            ? const Center(
-                child: CircularProgressIndicator(),
-              )
-            : profile != null
-                ? SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 1. Header Row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Profile',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? AppColors.darkText : AppColors.lightText,
-                                ),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.settings_outlined,
-                                  color: isDark ? AppColors.darkText : AppColors.lightText,
-                                  size: 28,
-                                ),
-                                onPressed: widget.onNavigateToSettings ?? () {},
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 32),
-
-                          // 2. Avatar Card Stack
-                          ProfileStatsCard(
-                            username: profile.username as String? ?? '',
-                            bio: profile.bio,
-                            avatarUrl: profile.avatarUrl,
-                            avatarVersion: profileState.avatarVersion,
-                            followersCount: followersState.meta.total,
-                            followingCount: followingState.meta.total,
-                            postsCount: habitState.habits.length,
-                            onFollowersTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const FollowersScreen(),
-                                ),
-                              );
-                            },
-                            onFollowingTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const FollowingScreen(),
-                                ),
-                              );
-                            },
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // 3. Action Buttons Row
-                          ProfileActionButtons(
-                            onEditProfileTap: () => _openEditProfileSheet(profile),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: _buildErrorWidget(isDark),
-                  ),
+  backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+  appBar: AppBar(
+    backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+    elevation: 0,
+    scrolledUnderElevation: 0,
+    title: Text(
+      'Profile',
+      style:AppTypography.titleLarge(
+        isDark ? AppColors.darkText : AppColors.lightText,
+      ).copyWith(
+        fontSize: 18,
       ),
-    );
+    ),
+    actions: [
+      IconButton(
+        icon: Icon(
+          Icons.settings_outlined,
+          color: isDark ? AppColors.darkText : AppColors.lightText,
+          size: 24, // Matched with standard action bar size
+        ),
+        onPressed: widget.onNavigateToSettings ?? () {},
+      ),
+    ],
+  ),
+  body: SafeArea(
+    child: profileState.isLoading && profile == null
+        ? const Center(
+            child: CircularProgressIndicator(),
+          )
+        : profile != null
+            ? SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Avatar Card Stack
+                      ProfileStatsCard(
+                        username: profile.username as String? ?? '',
+                        bio: profile.bio,
+                        avatarUrl: profile.avatarUrl,
+                        avatarVersion: profileState.avatarVersion,
+                        followersCount: followersState.meta.total,
+                        followingCount: followingState.meta.total,
+                        postsCount: habitState.habits.length,
+                        onFollowersTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const FollowersScreen(),
+                            ),
+                          );
+                        },
+                        onFollowingTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const FollowingScreen(),
+                            ),
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // 2. Action Buttons Row
+                      ProfileActionButtons(
+                        onEditProfileTap: () => _openEditProfileSheet(profile),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.all(24),
+                child: _buildErrorWidget(isDark),
+              ),
+  ),
+);
   }
 
   Widget _buildErrorWidget(bool isDark) {

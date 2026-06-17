@@ -30,7 +30,6 @@ class ProfileStatsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBgColor = isDark ? AppColors.darkSurface : const Color(0xFFE8F1FF);
     final textColor = isDark ? AppColors.darkText : AppColors.lightText;
     final secondaryTextColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
@@ -38,16 +37,34 @@ class ProfileStatsCard extends StatelessWidget {
       clipBehavior: Clip.none,
       alignment: Alignment.topCenter,
       children: [
-        // The Light Blue Card
+        // The Card
         Container(
           width: double.infinity,
-          margin: const EdgeInsets.only(top: 45), // space for avatar overlap
+          margin: const EdgeInsets.only(top: 45),
           padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
           decoration: BoxDecoration(
-            color: cardBgColor,
+            gradient: isDark
+                ? LinearGradient(
+                    colors: [
+                      AppColors.primaryPurple.withValues(alpha: 0.35),
+                      AppColors.primaryPurpleDark.withValues(alpha: 0.18),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : LinearGradient(
+                    colors: [
+                      AppColors.primaryPurple.withValues(alpha: 0.12),
+                      AppColors.primaryPurpleDark.withValues(alpha: 0.06),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: isDark ? AppColors.darkBorder : Colors.transparent,
+              color: isDark
+                  ? AppColors.primaryPurple.withValues(alpha: 0.25)
+                  : AppColors.primaryPurple.withValues(alpha: 0.10),
             ),
           ),
           child: Column(

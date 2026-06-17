@@ -281,115 +281,108 @@ class _CommunityPostDetailScreenState
     );
   }
 
-  Widget _buildInputBar(BuildContext context, String? avatarUrl, String username) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surface = isDark ? AppColors.darkSurface : Colors.white;
-    final border = isDark ? Colors.white10 : Colors.grey[200]!;
-    final text = isDark ? AppColors.darkText : AppColors.lightText;
-    final bg = isDark ? AppColors.darkBackground : Colors.grey[100]!;
+Widget _buildInputBar(BuildContext context, String? avatarUrl, String username) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final text = isDark ? AppColors.darkText : AppColors.lightText;
+  final hint = isDark ? Colors.white30 : Colors.grey[400]!;
+  final divider = isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.05);
+  
+  final bottomPadding = MediaQuery.of(context).padding.bottom;
+  final isTextEmpty = _commentController.text.trim().isEmpty;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: surface,
-        border: Border(top: BorderSide(color: border)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.fromLTRB(
-        12,
-        10,
-        12,
-        MediaQuery.of(context).padding.bottom + 10,
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            ClipOval(
-              child: SizedBox(
-                width: 34,
-                height: 34,
-                child: avatarUrl == null || avatarUrl.trim().isEmpty
-                    ? Container(
-                        color: AppColors.primaryPurple.withValues(alpha: 0.12),
-                        alignment: Alignment.center,
-                        child: Text(
-                          username.isEmpty ? '?' : username[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: AppColors.primaryPurple,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                    : Image.network(avatarUrl, fit: BoxFit.cover),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _commentController,
-                        focusNode: _focusNode,
-                        style: TextStyle(fontSize: 14, color: text),
-                        maxLines: 4,
-                        minLines: 1,
-                        decoration: InputDecoration(
-                          hintText: 'Write a comment…',
-                          hintStyle: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? Colors.white54 : Colors.grey[500],
-                          ),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                        ),
-                        onChanged: (_) => setState(() {}),
+  return Container(
+    decoration: BoxDecoration(
+      color: isDark ? AppColors.darkBackground : Colors.white,
+      border: Border(top: BorderSide(color: divider, width: 1)),
+    ),
+    // Compact overall bar padding
+    padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding > 0 ? bottomPadding + 6 : 8),
+    child: Row(
+      // CHANGED: Back to center alignment since the form is now shorter and sleeker
+      crossAxisAlignment: CrossAxisAlignment.center, 
+      children: [
+        // Avatar
+        ClipOval(
+          child: SizedBox(
+            width: 34, // Slightly scaled down to match the shorter bar
+            height: 34,
+            child: avatarUrl == null || avatarUrl.trim().isEmpty
+                ? Container(
+                    color: AppColors.primaryPurple.withValues(alpha: 0.10),
+                    alignment: Alignment.center,
+                    child: Text(
+                      username.isEmpty ? '?' : username[0].toUpperCase(),
+                      textScaler: TextScaler.noScaling, 
+                      style: const TextStyle(
+                        color: AppColors.primaryPurple,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _isSubmitting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primaryPurple,
-                            ),
-                          )
-                        : IconButton(
-                            onPressed: _commentController.text.trim().isEmpty
-                                ? null
-                                : _submitComment,
-                            icon: const Icon(Icons.send_rounded),
-                            color: AppColors.primaryPurple,
-                            disabledColor: isDark ? Colors.white24 : Colors.grey[300],
-                            iconSize: 18,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+                  )
+                : Image.network(avatarUrl, fit: BoxFit.cover),
+          ),
         ),
-      ),
-    );
-  }
+        const SizedBox(width: 12),
+
+        // Input field
+        Expanded(
+          child: TextField(
+            controller: _commentController,
+            focusNode: _focusNode,
+            style: TextStyle(fontSize: 15, color: text, height: 1.3),
+            maxLines: 4,
+            minLines: 1,
+            textInputAction: TextInputAction.newline,
+            decoration: InputDecoration(
+              hintText: 'Add a comment…',
+              hintStyle: TextStyle(fontSize: 15, color: hint),
+              border: InputBorder.none,
+              isDense: true,
+              // 🔥 CHANGED: Shorter height (vertical: 8) but spacious wide sides (horizontal: 14)
+              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
+        const SizedBox(width: 10),
+
+        // Send button
+        IgnorePointer(
+          ignoring: isTextEmpty, 
+          child: AnimatedOpacity(
+            opacity: isTextEmpty ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 180),
+            child: _isSubmitting
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        color: AppColors.primaryPurple,
+                      ),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.arrow_upward_rounded),
+                    color: AppColors.primaryPurple,
+                    iconSize: 24, 
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(4),
+                    onPressed: isTextEmpty ? null : _submitComment,
+                  ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+}
+
+
 }
 
 class _CommentTile extends ConsumerWidget {
