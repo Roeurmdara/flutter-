@@ -2,12 +2,13 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/community_model.dart';
-import '../models/community_post_model.dart';
+import '../models/community_post_model.dart' hide PaginationMeta;
 import '../models/habit_category_model.dart';
 import '../models/profile_model.dart';
 import '../services/community_service.dart';
 import '../services/community_post_service.dart';
 import '../services/habit_category_service.dart';
+import '../services/secure_storage_service.dart';
 import 'session_provider.dart';
 import 'profile_provider.dart';
 import 'core_providers.dart';
@@ -84,11 +85,22 @@ final userProfileByIdProvider = FutureProvider.family<ProfileResponse, String>(
 // ─── Community members ────────────────────────────────────────
 final communityMembersProvider = FutureProvider.family<CommunityMembersResponse,
     CommunityMembersPaginationParams>((ref, params) async {
-  return ref.watch(communityServiceProvider).getCommunityMembers(
-        params.communityId,
-        page: params.page,
-        perPage: params.perPage,
-      );
+  try {
+    return await ref.watch(communityServiceProvider).getCommunityMembers(
+          params.communityId,
+          page: params.page,
+          perPage: params.perPage,
+        );
+  } catch (_) {
+    return CommunityMembersResponse(
+      members: [],
+      pagination: PaginationMeta(
+        page: 1, size: 10, totalElements: 0, total: 0,
+        totalPages: 0, hasNext: false, hasPrevious: false,
+        perPage: 10, lastPage: 0,
+      ),
+    );
+  }
 });
 
 // ─── SINGLE SOURCE OF TRUTH: joined IDs come from sessionProvider ───

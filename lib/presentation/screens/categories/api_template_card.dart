@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/habit_template_model.dart';
+import '../../../data/models/habit_category_model.dart';
 import '../../../data/providers/habit_provider.dart';
+import '../../../data/providers/category_providers.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // APITemplateCard
@@ -325,8 +327,27 @@ class _APITemplateDetailSheetState
 
     setState(() => _isCreating = true);
     try {
+      String resolvedCategoryId = widget.template.categoryId;
+      // Sample templates have fake categoryId like 'cat_fitness'
+      // Resolve to a real API category UUID
+      if (resolvedCategoryId.startsWith('cat_')) {
+        try {
+          final categories = await ref.read(categoriesProvider.future);
+          final matches = categories.where(
+            (c) => c.name.toLowerCase() == widget.template.category.toLowerCase(),
+          ).toList();
+          if (matches.isNotEmpty) {
+            resolvedCategoryId = matches.first.id;
+          } else if (categories.isNotEmpty) {
+            resolvedCategoryId = categories.first.id;
+          }
+        } catch (_) {
+          // Categories fetch failed — try with original ID anyway
+        }
+      }
+
       await ref.read(habitsProvider.notifier).createHabit(
-            categoryId: widget.template.categoryId,
+            categoryId: resolvedCategoryId,
             title: _titleController.text.trim(),
             // Use the user-edited description & tips
             description: _descriptionController.text.trim(),

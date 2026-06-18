@@ -409,10 +409,14 @@ final templatesByCategoryProvider =
     debugPrint('Error fetching templates by category: $e');
   }
 
-  // Fallback to sample templates if API fails
-  return _sampleTemplates
+  // Fallback to sample templates if API returns nothing or fails.
+  final matched = _sampleTemplates
       .where((t) => t.categoryId.toLowerCase() == categoryId.toLowerCase())
       .toList();
+  if (matched.isNotEmpty) return matched;
+
+  // Show all sample templates so the discover screen isn't empty.
+  return List.of(_sampleTemplates);
 });
 
 final filteredTemplatesProvider = Provider((ref) {

@@ -26,9 +26,9 @@ class HabitCategory {
 
   factory HabitCategory.fromJson(Map<String, dynamic> json) {
     return HabitCategory(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      description: json['description'] as String,
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String? ?? '',
       icon: json['icon'] as String? ?? 'string',
       colorHex: json['color_hex'] as String? ?? '#FF6B6B',
       isActive: json['is_active'] as bool? ?? true,
