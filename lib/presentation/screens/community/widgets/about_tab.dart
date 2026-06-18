@@ -6,6 +6,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../data/models/community_model.dart';
 import '../../../../data/providers/community_provider.dart';
 // import '../../../../data/services/community_service.dart'; // not used
+import '../../profile/other_user_profile_screen.dart';
 import 'creator_preview_widget.dart';
 
 class AboutTab extends ConsumerWidget {
@@ -200,37 +201,27 @@ class AboutTab extends ConsumerWidget {
                                         ? member.userId
                                         : 'Member')
                                     : member.username;
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 12.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ClipOval(
-                                        child: SizedBox(
-                                          width: 36,
-                                          height: 36,
-                                          child: avatarUrl == null ||
-                                                  avatarUrl.trim().isEmpty
-                                              ? Container(
-                                                  color: AppColors.primaryPurple
-                                                      .withValues(alpha: 0.12),
-                                                  alignment: Alignment.center,
-                                                  child: Text(
-                                                    name[0].toUpperCase(),
-                                                    style: const TextStyle(
-                                                      color: AppColors
-                                                          .primaryPurple,
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                )
-                                              : Image.network(
-                                                  avatarUrl,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) =>
-                                                      Container(
+                                return GestureDetector(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => OtherUserProfileScreen(
+                                          userId: member.userId),
+                                    ),
+                                  ),
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.only(right: 12.0),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ClipOval(
+                                          child: SizedBox(
+                                            width: 36,
+                                            height: 36,
+                                            child: avatarUrl == null ||
+                                                    avatarUrl.trim().isEmpty
+                                                ? Container(
                                                     color: AppColors
                                                         .primaryPurple
                                                         .withValues(
@@ -246,25 +237,50 @@ class AboutTab extends ConsumerWidget {
                                                             FontWeight.bold,
                                                       ),
                                                     ),
+                                                  )
+                                                : Image.network(
+                                                    avatarUrl,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (_, __, ___) =>
+                                                            Container(
+                                                      color: AppColors
+                                                          .primaryPurple
+                                                          .withValues(
+                                                              alpha: 0.12),
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: Text(
+                                                        name[0].toUpperCase(),
+                                                        style:
+                                                            const TextStyle(
+                                                          color: AppColors
+                                                              .primaryPurple,
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
                                                   ),
-                                                ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      SizedBox(
-                                        width: 64,
-                                        child: Text(
-                                          name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              fontSize: 11,
-                                              color: sub,
-                                              fontWeight: FontWeight.w600),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(height: 6),
+                                        SizedBox(
+                                          width: 64,
+                                          child: Text(
+                                            name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                                fontSize: 11,
+                                                color: sub,
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 );
                               }).toList(),
@@ -371,38 +387,28 @@ class AboutTab extends ConsumerWidget {
                             final isCreator =
                                 member.userId == community.createdBy;
 
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              child: Row(
-                                children: [
-                                  ClipOval(
-                                    child: SizedBox(
-                                      width: 38,
-                                      height: 38,
-                                      child: avatarUrl == null ||
-                                              avatarUrl.trim().isEmpty
-                                          ? Container(
-                                              color: AppColors.primaryPurple
-                                                  .withValues(alpha: 0.12),
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                displayName.isEmpty
-                                                    ? '?'
-                                                    : displayName[0]
-                                                        .toUpperCase(),
-                                                style: const TextStyle(
-                                                  color:
-                                                      AppColors.primaryPurple,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            )
-                                          : Image.network(
-                                              avatarUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  Container(
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => OtherUserProfileScreen(
+                                        userId: member.userId),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                child: Row(
+                                  children: [
+                                    ClipOval(
+                                      child: SizedBox(
+                                        width: 38,
+                                        height: 38,
+                                        child: avatarUrl == null ||
+                                                avatarUrl.trim().isEmpty
+                                            ? Container(
                                                 color: AppColors.primaryPurple
                                                     .withValues(alpha: 0.12),
                                                 alignment: Alignment.center,
@@ -412,46 +418,70 @@ class AboutTab extends ConsumerWidget {
                                                       : displayName[0]
                                                           .toUpperCase(),
                                                   style: const TextStyle(
-                                                    color:
-                                                        AppColors.primaryPurple,
+                                                    color: AppColors
+                                                        .primaryPurple,
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
+                                              )
+                                            : Image.network(
+                                                avatarUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) =>
+                                                    Container(
+                                                  color: AppColors
+                                                      .primaryPurple
+                                                      .withValues(alpha: 0.12),
+                                                  alignment: Alignment.center,
+                                                  child: Text(
+                                                    displayName.isEmpty
+                                                        ? '?'
+                                                        : displayName[0]
+                                                            .toUpperCase(),
+                                                    style: const TextStyle(
+                                                      color: AppColors
+                                                          .primaryPurple,
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            displayName,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: text,
+                                            ),
+                                          ),
+                                          if (member.role == 'admin' ||
+                                              isCreator) ...[
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              isCreator ? 'Owner' : 'Admin',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.primaryPurple,
+                                                fontWeight: FontWeight.w600,
                                               ),
                                             ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          displayName,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: text,
-                                          ),
-                                        ),
-                                        if (member.role == 'admin' ||
-                                            isCreator) ...[
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            isCreator ? 'Owner' : 'Admin',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppColors.primaryPurple,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
+                                          ],
                                         ],
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -524,7 +554,7 @@ class AboutTab extends ConsumerWidget {
                       child: CircularProgressIndicator(),
                     ),
                   ),
-                  error: (_, __) => CreatorIdFallback(
+                    error: (_, __) => CreatorIdFallback(
                     displayName: creatorFallbackName(community),
                     isDark: isDark,
                     message: 'Creator profile is unavailable right now.',
@@ -534,6 +564,27 @@ class AboutTab extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              OtherUserProfileScreen(userId: creatorId),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryPurple,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('View Full Profile'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: const Text('Close'),
                   ),
