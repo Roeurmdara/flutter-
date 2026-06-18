@@ -121,7 +121,7 @@ class _OtherUserProfileScreenState extends ConsumerState<OtherUserProfileScreen>
                 ? CachedNetworkImage(
                     imageUrl: avatarUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _buildInitialAvatar(username),
+                    errorWidget: (_, __, ___) => _buildInitialAvatar(username),
                   )
                 : _buildInitialAvatar(username),
           ),
