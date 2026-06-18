@@ -2,8 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/community_service.dart';
-import '../services/dio_client.dart';
-import '../services/secure_storage_service.dart';
+import 'core_providers.dart';
 
 /// Global session state that persists all user data
 class UserSession {
@@ -282,9 +281,8 @@ class SessionNotifier extends StateNotifier<UserSession> {
 /// Global session provider - use this throughout the app
 final sessionProvider =
     StateNotifierProvider<SessionNotifier, UserSession>((ref) {
-  // ✅ Create services WITHOUT watching other providers
-  // This prevents provider recreation and data loss
-  final dioClient = DioClient(secureStorage: SecureStorageService());
+  // ✅ Use shared DioClient provider
+  final dioClient = ref.watch(dioClientProvider);
   final communityService = CommunityService(dio: dioClient.dio);
 
   return SessionNotifier(communityService);

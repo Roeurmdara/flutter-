@@ -8,10 +8,9 @@ import '../models/profile_model.dart';
 import '../services/community_service.dart';
 import '../services/community_post_service.dart';
 import '../services/habit_category_service.dart';
-import '../services/dio_client.dart';
-import '../services/secure_storage_service.dart';
 import 'session_provider.dart';
 import 'profile_provider.dart';
+import 'core_providers.dart';
 
 // Batch fetch user profiles for a list of user IDs. Returns a map of userId -> UserProfile.
 final batchUserProfilesProvider = FutureProvider.family<
@@ -34,16 +33,13 @@ final batchUserProfilesProvider = FutureProvider.family<
 });
 
 // ─── Service providers ────────────────────────────────────────
-final dioClientProvider = Provider<DioClient>((ref) {
-  return DioClient(secureStorage: SecureStorageService());
-});
-
 final communityServiceProvider = Provider<CommunityService>((ref) {
   return CommunityService(dio: ref.watch(dioClientProvider).dio);
 });
 
 final communityPostServiceProvider = Provider<CommunityPostService>((ref) {
-  return CommunityPostService(dioClient: ref.watch(dioClientProvider));
+  final dioClient = ref.watch(dioClientProvider);
+  return CommunityPostService(dioClient: dioClient);
 });
 
 final habitCategoryServiceProvider = Provider<HabitCategoryService>((ref) {

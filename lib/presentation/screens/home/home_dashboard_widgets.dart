@@ -472,6 +472,8 @@ Widget buildEmptyState(bool isDark) {
               child: Image.asset('assets/images/hi.png',
                   width: 80,
                   height: 80,
+                  cacheWidth: 160,
+                  cacheHeight: 160,
                   fit: BoxFit.contain,
                   colorBlendMode: BlendMode.modulate),
             ),

@@ -67,7 +67,12 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                 onChanged: (value) => setState(() => _searchQuery = value),
                 onClear: _closeSearch,
               )
-            : Image.asset('assets/images/meeeee.png', height: 50),
+            : Image.asset(
+                'assets/images/meeeee.png',
+                height: 50,
+                cacheWidth: 100,
+                cacheHeight: 100,
+              ),
         centerTitle: false,
         titleSpacing: 16,
         actions: _isSearchOpen

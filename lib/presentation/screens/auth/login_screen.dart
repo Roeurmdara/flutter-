@@ -69,70 +69,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Future<void> _submit() async {
     final authNotifier = ref.read(authProvider.notifier);
 
-    if (_isLogin) {
-      // Login
-      if (_username.text.isEmpty || _password.text.isEmpty) {
-        _showErrorSnackbar('Please enter username and password');
-        return;
-      }
+    final success = _isLogin
+        ? await authNotifier.login(
+            username: _username.text,
+            password: _password.text,
+          )
+        : await authNotifier.register(
+            email: _email.text,
+            username: _username.text,
+            password: _password.text,
+            confirmPassword: _confirmPassword.text,
+            agreeToTerms: _agreeToTerms,
+          );
 
-      final success = await authNotifier.login(
-        username: _username.text,
-        password: _password.text,
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isLogin ? 'Login successful!' : 'Register successful!'),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 2),
+        ),
       );
-
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login successful!'),
-            backgroundColor: AppColors.success,
-            duration: Duration(seconds: 2),
-          ),
-        );
-
-        await Future.delayed(const Duration(seconds: 2));
-
-        widget.onLoginSuccess();
-      }
-    } else {
-      // Register
-      if (_username.text.isEmpty ||
-          _email.text.isEmpty ||
-          _password.text.isEmpty ||
-          _confirmPassword.text.isEmpty) {
-        _showErrorSnackbar('Please fill in all fields');
-        return;
-      }
-
-      if (_password.text != _confirmPassword.text) {
-        _showErrorSnackbar('Passwords do not match');
-        return;
-      }
-
-      if (!_agreeToTerms) {
-        _showErrorSnackbar('Please agree to the terms and conditions');
-        return;
-      }
-
-      final success = await authNotifier.register(
-        email: _email.text,
-        username: _username.text,
-        password: _password.text,
-      );
-
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Register successful!'),
-            backgroundColor: AppColors.success,
-            duration: Duration(seconds: 2),
-          ),
-        );
-
-        await Future.delayed(const Duration(seconds: 2));
-
-        widget.onLoginSuccess();
-      }
+      widget.onLoginSuccess();
+    } else if (!success && mounted && authNotifier.state.error != null) {
+      _showErrorSnackbar(authNotifier.state.error!);
     }
   }
 
@@ -165,7 +125,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(),
+          physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,6 +241,8 @@ class _Header extends StatelessWidget {
               'assets/images/meeeee.png',
               width: 130,
               height: 130,
+              cacheWidth: 260,
+              cacheHeight: 260,
             ),
           ),
           const SizedBox(height: 16),
@@ -471,7 +433,7 @@ class _LoginFields extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: AppColors.primaryPurple,
-            ).copyWith(inherit: false),
+            ),
           ),
         )
       ],

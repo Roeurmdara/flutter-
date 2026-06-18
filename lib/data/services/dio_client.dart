@@ -47,16 +47,18 @@ class DioClient {
           }
           return handler.next(response);
         },
-        onError: (error, handler) async {
-          if (error.response?.statusCode == 401 &&
-              !error.requestOptions.extra.containsKey('authRetry') &&
-              !_isAuthRequest(error.requestOptions.path)) {
-            final retryResponse =
-                await _refreshAndRetry(error.requestOptions);
-            if (retryResponse != null) {
-              return handler.resolve(retryResponse);
+        onError: (DioException error, handler) async {
+          if (error.response?.statusCode == 401) {
+            final requestOptions = error.requestOptions;
+            if (!_isAuthRequest(requestOptions.path) && 
+                requestOptions.extra['authRetry'] != true) {
+              
+              final retryResponse = await _refreshAndRetry(requestOptions);
+              if (retryResponse != null) {
+                return handler.resolve(retryResponse);
+              }
             }
-            await _secureStorage.clearAuthData();
+            _secureStorage.clearAuthData();
           }
           return handler.next(error);
         },

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/habit_model.dart';
 import '../models/activity_model.dart';
 
@@ -75,9 +76,11 @@ class HabitService {
       );
 
       if (response.statusCode == 200) {
+        debugPrint('✅ HabitService: Status 200, parsing ${response.data}?');
         return HabitListResponse.fromJson(response.data);
       }
-      throw Exception('Failed to fetch habits');
+      debugPrint('❌ HabitService: Status ${response.statusCode}, body: ${response.data}');
+      throw Exception('Failed to fetch habits (status ${response.statusCode})');
     } catch (e) {
       rethrow;
     }

@@ -90,7 +90,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String username,
     required String password,
+    required String confirmPassword,
+    required bool agreeToTerms,
   }) async {
+    if (email.isEmpty || username.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      state = state.copyWith(error: 'Please fill in all fields');
+      return false;
+    }
+    if (password != confirmPassword) {
+      state = state.copyWith(error: 'Passwords do not match');
+      return false;
+    }
+    if (!agreeToTerms) {
+      state = state.copyWith(error: 'Please agree to the terms and conditions');
+      return false;
+    }
+
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -140,6 +155,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String username,
     required String password,
   }) async {
+    if (username.isEmpty || password.isEmpty) {
+      state = state.copyWith(error: 'Please enter username and password');
+      return false;
+    }
+
     state = state.copyWith(isLoading: true, error: null);
 
     try {

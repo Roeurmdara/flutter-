@@ -143,6 +143,8 @@ if (success && mounted) {
                   'assets/images/meeeee.png',
                   width: 140,
                   height: 140,
+                  cacheWidth: 280,
+                  cacheHeight: 280,
                 ),
               ),
             ),

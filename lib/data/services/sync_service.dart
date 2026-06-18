@@ -15,6 +15,9 @@ class SyncService {
   int _reconnectAttempts = 0;
   Timer? _reconnectTimer;
   
+  // Maximum reconnection attempts before giving up
+  static const int _maxReconnectAttempts = 5;
+  
   final String _appKey = 'habit_tracker_reverb_key'; // Default app key (matches .env)
   
   // Callback when a sync notification is received
@@ -51,7 +54,7 @@ class SyncService {
     final isLocal = host == '127.0.0.1' || host == 'localhost' || host == '10.0.2.2' || host.startsWith('192.168.');
     
     final scheme = isLocal ? 'ws' : 'wss';
-    final portStr = isLocal ? ':8080' : ''; // Reverb runs on 8080 locally, but proxied on port 443 in production
+    final portStr = isLocal ? ':8080' : ':443'; // Reverb runs on 8080 locally, but proxied on port 443 in production
     
     return '$scheme://$host$portStr/app/$_appKey?protocol=7&client=js&version=4.4.0&flash=false';
   }
@@ -72,14 +75,34 @@ class SyncService {
         debugPrint('🔌 SyncService: WebSocket connection handshake completed.');
         _reconnectAttempts = 0; // Reset only after a successful connection handshake
       }).catchError((error) {
+        final errorStr = error.toString();
         debugPrint('❌ SyncService: Handshake failed (server might not be running Reverb/WebSockets): $error');
+        
+        // If the server doesn't support WebSocket upgrade, stop retrying immediately
+        if (errorStr.contains('not upgraded to websocket') || 
+            errorStr.contains('WebSocketException') ||
+            errorStr.contains('400') ||
+            errorStr.contains('404')) {
+          debugPrint('🔌 SyncService: Server does not support WebSockets. Disabling reconnection.');
+          _shouldReconnect = false;
+        }
       });
       
       _subscription = _channel!.stream.listen(
         (message) => _handleIncomingMessage(message, userId),
         onError: (error) {
+          final errorStr = error.toString();
           // Handshake errors are already caught and logged by ready.catchError.
           // Just trigger disconnect state and reconnection here.
+          
+          // If the server doesn't support WebSocket upgrade, stop retrying immediately
+          if (errorStr.contains('not upgraded to websocket') || 
+              errorStr.contains('WebSocketException') ||
+              errorStr.contains('400') ||
+              errorStr.contains('404')) {
+            debugPrint('🔌 SyncService: Server does not support WebSockets. Disabling reconnection.');
+            _shouldReconnect = false;
+          }
           _handleDisconnect(userId);
         },
         onDone: () {
@@ -108,13 +131,16 @@ class SyncService {
     _subscription?.cancel();
     _channel = null;
     
-    if (_shouldReconnect) {
+    if (_shouldReconnect && _reconnectAttempts < _maxReconnectAttempts) {
       _reconnectAttempts++;
       // Exponential backoff up to 30 seconds
       final delay = Duration(seconds: (_reconnectAttempts * 2).clamp(1, 30));
-      debugPrint('🔌 SyncService [$hashCode]: Reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts)...');
+      debugPrint('🔌 SyncService [$hashCode]: Reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts/$_maxReconnectAttempts)...');
       _reconnectTimer?.cancel();
       _reconnectTimer = Timer(delay, () => connect(userId));
+    } else if (_reconnectAttempts >= _maxReconnectAttempts) {
+      debugPrint('🔌 SyncService [$hashCode]: Max reconnection attempts ($_maxReconnectAttempts) reached. Giving up. Server may not support WebSockets.');
+      _shouldReconnect = false;
     }
   }
 

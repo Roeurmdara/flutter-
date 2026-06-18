@@ -2,7 +2,7 @@
 import 'package:image_picker/image_picker.dart';
 import '../services/media_service.dart';
 import '../models/media_upload_model.dart';
-import '../services/dio_client.dart';
+import 'core_providers.dart';
 
 // Sentinel used by `copyWith` to differentiate between an omitted `error`
 // parameter and an explicit `null` (which clears the error).
@@ -155,11 +155,6 @@ class MediaUploadNotifier extends StateNotifier<MediaUploadState> {
     state = state.copyWith(uploadProgress: p);
   }
 }
-
-/// Provider for DioClient
-final dioClientProvider = Provider<DioClient>((ref) {
-  return DioClient();
-});
 
 /// Provider for MediaService
 final mediaServiceProvider = Provider<MediaService>((ref) {

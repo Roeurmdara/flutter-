@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/sync_service.dart';
-import 'community_provider.dart';
 import 'auth_provider.dart';
 import 'habit_provider.dart';
+import 'core_providers.dart';
 
 /// Provider for SyncService
 final syncServiceProvider = Provider<SyncService>((ref) {

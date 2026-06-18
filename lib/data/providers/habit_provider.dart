@@ -1,13 +1,14 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../services/habit_service.dart';
-import '../services/dio_client.dart';
 import '../models/habit_model.dart';
+import 'core_providers.dart';
 
 final habitServiceProvider = Provider((ref) {
-  final dioClient = DioClient();
+  final dioClient = ref.watch(dioClientProvider);
   return HabitService(dioClient.dio);
 });
 
@@ -220,6 +221,7 @@ class HabitsNotifier extends StateNotifier<HabitState> {
   }
 
   Future<void> loadHabits() async {
+    debugPrint('🔄 HabitsNotifier: loadHabits called');
     try {
       state = state.copyWith(isLoading: true, error: null);
     } catch (_) {
@@ -228,7 +230,9 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     }
 
     try {
+      debugPrint('🔄 HabitsNotifier: Fetching habits from API...');
       final fetchedHabits = await _service.getAllHabits();
+      debugPrint('🔄 HabitsNotifier: Fetched ${fetchedHabits.length} habits');
       // Merge any server-reported `today_status` into the local completed dates map
       // so server-driven completions are respected across restarts.
       final dateStr = _formatDate(DateTime.now());
@@ -252,6 +256,7 @@ class HabitsNotifier extends StateNotifier<HabitState> {
         // Disposed during async operation, ignore
       }
     } catch (e) {
+      debugPrint('❌ HabitsNotifier: Error loading habits: $e');
       try {
         // Don't show 401 as a persistent error — it just means not authed yet
         state = state.copyWith(
