@@ -25,12 +25,16 @@ class UserProfile {
   final String? email;
   final String? avatarUrl;
   final String? bio;
+  final int followersCount;
+  final int followingCount;
 
   UserProfile({
     required this.username,
     this.email,
     this.avatarUrl,
     this.bio,
+    this.followersCount = 0,
+    this.followingCount = 0,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -50,6 +54,12 @@ class UserProfile {
           _stringValue(user?['avatar_url']) ??
           _stringValue(user?['avatar']),
       bio: _stringValue(json['bio']) ?? _stringValue(user?['bio']),
+      followersCount: _intValue(json['followers_count']) ??
+          _intValue(user?['followers_count']) ??
+          0,
+      followingCount: _intValue(json['following_count']) ??
+          _intValue(user?['following_count']) ??
+          0,
     );
   }
 
@@ -59,6 +69,8 @@ class UserProfile {
       'email': email,
       'avatar_url': avatarUrl,
       'bio': bio,
+      'followers_count': followersCount,
+      'following_count': followingCount,
     };
   }
 
@@ -67,12 +79,16 @@ class UserProfile {
     String? email,
     String? avatarUrl,
     String? bio,
+    int? followersCount,
+    int? followingCount,
   }) {
     return UserProfile(
       username: username ?? this.username,
       email: email ?? this.email,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       bio: bio ?? this.bio,
+      followersCount: followersCount ?? this.followersCount,
+      followingCount: followingCount ?? this.followingCount,
     );
   }
 }
@@ -126,4 +142,12 @@ String? _stringValue(Object? value) {
   if (value == null) return null;
   final text = value.toString().trim();
   return text.isEmpty ? null : text;
+}
+
+int? _intValue(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  final parsed = int.tryParse(value.toString().trim());
+  return parsed;
 }

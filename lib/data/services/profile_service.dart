@@ -383,6 +383,75 @@ class UserProfileService {
     }
   }
 
+  /// Follow a user by ID
+  Future<bool> followUser(String userId) async {
+    try {
+      final authToken = await _getAuthToken();
+      if (authToken == null || authToken.isEmpty) return false;
+
+      final response = await _dio.post(
+        '$_baseUrl/$userId/follow',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      return response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Unfollow a user by ID
+  Future<bool> unfollowUser(String userId) async {
+    try {
+      final authToken = await _getAuthToken();
+      if (authToken == null || authToken.isEmpty) return false;
+
+      final response = await _dio.delete(
+        '$_baseUrl/$userId/follow',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      return response.statusCode == 204;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Fetch follow stats for a user by ID
+  Future<Map<String, dynamic>?> getFollowStats(String userId) async {
+    try {
+      final authToken = await _getAuthToken();
+      if (authToken == null || authToken.isEmpty) return null;
+
+      final response = await _dio.get(
+        '$_baseUrl/$userId/follow/stats',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      if (response.data is Map && response.data['success'] == true) {
+        return response.data['data'] as Map<String, dynamic>?;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Fetch user profile by ID
   Future<ProfileResponse> getUserProfileById(String userId) async {
     try {
