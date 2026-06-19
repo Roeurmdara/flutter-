@@ -6,7 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/providers/community_provider.dart';
 import '../../../data/providers/profile_provider.dart';
-import '../../../data/services/profile_service.dart';
 
 class OtherUserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -50,7 +49,6 @@ class _OtherUserProfileScreenState extends ConsumerState<OtherUserProfileScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final text = isDark ? AppColors.darkText : AppColors.lightText;
     final sub = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     final profileAsync = ref.watch(userProfileByIdProvider(widget.userId));

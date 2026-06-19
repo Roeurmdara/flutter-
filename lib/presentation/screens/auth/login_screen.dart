@@ -91,8 +91,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
       );
       widget.onLoginSuccess();
-    } else if (!success && mounted && authNotifier.state.error != null) {
-      _showErrorSnackbar(authNotifier.state.error!);
+    } else if (!success && mounted) {
+      final error = ref.read(authProvider).error;
+      if (error != null) _showErrorSnackbar(error);
     }
   }
 

@@ -5,9 +5,8 @@ import '../models/auth_models.dart';
 import 'secure_storage_service.dart';
 
 class AuthService {
-  static const String _baseUrl =
-      'https://habit-api.rattanakmony.com/api/v1/auth';
-  static const String _apiBaseUrl = 'https://habit-api.rattanakmony.com/api/v1';
+  static const String _baseUrl = '/auth';
+  static const String _apiBaseUrl = '/api/v1';
 
   final Dio _dio;
   final SecureStorageService _secureStorage;
@@ -32,7 +31,7 @@ class AuthService {
       );
 
       final response = await _dio.post(
-        '$_baseUrl/register',
+        '/auth/register',
         data: request.toJson(),
         options: Options(
           contentType: Headers.jsonContentType,
@@ -100,7 +99,7 @@ class AuthService {
       );
 
       final response = await _dio.post(
-        '$_baseUrl/login',
+        '/auth/login',
         data: request.toJson(),
         options: Options(
           contentType: Headers.jsonContentType,
@@ -140,7 +139,7 @@ class AuthService {
       );
 
       final response = await _dio.post(
-        '$_baseUrl/password/reset-request',
+        '/auth/password/reset-request',
         data: request.toJson(),
         options: Options(
           contentType: Headers.jsonContentType,
@@ -182,7 +181,7 @@ class AuthService {
 
       // 1. Fetch Keycloak redirect URL dynamically from Laravel API
       final urlResponse =
-          await _dio.get('$_apiBaseUrl/auth/social/$provider/url');
+          await _dio.get('/auth/social/$provider/url');
       if (urlResponse.statusCode != 200 || urlResponse.data == null) {
         return AuthResponse(
           success: false,
@@ -237,8 +236,7 @@ class AuthService {
           "AuthService: Exchanging code and state with backend callback...");
 
       // 4. Exchange code and state for app JWT and user data
-      final callbackResponse = await _dio.get(
-        '$_apiBaseUrl/auth/social/$provider/callback',
+       final callbackResponse = await _dio.get('/auth/social/$provider/callback',
         queryParameters: {
           'code': code,
           'state': state,

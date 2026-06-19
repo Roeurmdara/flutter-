@@ -305,8 +305,8 @@ class _CreateCommunityDialogState
   XFile? _coverImageFile;
   String? _selectedCategoryId;
   bool _isLoading = false;
-  Color _color = AppColors.primaryPurple;
-  String _emoji = '🌟';
+  final Color _color = AppColors.primaryPurple;
+  final String _emoji = '🌟';
 
   @override
   void dispose() {
@@ -314,13 +314,6 @@ class _CreateCommunityDialogState
     _descCtrl.dispose();
     super.dispose();
   }
-
-  String get _colorHex => _color
-      .toARGB32()
-      .toRadixString(16)
-      .padLeft(8, '0')
-      .substring(2)
-      .toUpperCase();
 
   @override
   Widget build(BuildContext context) {
@@ -708,149 +701,6 @@ class _CreateCommunityDialogState
     }
   }
 
-  void _pickColor(bool isDark) {
-    final colors = [
-      AppColors.primaryPurple,
-      const Color(0xFFFF6B6B),
-      const Color(0xFFFFA500),
-      const Color(0xFFFBBF24),
-      AppColors.secondaryGreen,
-      const Color(0xFF3B82F6),
-      const Color(0xFFEC4899),
-      const Color(0xFF8B5CF6),
-      const Color(0xFF06B6D4),
-      const Color(0xFF6366F1),
-      const Color(0xFF10B981),
-      const Color(0xFFEF4444),
-    ];
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => _Sheet(
-        title: 'Color',
-        isDark: isDark,
-        child: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: colors.map((c) {
-            final sel = c.toARGB32() == _color.toARGB32();
-            return GestureDetector(
-              onTap: () {
-                setState(() => _color = c);
-                Navigator.pop(context);
-              },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: c,
-                  border:
-                      sel ? Border.all(color: Colors.white, width: 3) : null,
-                  boxShadow: sel
-                      ? [
-                          BoxShadow(
-                              color: c.withValues(alpha: 0.4), blurRadius: 8)
-                        ]
-                      : [],
-                ),
-                child: sel
-                    ? const Icon(Icons.check, color: Colors.white, size: 18)
-                    : null,
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  void _pickEmoji(bool isDark) {
-    const emojis = [
-      '🌟',
-      '✨',
-      '🔥',
-      '⚡',
-      '💎',
-      '🎯',
-      '💪',
-      '🚀',
-      '🎨',
-      '🎭',
-      '🎮',
-      '🎲',
-      '😎',
-      '🥳',
-      '🤩',
-      '❤️',
-      '🧡',
-      '💛',
-      '💚',
-      '💙',
-      '💜',
-      '🌈',
-      '☀️',
-      '🌙',
-      '🏆',
-      '🥇',
-      '🎁',
-      '🎉',
-      '🍕',
-      '🍔',
-      '🌮',
-      '☕',
-      '📚',
-      '✏️',
-      '💻',
-      '📷',
-      '🎸',
-      '⚽',
-      '🎤',
-      '🎧',
-      '🎬',
-      '🎪',
-      '🌿',
-      '🦋',
-    ];
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => _Sheet(
-        title: 'Emoji',
-        isDark: isDark,
-        child: Wrap(
-          spacing: 2,
-          runSpacing: 2,
-          children: emojis.map((e) {
-            final sel = e == _emoji;
-            return GestureDetector(
-              onTap: () {
-                setState(() => _emoji = e);
-                Navigator.pop(context);
-              },
-              child: Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color:
-                      sel ? _color.withValues(alpha: 0.15) : Colors.transparent,
-                  border: sel ? Border.all(color: _color, width: 1.5) : null,
-                ),
-                child: Center(
-                    child: Text(e, style: const TextStyle(fontSize: 22))),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
   Future<void> _pickImageFromPhone() async {
     try {
       final picker = ImagePicker();
@@ -864,58 +714,6 @@ class _CreateCommunityDialogState
       // ignore errors silently; user can retry
     }
   }
-}
-
-// ─── Shared picker sheet ──────────────────────────────────────────────────────
-
-class _Sheet extends StatelessWidget {
-  final String title;
-  final bool isDark;
-  final Widget child;
-  const _Sheet(
-      {required this.title, required this.isDark, required this.child});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 36),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-              width: 32,
-              height: 3,
-              decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.black12,
-                  borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 16),
-          Text(title,
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black)),
-          const SizedBox(height: 18),
-          child,
-        ]),
-      );
-}
-
-// ─── Picker button ────────────────────────────────────────────────────────────
-
-class _PickerButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final Color color;
-  final Widget child;
-  const _PickerButton(
-      {required this.onTap, required this.color, required this.child});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 44,
-          decoration: BoxDecoration(
-              color: color, borderRadius: BorderRadius.circular(10)),
-          child: child,
-        ),
-      );
 }
 
 // ─── Text field ───────────────────────────────────────────────────────────────

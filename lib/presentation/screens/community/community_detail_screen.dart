@@ -230,8 +230,9 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
                     child: membersAsync.when(
                   data: (resp) {
                     final list = resp.members;
-                    if (list.isEmpty)
-                      return const Center(child: Text('No members found'));
+      if (list.isEmpty) {
+        return const Center(child: Text('No members found'));
+      }
 
                     final idsToFetch = list
                         .where((m) => m.username.isEmpty && m.userId.isNotEmpty)
@@ -276,7 +277,7 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
                                           avatarUrl.trim().isEmpty
                                       ? Container(
                                           color: AppColors.primaryPurple
-                                              .withOpacity(0.12),
+                                              .withValues(alpha: 0.12),
                                           alignment: Alignment.center,
                                           child: Text(
                                             initial,
@@ -291,11 +292,11 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
                                           avatarUrl,
                                           fit: BoxFit.cover,
                                           errorBuilder: (_, __, ___) =>
-                                              Container(
-                                            color: AppColors.primaryPurple
-                                                .withOpacity(0.12),
-                                            alignment: Alignment.center,
-                                            child: Text(
+                                          Container(
+                                             color: AppColors.primaryPurple
+                                                 .withValues(alpha: 0.12),
+                                             alignment: Alignment.center,
+                                             child: Text(
                                               initial,
                                               style: const TextStyle(
                                                 color: AppColors.primaryPurple,
@@ -401,7 +402,7 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
             border: Border.all(
               color: isDark
                   ? AppColors.darkBorder
-                  : Colors.black.withOpacity(0.15),
+                  : Colors.black.withValues(alpha: 0.15),
               width: 1.5,
             ),
           ),
@@ -409,7 +410,7 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
             icon: Icon(
               Icons.share_outlined,
               color:
-                  isDark ? AppColors.darkText : Colors.black.withOpacity(0.7),
+                  isDark ? AppColors.darkText : Colors.black.withValues(alpha: 0.7),
             ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

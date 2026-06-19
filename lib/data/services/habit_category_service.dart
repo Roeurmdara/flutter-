@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'dart:io';
 import 'dart:async';
 import '../models/habit_category_model.dart';
@@ -6,8 +6,7 @@ import '../models/discover_template_model.dart';
 import 'secure_storage_service.dart';
 
 class HabitCategoryService {
-  static const String _baseUrl =
-      'https://habit-api.rattanakmony.com/api/v1/categories';
+  static const String _baseUrl = '/categories';
 
   final Dio _dio;
   final SecureStorageService _secureStorage;
@@ -67,9 +66,7 @@ class HabitCategoryService {
   /// Fetch templates for a specific category
   Future<List<DiscoverTemplate>> getCategoryTemplates(String categoryId) async {
     try {
-      const templatesUrl =
-          'https://habit-api.rattanakmony.com/api/v1/templates';
-
+      const templatesUrl = '/templates';
       final response = await _dio.get(
         templatesUrl,
         queryParameters: {
@@ -111,8 +108,7 @@ class HabitCategoryService {
   /// Test the templates endpoint connectivity
   Future<bool> testTemplatesConnection() async {
     try {
-      const testUrl =
-          'https://habit-api.rattanakmony.com/api/v1/templates?page=1&per_page=1';
+      const testUrl = '/templates?page=1&per_page=1';
 
       final response = await _dio.get(testUrl, options: await _authOptions());
 

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/habit_template_model.dart';
-import '../../../data/models/habit_category_model.dart';
 import '../../../data/providers/habit_provider.dart';
 import '../../../data/providers/category_providers.dart';
 

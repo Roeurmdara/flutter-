@@ -1,20 +1,22 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/profile_model.dart';
 import '../models/follower_model.dart';
 import 'secure_storage_service.dart';
+import 'dio_client.dart';
 
 class UserProfileService {
-  static const String _baseUrl =
-      'https://habit-api.rattanakmony.com/api/v1/users';
+  static const String _baseUrl = '/users';
 
-  final Dio _dio;
+  final DioClient _dioClient;
   final SecureStorageService _secureStorage;
   String? _authToken;
 
-  UserProfileService({Dio? dio, SecureStorageService? secureStorage})
-      : _dio = dio ?? Dio(),
+  UserProfileService({
+    DioClient? dioClient,
+    SecureStorageService? secureStorage,
+  })  : _dioClient = dioClient ?? DioClient(),
         _secureStorage = secureStorage ?? SecureStorageService();
 
   /// Set authentication token for subsequent requests
@@ -55,17 +57,7 @@ class UserProfileService {
         );
       }
 
-      final response = await _dio.get(
-        '$_baseUrl/me',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $authToken',
-            'Content-Type': 'application/json',
-          },
-          followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
-        ),
-      );
+      final response = await _dioClient.get('$_baseUrl/me');
 
       final profileResponse = ProfileResponse.fromJson(
         response.data as Map<String, dynamic>,
@@ -115,17 +107,10 @@ class UserProfileService {
         bio: bio,
       );
 
-      final response = await _dio.put(
+      final response = await _dioClient.put(
         '$_baseUrl/me',
         data: request.toJson(),
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $authToken',
-            'Content-Type': 'application/json',
-          },
-          followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
-        ),
+        // DioClient adds Authorization automatically
       );
 
       final profileResponse = ProfileResponse.fromJson(
@@ -165,16 +150,9 @@ class UserProfileService {
         'context': 'avatar',
       });
 
-      final response = await _dio.post(
-        'https://habit-api.rattanakmony.com/api/v1/media/upload',
+      final response = await _dioClient.post(
+        '/media/upload',
         data: form,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $authToken',
-          },
-          followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
-        ),
       );
 
       if (response.statusCode == null ||
@@ -226,21 +204,13 @@ class UserProfileService {
         );
       }
 
-      final response = await _dio.get(
-        '$_baseUrl/me/followers',
-        queryParameters: {
-          'page': page,
-          'per_page': perPage,
-        },
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $authToken',
-            'Content-Type': 'application/json',
-          },
-          followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
-        ),
-      );
+      final response = await _dioClient.get(
+      '$_baseUrl/me/followers',
+      queryParameters: {
+        'page': page,
+        'per_page': perPage,
+      },
+    );
 
       final followerResponse = FollowerListResponse.fromJson(
         response.data as Map<String, dynamic>,
@@ -319,21 +289,13 @@ class UserProfileService {
         );
       }
 
-      final response = await _dio.get(
-        '$_baseUrl/me/following',
-        queryParameters: {
-          'page': page,
-          'per_page': perPage,
-        },
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $authToken',
-            'Content-Type': 'application/json',
-          },
-          followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
-        ),
-      );
+      final response = await _dioClient.get(
+      '$_baseUrl/me/following',
+      queryParameters: {
+        'page': page,
+        'per_page': perPage,
+      },
+    );
 
       final followingResponse = FollowerListResponse.fromJson(
         response.data as Map<String, dynamic>,
@@ -389,15 +351,9 @@ class UserProfileService {
       final authToken = await _getAuthToken();
       if (authToken == null || authToken.isEmpty) return false;
 
-      final response = await _dio.post(
-        '$_baseUrl/$userId/follow',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $authToken',
-          },
-          validateStatus: (status) => status != null && status < 500,
-        ),
-      );
+      final response = await _dioClient.post(
+      '$_baseUrl/$userId/follow',
+    );
 
       return response.statusCode == 201;
     } catch (_) {
@@ -411,15 +367,9 @@ class UserProfileService {
       final authToken = await _getAuthToken();
       if (authToken == null || authToken.isEmpty) return false;
 
-      final response = await _dio.delete(
-        '$_baseUrl/$userId/follow',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $authToken',
-          },
-          validateStatus: (status) => status != null && status < 500,
-        ),
-      );
+      final response = await _dioClient.delete(
+      '$_baseUrl/$userId/follow',
+    );
 
       return response.statusCode == 204;
     } catch (_) {
@@ -433,15 +383,9 @@ class UserProfileService {
       final authToken = await _getAuthToken();
       if (authToken == null || authToken.isEmpty) return null;
 
-      final response = await _dio.get(
-        '$_baseUrl/$userId/follow/stats',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $authToken',
-          },
-          validateStatus: (status) => status != null && status < 500,
-        ),
-      );
+      final response = await _dioClient.get(
+      '$_baseUrl/$userId/follow/stats',
+    );
 
       if (response.data is Map && response.data['success'] == true) {
         return response.data['data'] as Map<String, dynamic>?;
@@ -465,32 +409,8 @@ class UserProfileService {
           errorCode: 'AUTH_TOKEN_MISSING',
         );
       }
-
-      final response = await _dio.get(
-        '$_baseUrl/$userId',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $authToken',
-            'Content-Type': 'application/json',
-          },
-          followRedirects: true,
-          validateStatus: (status) => status != null && status < 500,
-        ),
-      );
-
-      final profileResponse = ProfileResponse.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-
-      return profileResponse;
-    } on DioException catch (e) {
-      return ProfileResponse(
-        success: false,
-        message: e.message ?? 'Failed to fetch user profile',
-        status: e.response?.statusCode ?? 500,
-        error: e.message,
-        errorCode: 'NETWORK_ERROR',
-      );
+      final response = await _dioClient.get('$_baseUrl/$userId');
+      return ProfileResponse.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       return ProfileResponse(
         success: false,
