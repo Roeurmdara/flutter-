@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import '../../core/constants/app_constants.dart';
 import 'secure_storage_service.dart';
 
 /// HTTP Client using Dio with interceptors for auth token management
@@ -9,7 +10,7 @@ class DioClient {
   final SecureStorageService _secureStorage;
   static Future<String?>? _refreshFuture;
 
-  static const String _baseUrl = '/api/v1';
+  static const String _baseUrl = AppConstants.baseUrl;
 
   DioClient({
     Dio? dio,
@@ -36,8 +37,11 @@ class DioClient {
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
-          // Debug log for request authorization
-          debugPrint('DioClient Request: ${options.method} ${options.path} - Authorization: ${options.headers['Authorization'] ?? 'None'}');
+          debugPrint(
+            'DioClient Request: ${options.method} ${options.path} - '
+            'Authorization: ${token != null && token.isNotEmpty ? 'Bearer ***' : 'None'}',
+          );
+          return handler.next(options);
         },
         onResponse: (response, handler) async {
           if (_shouldRefresh(response)) {
@@ -52,9 +56,8 @@ class DioClient {
         onError: (DioException error, handler) async {
           if (error.response?.statusCode == 401) {
             final requestOptions = error.requestOptions;
-            if (!_isAuthRequest(requestOptions.path) && 
+            if (!_isAuthRequest(requestOptions.path) &&
                 requestOptions.extra['authRetry'] != true) {
-              
               final retryResponse = await _refreshAndRetry(requestOptions);
               if (retryResponse != null) {
                 return handler.resolve(retryResponse);

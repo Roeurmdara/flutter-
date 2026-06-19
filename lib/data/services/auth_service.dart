@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import '../../core/constants/app_constants.dart';
 import '../models/auth_models.dart';
 import 'secure_storage_service.dart';
 
 class AuthService {
   static const String _baseUrl = '/auth';
-  static const String _apiBaseUrl = '/api/v1';
 
   final Dio _dio;
   final SecureStorageService _secureStorage;
@@ -15,7 +15,11 @@ class AuthService {
     Dio? dio,
     SecureStorageService? secureStorage,
   })  : _dio = dio ?? Dio(),
-        _secureStorage = secureStorage ?? SecureStorageService();
+        _secureStorage = secureStorage ?? SecureStorageService() {
+    _dio.options.baseUrl = AppConstants.baseUrl;
+    _dio.options.connectTimeout = const Duration(seconds: 30);
+    _dio.options.receiveTimeout = const Duration(seconds: 30);
+  }
 
   /// Register a new user
   Future<AuthResponse> register({
@@ -31,7 +35,7 @@ class AuthService {
       );
 
       final response = await _dio.post(
-        '/auth/register',
+        '$_baseUrl/register',
         data: request.toJson(),
         options: Options(
           contentType: Headers.jsonContentType,
@@ -99,7 +103,7 @@ class AuthService {
       );
 
       final response = await _dio.post(
-        '/auth/login',
+        '$_baseUrl/login',
         data: request.toJson(),
         options: Options(
           contentType: Headers.jsonContentType,
@@ -139,7 +143,7 @@ class AuthService {
       );
 
       final response = await _dio.post(
-        '/auth/password/reset-request',
+        '$_baseUrl/password/reset-request',
         data: request.toJson(),
         options: Options(
           contentType: Headers.jsonContentType,
@@ -180,8 +184,7 @@ class AuthService {
           "AuthService: Requesting dynamic OAuth redirect URL from backend for $provider...");
 
       // 1. Fetch Keycloak redirect URL dynamically from Laravel API
-      final urlResponse =
-          await _dio.get('/auth/social/$provider/url');
+      final urlResponse = await _dio.get('$_baseUrl/social/$provider/url');
       if (urlResponse.statusCode != 200 || urlResponse.data == null) {
         return AuthResponse(
           success: false,
@@ -236,7 +239,8 @@ class AuthService {
           "AuthService: Exchanging code and state with backend callback...");
 
       // 4. Exchange code and state for app JWT and user data
-       final callbackResponse = await _dio.get('/auth/social/$provider/callback',
+      final callbackResponse = await _dio.get(
+        '$_baseUrl/social/$provider/callback',
         queryParameters: {
           'code': code,
           'state': state,

@@ -257,8 +257,8 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       }
 
       // On fresh login / new device, seed the streak from per-habit API data.
-      final mapSize = mergedMap.values.fold<int>(
-          0, (sum, dates) => sum + dates.length);
+      final mapSize =
+          mergedMap.values.fold<int>(0, (sum, dates) => sum + dates.length);
       if (mapSize <= fetchedHabits.length && fetchedHabits.isNotEmpty) {
         final minPerHabitStreak = fetchedHabits
             .map((h) => h.currentStreak)
@@ -656,7 +656,10 @@ bool _isWithinDateRange(Habit habit, DateTime date) {
   final endDate = habit.endDate != null ? _dateOnly(habit.endDate!) : null;
 
   if (selectedDate.isBefore(startDate)) return false;
-  if (endDate != null && selectedDate.isAfter(endDate)) return false;
+  // Treat endDate as exclusive: hide the habit on the end date itself
+  if (endDate != null &&
+      (selectedDate.isAfter(endDate) || selectedDate.isAtSameMomentAs(endDate)))
+    return false;
   return true;
 }
 

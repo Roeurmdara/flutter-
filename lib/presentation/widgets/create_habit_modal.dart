@@ -614,14 +614,18 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
     }
 
     if (widget.editingHabit != null && widget.onSubmit != null) {
+      // Normalize dates to date-only to avoid timezone/time component issues
+      final normalizedStart = dateOnly(_startDate);
+      final normalizedEnd = _endDate != null ? dateOnly(_endDate!) : null;
+
       widget.onSubmit!({
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'categoryId': _selectedCategoryId,
         'frequencyType': _selectedFrequency,
         'frequencyConfig': [_selectedFrequency],
-        'startDate': _startDate,
-        'endDate': _endDate,
+        'startDate': normalizedStart,
+        'endDate': normalizedEnd,
         'color':
             '#${_customColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
         'emoji': _customEmoji,
@@ -643,6 +647,9 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
     try {
       final colorHex =
           '#${_customColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
+      final normalizedStart = dateOnly(_startDate);
+      final normalizedEnd = _endDate != null ? dateOnly(_endDate!) : null;
+
       final newHabit = await ref.read(habitsProvider.notifier).createHabit(
             categoryId: _selectedCategoryId!,
             title: _titleController.text.trim(),
@@ -652,8 +659,8 @@ class _CreateHabitModalState extends ConsumerState<CreateHabitModal> {
             goalType: 'binary',
             targetValue: 1,
             targetUnit: 'completion',
-            startDate: _startDate,
-            endDate: _endDate,
+            startDate: normalizedStart,
+            endDate: normalizedEnd,
             visibility: 'private',
             emoji: _customEmoji,
             colorHex: colorHex,

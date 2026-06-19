@@ -1,5 +1,4 @@
-﻿
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/providers/habit_provider.dart';
@@ -48,117 +47,116 @@ class _TemplateCardState extends State<TemplateCard> {
   }
 
   @override
-Widget build(BuildContext context) {
-  final freq = widget.template.suggestedFrequency as String? ?? 'daily';
-  final days = widget.template.durationDays as int? ?? 1;
-  final freqLabel = freq[0].toUpperCase() + freq.substring(1);
-  final isDark = widget.isDark;
+  Widget build(BuildContext context) {
+    final freq = widget.template.suggestedFrequency as String? ?? 'daily';
+    final days = widget.template.durationDays as int? ?? 1;
+    final freqLabel = freq[0].toUpperCase() + freq.substring(1);
+    final isDark = widget.isDark;
 
-  final Color surface = isDark ? AppColors.darkSurface : Colors.white;
-  final Color textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
-  final Color textSecondary =
-      isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-  final Color borderColor = _added
-      ? const Color(0xFF63993B).withValues(alpha: 0.7)
-      : isDark
-          ? AppColors.darkBorder
-          : AppColors.lightBorder;
+    final Color surface = isDark ? AppColors.darkSurface : Colors.white;
+    final Color textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
+    final Color textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final Color borderColor = _added
+        ? const Color(0xFF63993B).withValues(alpha: 0.7)
+        : isDark
+            ? AppColors.darkBorder
+            : AppColors.lightBorder;
 
-  return AnimatedContainer(
-    duration: const Duration(milliseconds: 180),
-    width: 152,
-    margin: const EdgeInsets.only(right: 10),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: surface,
-      border: Border.all(color: borderColor, width: _added ? 1.5 : 0.5),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Title ────────────────────────────────────────────────────
-        Text(
-          widget.template.title as String,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            height: 1.25,
-            color: textPrimary,
-          ),
-        ),
-        const SizedBox(height: 6),
-
-        // ── Frequency row: clock icon + label ────────────────────────
-        Row(
-          children: [
-            Icon(
-              Icons.schedule_rounded,
-              size: 14,
-              color: textSecondary,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: 152,
+      margin: const EdgeInsets.only(right: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: surface,
+        border: Border.all(color: borderColor, width: _added ? 1.5 : 0.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Title ────────────────────────────────────────────────────
+          Text(
+            widget.template.title as String,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              height: 1.25,
+              color: textPrimary,
             ),
-            const SizedBox(width: 4),
-            Text(
-              '$freqLabel · $days d',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
+          ),
+          const SizedBox(height: 6),
+
+          // ── Frequency row: clock icon + label ────────────────────────
+          Row(
+            children: [
+              Icon(
+                Icons.schedule_rounded,
+                size: 14,
                 color: textSecondary,
               ),
-            ),
-          ],
-        ),
-
-        const Spacer(),
-
-        // ── Bottom row: icon circle + arrow circle ───────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // Category icon with colored circle bg
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: widget.categoryColor.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  widget.categoryIcon,
-                  style: const TextStyle(fontSize: 22),
+              const SizedBox(width: 4),
+              Text(
+                '$freqLabel · $days d',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: textSecondary,
                 ),
               ),
-            ),
+            ],
+          ),
 
-            // Arrow detail button — dark circle
-            GestureDetector(
-              onTap: () => _showDetail(context),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 36,
-                height: 36,
+          const Spacer(),
+
+          // ── Bottom row: icon circle + arrow circle ───────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Category icon with colored circle bg
+              Container(
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
+                  color: widget.categoryColor.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
-                  color: isDark ? Colors.white : Colors.black,
                 ),
-                child: Icon(
-                  Icons.arrow_upward_rounded,
-                  size: 18,
-                  color: isDark ? Colors.black : Colors.white,
+                child: Center(
+                  child: Text(
+                    widget.categoryIcon,
+                    style: const TextStyle(fontSize: 22),
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
 
+              // Arrow detail button — dark circle
+              GestureDetector(
+                onTap: () => _showDetail(context),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
+                  child: Icon(
+                    Icons.arrow_upward_rounded,
+                    size: 18,
+                    color: isDark ? Colors.black : Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -229,6 +227,13 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
       final frequency =
           widget.template.suggestedFrequency as String? ?? 'daily';
 
+      // Compute explicit endDate from template duration so client-side
+      // date-range logic (endDate exclusive) hides the habit correctly.
+      final durationDays = widget.template.durationDays as int? ?? 1;
+      final now = DateTime.now();
+      final startDateOnly = DateTime(now.year, now.month, now.day);
+      final computedEndDate = startDateOnly.add(Duration(days: durationDays));
+
       await ref.read(habitsProvider.notifier).createHabit(
             categoryId: widget.template.categoryId as String,
             title: _titleController.text.trim(),
@@ -239,7 +244,7 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
             targetValue: 1,
             targetUnit: 'completion',
             startDate: DateTime.now(),
-            endDate: null,
+            endDate: computedEndDate,
             visibility: 'private',
             emoji: widget.template.emoji as String? ?? widget.categoryIcon,
             colorHex: widget.template.colorHex as String? ??
@@ -255,8 +260,8 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                 Text('${_titleController.text.trim()} added to your habits'),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           ),
         );
@@ -283,12 +288,10 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
     final days = template.durationDays as int? ?? 1;
     final freqLabel = freq[0].toUpperCase() + freq.substring(1);
     final benefits = template.benefits as List<dynamic>? ?? [];
-    final hasTips =
-        (template.tips as List<dynamic>? ?? []).isNotEmpty;
+    final hasTips = (template.tips as List<dynamic>? ?? []).isNotEmpty;
 
     final Color bg = isDark ? AppColors.darkSurface : Colors.white;
-    final Color textPrimary =
-        isDark ? AppColors.darkText : AppColors.lightText;
+    final Color textPrimary = isDark ? AppColors.darkText : AppColors.lightText;
     final Color textSecondary =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
     final Color divider =
@@ -305,8 +308,7 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
         return Container(
           decoration: BoxDecoration(
             color: bg,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -376,11 +378,12 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: widget.categoryColor.withValues(alpha: 0.1),
+                              color:
+                                  widget.categoryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color:
-                                    widget.categoryColor.withValues(alpha: 0.25),
+                                color: widget.categoryColor
+                                    .withValues(alpha: 0.25),
                                 width: 0.5,
                               ),
                             ),
@@ -506,15 +509,12 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                           child: Column(
                             children: benefits.map((b) {
                               return Padding(
-                                padding:
-                                    const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.only(bottom: 8),
                                 child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Padding(
-                                      padding:
-                                          const EdgeInsets.only(top: 5),
+                                      padding: const EdgeInsets.only(top: 5),
                                       child: Container(
                                         width: 4,
                                         height: 4,
@@ -553,8 +553,7 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                           children: [
                             const Padding(
                               padding: EdgeInsets.only(top: 11),
-                              child: Text('💡',
-                                  style: TextStyle(fontSize: 16)),
+                              child: Text('💡', style: TextStyle(fontSize: 16)),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -602,9 +601,8 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(
-                                            Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
                                 )
                               : const Text(
@@ -619,8 +617,7 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
                       ),
 
                       SizedBox(
-                          height:
-                              MediaQuery.of(context).padding.bottom + 8),
+                          height: MediaQuery.of(context).padding.bottom + 8),
                     ],
                   ),
                 ),
@@ -688,8 +685,7 @@ class _TemplateDetailSheetState extends ConsumerState<TemplateDetailSheet> {
         fontSize: 14,
         color: isDark ? Colors.white30 : Colors.black26,
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       filled: true,
       fillColor: inputFill,
       border: OutlineInputBorder(

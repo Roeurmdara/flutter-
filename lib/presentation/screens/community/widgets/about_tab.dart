@@ -82,83 +82,39 @@ class AboutTab extends ConsumerWidget {
               style: AppTypography.bodySmall(sub).copyWith(fontSize: 11),
             ),
             const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => _showCreatorProfile(context, community, ref),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryPurple.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: creatorAsync.when(
-                  data: (response) {
-                    final profile = response.data;
-                    final displayName = creatorDisplayName(profile, community);
-                    final avatarUrl =
-                        profile?.avatarUrl ?? community.creatorAvatar;
-                    final validAvatar = validCreatorImageUrl(avatarUrl);
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ClipOval(
-                          child: SizedBox(
-                            width: 32,
-                            height: 32,
-                            child: validAvatar == null
-                                ? CreatorInitial(displayName)
-                                : Image.network(
-                                    validAvatar,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        CreatorInitial(displayName),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          displayName,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.primaryPurple,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                  loading: () => const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 1),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Loading',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primaryPurple,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  error: (_, __) => Row(
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryPurple.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: creatorAsync.when(
+                data: (response) {
+                  final profile = response.data;
+                  final displayName = creatorDisplayName(profile, community);
+                  final avatarUrl =
+                      profile?.avatarUrl ?? community.creatorAvatar;
+                  final validAvatar = validCreatorImageUrl(avatarUrl);
+                  return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ClipOval(
                         child: SizedBox(
                           width: 32,
                           height: 32,
-                          child: CreatorInitial(creatorFallbackName(community)),
+                          child: validAvatar == null
+                              ? CreatorInitial(displayName)
+                              : Image.network(
+                                  validAvatar,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      CreatorInitial(displayName),
+                                ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        creatorFallbackName(community),
+                        displayName,
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.primaryPurple,
@@ -166,7 +122,47 @@ class AboutTab extends ConsumerWidget {
                         ),
                       ),
                     ],
-                  ),
+                  );
+                },
+                loading: () => const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 1),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Loading',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primaryPurple,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                error: (_, __) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipOval(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CreatorInitial(creatorFallbackName(community)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      creatorFallbackName(community),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.primaryPurple,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -192,99 +188,243 @@ class AboutTab extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
                           children: [
-                            // Show up to 3 member previews (avatar + short name)
-                            Row(
-                              children: members.take(3).map((member) {
-                                final avatarUrl = member.avatar;
-                                final name = member.username.isEmpty
-                                    ? (member.userId.isNotEmpty
-                                        ? member.userId
-                                        : 'Member')
-                                    : member.username;
-                                return GestureDetector(
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => OtherUserProfileScreen(
-                                          userId: member.userId),
-                                    ),
-                                  ),
-                                  child: Padding(
-                                    padding:
-                                        const EdgeInsets.only(right: 12.0),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        ClipOval(
-                                          child: SizedBox(
-                                            width: 36,
-                                            height: 36,
-                                            child: avatarUrl == null ||
-                                                    avatarUrl.trim().isEmpty
-                                                ? Container(
-                                                    color: AppColors
-                                                        .primaryPurple
-                                                        .withValues(
-                                                            alpha: 0.12),
-                                                    alignment: Alignment.center,
-                                                    child: Text(
-                                                      name[0].toUpperCase(),
-                                                      style: const TextStyle(
-                                                        color: AppColors
-                                                            .primaryPurple,
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  )
-                                                : Image.network(
-                                                    avatarUrl,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (_, __, ___) =>
-                                                            Container(
-                                                      color: AppColors
-                                                          .primaryPurple
-                                                          .withValues(
-                                                              alpha: 0.12),
-                                                      alignment:
-                                                          Alignment.center,
-                                                      child: Text(
-                                                        name[0].toUpperCase(),
-                                                        style:
-                                                            const TextStyle(
-                                                          color: AppColors
-                                                              .primaryPurple,
-                                                          fontSize: 14,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                        ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        SizedBox(
-                                          width: 64,
-                                          child: Text(
-                                            name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                                fontSize: 11,
-                                                color: sub,
-                                                fontWeight: FontWeight.w600),
+                            // Show up to 4 member previews (avatar + short name).
+                            // If username/avatar are missing, try fetching full profiles.
+                            Builder(builder: (context) {
+                              final previewIds = members
+                                  .take(4)
+                                  .map((m) => m.userId)
+                                  .where((id) => id.isNotEmpty)
+                                  .toList();
+                              final profilesAsync = previewIds.isEmpty
+                                  ? const AsyncValue.data(<String, dynamic>{})
+                                  : ref.watch(
+                                      batchUserProfilesProvider(previewIds));
+
+                              return profilesAsync.maybeWhen(
+                                data: (profilesMap) {
+                                  return Row(
+                                    children: members.take(4).map((member) {
+                                      final profile =
+                                          profilesMap[member.userId];
+                                      final avatarUrl =
+                                          profile?.avatarUrl ?? member.avatar;
+                                      final rawName = (profile?.username ??
+                                          member.username);
+                                      var name = rawName.isEmpty
+                                          ? (member.userId.isNotEmpty
+                                              ? member.userId
+                                              : 'Member')
+                                          : rawName;
+                                      if (_looksLikeUuid(name)) name = 'Member';
+
+                                      return GestureDetector(
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                OtherUserProfileScreen(
+                                                    userId: member.userId),
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                              right: 12.0),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              ClipOval(
+                                                child: SizedBox(
+                                                  width: 36,
+                                                  height: 36,
+                                                  child: avatarUrl == null ||
+                                                          avatarUrl
+                                                              .trim()
+                                                              .isEmpty
+                                                      ? Container(
+                                                          color: AppColors
+                                                              .primaryPurple
+                                                              .withValues(
+                                                                  alpha: 0.12),
+                                                          alignment:
+                                                              Alignment.center,
+                                                          child: Text(
+                                                            name[0]
+                                                                .toUpperCase(),
+                                                            style:
+                                                                const TextStyle(
+                                                              color: AppColors
+                                                                  .primaryPurple,
+                                                              fontSize: 14,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                        )
+                                                      : Image.network(
+                                                          avatarUrl,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (_, __, ___) =>
+                                                                  Container(
+                                                            color: AppColors
+                                                                .primaryPurple
+                                                                .withValues(
+                                                                    alpha:
+                                                                        0.12),
+                                                            alignment: Alignment
+                                                                .center,
+                                                            child: Text(
+                                                              name[0]
+                                                                  .toUpperCase(),
+                                                              style:
+                                                                  const TextStyle(
+                                                                color: AppColors
+                                                                    .primaryPurple,
+                                                                fontSize: 14,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              SizedBox(
+                                                width: 64,
+                                                child: Text(
+                                                  name,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: sub,
+                                                      fontWeight:
+                                                          FontWeight.w600),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  );
+                                },
+                                orElse: () {
+                                  // Fallback to original rendering while profiles load.
+                                  return Row(
+                                    children: members.take(4).map((member) {
+                                      final avatarUrl = member.avatar;
+                                      var name = member.username.isEmpty
+                                          ? (member.userId.isNotEmpty
+                                              ? member.userId
+                                              : 'Member')
+                                          : member.username;
+                                      if (_looksLikeUuid(name)) name = 'Member';
+                                      return GestureDetector(
+                                        onTap: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                OtherUserProfileScreen(
+                                                    userId: member.userId),
+                                          ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                              right: 12.0),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              ClipOval(
+                                                child: SizedBox(
+                                                  width: 36,
+                                                  height: 36,
+                                                  child: avatarUrl == null ||
+                                                          avatarUrl
+                                                              .trim()
+                                                              .isEmpty
+                                                      ? Container(
+                                                          color: AppColors
+                                                              .primaryPurple
+                                                              .withValues(
+                                                                  alpha: 0.12),
+                                                          alignment:
+                                                              Alignment.center,
+                                                          child: Text(
+                                                            name[0]
+                                                                .toUpperCase(),
+                                                            style:
+                                                                const TextStyle(
+                                                              color: AppColors
+                                                                  .primaryPurple,
+                                                              fontSize: 14,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                        )
+                                                      : Image.network(
+                                                          avatarUrl,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (_, __, ___) =>
+                                                                  Container(
+                                                            color: AppColors
+                                                                .primaryPurple
+                                                                .withValues(
+                                                                    alpha:
+                                                                        0.12),
+                                                            alignment: Alignment
+                                                                .center,
+                                                            child: Text(
+                                                              name[0]
+                                                                  .toUpperCase(),
+                                                              style:
+                                                                  const TextStyle(
+                                                                color: AppColors
+                                                                    .primaryPurple,
+                                                                fontSize: 14,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              SizedBox(
+                                                width: 64,
+                                                child: Text(
+                                                  name,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: sub,
+                                                      fontWeight:
+                                                          FontWeight.w600),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  );
+                                },
+                              );
+                            }),
                             const Spacer(),
                             const Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
@@ -374,115 +514,277 @@ class AboutTab extends ConsumerWidget {
                         if (list.isEmpty) {
                           return const Center(child: Text('No members found'));
                         }
-                        return ListView.separated(
-                          itemCount: list.length,
-                          separatorBuilder: (_, __) => Divider(
-                            color: isDark ? Colors.white10 : Colors.grey[200],
-                            height: 1,
-                          ),
-                          itemBuilder: (context, idx) {
-                            final member = list[idx];
-                            final displayName = member.username;
-                            final avatarUrl = member.avatar;
-                            final isCreator =
-                                member.userId == community.createdBy;
 
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => OtherUserProfileScreen(
-                                        userId: member.userId),
+                        final ids = list
+                            .map((m) => m.userId)
+                            .where((id) => id.isNotEmpty)
+                            .toList();
+                        final profilesAsync = ids.isEmpty
+                            ? const AsyncValue.data(<String, dynamic>{})
+                            : refInSheet.watch(batchUserProfilesProvider(ids));
+
+                        return profilesAsync.maybeWhen(
+                          data: (profilesMap) {
+                            return ListView.separated(
+                              itemCount: list.length,
+                              separatorBuilder: (_, __) => Divider(
+                                color:
+                                    isDark ? Colors.white10 : Colors.grey[200],
+                                height: 1,
+                              ),
+                              itemBuilder: (context, idx) {
+                                final member = list[idx];
+                                final profile = profilesMap[member.userId];
+                                final avatarUrl =
+                                    profile?.avatarUrl ?? member.avatar;
+                                final rawName =
+                                    profile?.username ?? member.username;
+                                var displayName = rawName.isEmpty
+                                    ? (member.userId.isNotEmpty
+                                        ? member.userId
+                                        : 'Member')
+                                    : rawName;
+                                if (_looksLikeUuid(displayName)) {
+                                  displayName = 'Member';
+                                }
+                                final isCreator =
+                                    member.userId == community.createdBy;
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => OtherUserProfileScreen(
+                                            userId: member.userId),
+                                      ),
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: Row(
+                                      children: [
+                                        ClipOval(
+                                          child: SizedBox(
+                                            width: 38,
+                                            height: 38,
+                                            child: avatarUrl == null ||
+                                                    avatarUrl.trim().isEmpty
+                                                ? Container(
+                                                    color: AppColors
+                                                        .primaryPurple
+                                                        .withValues(
+                                                            alpha: 0.12),
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      displayName.isEmpty
+                                                          ? '?'
+                                                          : displayName[0]
+                                                              .toUpperCase(),
+                                                      style: const TextStyle(
+                                                        color: AppColors
+                                                            .primaryPurple,
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  )
+                                                : Image.network(
+                                                    avatarUrl,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (_, __, ___) =>
+                                                            Container(
+                                                      color: AppColors
+                                                          .primaryPurple
+                                                          .withValues(
+                                                              alpha: 0.12),
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: Text(
+                                                        displayName.isEmpty
+                                                            ? '?'
+                                                            : displayName[0]
+                                                                .toUpperCase(),
+                                                        style: const TextStyle(
+                                                          color: AppColors
+                                                              .primaryPurple,
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                displayName,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: text,
+                                                ),
+                                              ),
+                                              if (member.role == 'admin' ||
+                                                  isCreator) ...[
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  isCreator ? 'Owner' : 'Admin',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color:
+                                                        AppColors.primaryPurple,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 );
                               },
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                child: Row(
-                                  children: [
-                                    ClipOval(
-                                      child: SizedBox(
-                                        width: 38,
-                                        height: 38,
-                                        child: avatarUrl == null ||
-                                                avatarUrl.trim().isEmpty
-                                            ? Container(
-                                                color: AppColors.primaryPurple
-                                                    .withValues(alpha: 0.12),
-                                                alignment: Alignment.center,
-                                                child: Text(
-                                                  displayName.isEmpty
-                                                      ? '?'
-                                                      : displayName[0]
-                                                          .toUpperCase(),
-                                                  style: const TextStyle(
+                            );
+                          },
+                          orElse: () {
+                            // Fallback to original rendering while profiles load.
+                            return ListView.separated(
+                              itemCount: list.length,
+                              separatorBuilder: (_, __) => Divider(
+                                color:
+                                    isDark ? Colors.white10 : Colors.grey[200],
+                                height: 1,
+                              ),
+                              itemBuilder: (context, idx) {
+                                final member = list[idx];
+                                final avatarUrl = member.avatar;
+                                var displayName = member.username.isEmpty
+                                    ? (member.userId.isNotEmpty
+                                        ? member.userId
+                                        : 'Member')
+                                    : member.username;
+                                if (_looksLikeUuid(displayName)) {
+                                  displayName = 'Member';
+                                }
+                                final isCreator =
+                                    member.userId == community.createdBy;
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => OtherUserProfileScreen(
+                                            userId: member.userId),
+                                      ),
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: Row(
+                                      children: [
+                                        ClipOval(
+                                          child: SizedBox(
+                                            width: 38,
+                                            height: 38,
+                                            child: avatarUrl == null ||
+                                                    avatarUrl.trim().isEmpty
+                                                ? Container(
                                                     color: AppColors
-                                                        .primaryPurple,
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              )
-                                            : Image.network(
-                                                avatarUrl,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) =>
-                                                    Container(
-                                                  color: AppColors
-                                                      .primaryPurple
-                                                      .withValues(alpha: 0.12),
-                                                  alignment: Alignment.center,
-                                                  child: Text(
-                                                    displayName.isEmpty
-                                                        ? '?'
-                                                        : displayName[0]
-                                                            .toUpperCase(),
-                                                    style: const TextStyle(
+                                                        .primaryPurple
+                                                        .withValues(
+                                                            alpha: 0.12),
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      displayName.isEmpty
+                                                          ? '?'
+                                                          : displayName[0]
+                                                              .toUpperCase(),
+                                                      style: const TextStyle(
+                                                        color: AppColors
+                                                            .primaryPurple,
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  )
+                                                : Image.network(
+                                                    avatarUrl,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (_, __, ___) =>
+                                                            Container(
                                                       color: AppColors
-                                                          .primaryPurple,
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.bold,
+                                                          .primaryPurple
+                                                          .withValues(
+                                                              alpha: 0.12),
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: Text(
+                                                        displayName.isEmpty
+                                                            ? '?'
+                                                            : displayName[0]
+                                                                .toUpperCase(),
+                                                        style: const TextStyle(
+                                                          color: AppColors
+                                                              .primaryPurple,
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
                                                     ),
                                                   ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                displayName,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: text,
                                                 ),
                                               ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            displayName,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              color: text,
-                                            ),
+                                              if (member.role == 'admin' ||
+                                                  isCreator) ...[
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  isCreator ? 'Owner' : 'Admin',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color:
+                                                        AppColors.primaryPurple,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
                                           ),
-                                          if (member.role == 'admin' ||
-                                              isCreator) ...[
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              isCreator ? 'Owner' : 'Admin',
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                color: AppColors.primaryPurple,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ),
+                                  ),
+                                );
+                              },
                             );
                           },
                         );
@@ -554,7 +856,7 @@ class AboutTab extends ConsumerWidget {
                       child: CircularProgressIndicator(),
                     ),
                   ),
-                    error: (_, __) => CreatorIdFallback(
+                  error: (_, __) => CreatorIdFallback(
                     displayName: creatorFallbackName(community),
                     isDark: isDark,
                     message: 'Creator profile is unavailable right now.',
@@ -595,5 +897,12 @@ class AboutTab extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  bool _looksLikeUuid(String? s) {
+    if (s == null) return false;
+    final uuidPattern = RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    return uuidPattern.hasMatch(s.trim());
   }
 }

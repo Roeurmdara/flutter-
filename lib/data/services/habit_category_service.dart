@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'dart:io';
 import 'dart:async';
+import '../../core/constants/app_constants.dart';
 import '../models/habit_category_model.dart';
 import '../models/discover_template_model.dart';
 import 'secure_storage_service.dart';
@@ -15,6 +16,7 @@ class HabitCategoryService {
       : _dio = dio ??
             Dio(
               BaseOptions(
+                baseUrl: AppConstants.baseUrl,
                 connectTimeout: const Duration(seconds: 30),
                 receiveTimeout: const Duration(seconds: 30),
                 validateStatus: (status) => status != null && status < 500,

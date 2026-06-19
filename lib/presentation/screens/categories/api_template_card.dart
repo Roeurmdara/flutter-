@@ -36,7 +36,8 @@ class _APITemplateCardState extends State<APITemplateCard> {
   @override
   Widget build(BuildContext context) {
     final freq = widget.template.recommendedFrequency;
-    final freqLabel = freq.isNotEmpty ? freq[0].toUpperCase() + freq.substring(1) : '';
+    final freqLabel =
+        freq.isNotEmpty ? freq[0].toUpperCase() + freq.substring(1) : '';
     final isDark = widget.isDark;
     final categoryColor = widget.categoryColor;
 
@@ -106,8 +107,8 @@ class _APITemplateCardState extends State<APITemplateCard> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: isDark 
-                    ? Colors.black.withValues(alpha: 0.15) 
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.15)
                     : Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
@@ -141,10 +142,12 @@ class _APITemplateCardState extends State<APITemplateCard> {
               Row(
                 children: [
                   Icon(
-                    Icons.repeat_rounded, 
-                    size: 11, 
-                    color: _added 
-                        ? (isDark ? const Color(0xFFA2D37D) : const Color(0xFF4C7D2D))
+                    Icons.repeat_rounded,
+                    size: 11,
+                    color: _added
+                        ? (isDark
+                            ? const Color(0xFFA2D37D)
+                            : const Color(0xFF4C7D2D))
                         : textSecondary,
                   ),
                   const SizedBox(width: 4),
@@ -153,8 +156,10 @@ class _APITemplateCardState extends State<APITemplateCard> {
                     style: GoogleFonts.poppins(
                       fontSize: 10.5,
                       fontWeight: FontWeight.w500,
-                      color: _added 
-                          ? (isDark ? const Color(0xFFA2D37D) : const Color(0xFF4C7D2D))
+                      color: _added
+                          ? (isDark
+                              ? const Color(0xFFA2D37D)
+                              : const Color(0xFF4C7D2D))
                           : textSecondary,
                     ),
                   ),
@@ -220,7 +225,9 @@ class _APITemplateCardState extends State<APITemplateCard> {
                             ),
                       boxShadow: [
                         BoxShadow(
-                          color: (_added ? const Color(0xFF63993B) : AppColors.primaryPurple)
+                          color: (_added
+                                  ? const Color(0xFF63993B)
+                                  : AppColors.primaryPurple)
                               .withValues(alpha: 0.3),
                           blurRadius: 6,
                           offset: const Offset(0, 3),
@@ -332,9 +339,13 @@ class _APITemplateDetailSheetState
       if (resolvedCategoryId.startsWith('cat_')) {
         try {
           final categories = await ref.read(categoriesProvider.future);
-          final matches = categories.where(
-            (c) => c.name.toLowerCase() == widget.template.category.toLowerCase(),
-          ).toList();
+          final matches = categories
+              .where(
+                (c) =>
+                    c.name.toLowerCase() ==
+                    widget.template.category.toLowerCase(),
+              )
+              .toList();
           if (matches.isNotEmpty) {
             resolvedCategoryId = matches.first.id;
           } else if (categories.isNotEmpty) {
@@ -344,6 +355,13 @@ class _APITemplateDetailSheetState
           // Categories fetch failed — try with original ID anyway
         }
       }
+
+      // Compute explicit endDate from template recommended duration so
+      // client-side date-range logic (endDate exclusive) hides the habit.
+      final now = DateTime.now();
+      final startDateOnly = DateTime(now.year, now.month, now.day);
+      final computedEndDate = startDateOnly
+          .add(Duration(days: widget.template.recommendedDuration));
 
       await ref.read(habitsProvider.notifier).createHabit(
             categoryId: resolvedCategoryId,
@@ -358,7 +376,7 @@ class _APITemplateDetailSheetState
             targetValue: 1,
             targetUnit: 'completion',
             startDate: DateTime.now(),
-            endDate: null,
+            endDate: computedEndDate,
             visibility: 'private',
             emoji: widget.template.icon,
             colorHex: widget.template.color,
@@ -376,7 +394,7 @@ class _APITemplateDetailSheetState
             ),
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
-      
+
             backgroundColor: AppColors.primaryPurple,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -494,10 +512,12 @@ class _APITemplateDetailSheetState
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: widget.categoryColor.withValues(alpha: 0.1),
+                              color:
+                                  widget.categoryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: widget.categoryColor.withValues(alpha: 0.25),
+                                color: widget.categoryColor
+                                    .withValues(alpha: 0.25),
                                 width: 0.5,
                               ),
                             ),
@@ -651,10 +671,12 @@ class _APITemplateDetailSheetState
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 5),
                               decoration: BoxDecoration(
-                                color: widget.categoryColor.withValues(alpha: 0.08),
+                                color: widget.categoryColor
+                                    .withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: widget.categoryColor.withValues(alpha: 0.2),
+                                  color: widget.categoryColor
+                                      .withValues(alpha: 0.2),
                                   width: 0.5,
                                 ),
                               ),

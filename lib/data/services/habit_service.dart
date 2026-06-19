@@ -38,8 +38,9 @@ class HabitService {
           'goal_type': goalType,
           'target_value': targetValue,
           'target_unit': targetUnit,
-          'start_date': startDate.toIso8601String(),
-          'end_date': endDate?.toIso8601String(),
+          // Send date-only strings (YYYY-MM-DD) to avoid timezone shifts
+          'start_date': _formatDate(startDate),
+          'end_date': endDate != null ? _formatDate(endDate) : null,
           'visibility': visibility,
           if (emoji != null) 'emoji': emoji,
           if (colorHex != null) 'color_hex': colorHex,
@@ -79,7 +80,8 @@ class HabitService {
         debugPrint('✅ HabitService: Status 200, parsing ${response.data}?');
         return HabitListResponse.fromJson(response.data);
       }
-      debugPrint('❌ HabitService: Status ${response.statusCode}, body: ${response.data}');
+      debugPrint(
+          '❌ HabitService: Status ${response.statusCode}, body: ${response.data}');
       throw Exception('Failed to fetch habits (status ${response.statusCode})');
     } catch (e) {
       rethrow;
@@ -144,8 +146,8 @@ class HabitService {
       if (frequencyType != null) data['frequency_type'] = frequencyType;
       if (frequencyConfig != null) data['frequency_config'] = frequencyConfig;
       if (categoryId != null) data['category_id'] = categoryId;
-      if (startDate != null) data['start_date'] = startDate.toIso8601String();
-      if (endDate != null) data['end_date'] = endDate.toIso8601String();
+      if (startDate != null) data['start_date'] = _formatDate(startDate);
+      if (endDate != null) data['end_date'] = _formatDate(endDate);
       if (status != null) data['status'] = status;
       if (emoji != null) data['emoji'] = emoji;
       if (colorHex != null) data['color_hex'] = colorHex;
@@ -175,7 +177,9 @@ class HabitService {
         },
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
         return await getHabit(habitId);
       }
 
@@ -202,7 +206,9 @@ class HabitService {
         },
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
         return await getHabit(habitId);
       }
 

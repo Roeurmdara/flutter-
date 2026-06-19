@@ -23,6 +23,12 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Use the latest habit from provider so edits are reflected immediately.
+    final habitState = ref.watch(habitsProvider);
+    final habit = habitState.habits.firstWhere(
+      (h) => h.id == widget.habit.id,
+      orElse: () => widget.habit,
+    );
 
     return Scaffold(
       backgroundColor:
@@ -43,7 +49,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
               ),
             ),
             Text(
-              widget.habit.title,
+              habit.title,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
@@ -73,11 +79,11 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         ),
       ),
       body: CreateHabitModal(
-        editingHabit: widget.habit,
+        editingHabit: habit,
         onSubmit: (data) async {
           try {
             await ref.read(habitsProvider.notifier).updateHabit(
-                  widget.habit.id,
+                  habit.id,
                   title: data['title'] as String?,
                   description: data['description'] as String?,
                   frequencyType: data['frequencyType'] as String?,
@@ -97,9 +103,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
         onDelete: () async {
           final navigator = Navigator.of(context);
           try {
-            await ref
-                .read(habitsProvider.notifier)
-                .deleteHabit(widget.habit.id);
+            await ref.read(habitsProvider.notifier).deleteHabit(habit.id);
             navigator.pop();
           } catch (_) {}
         },

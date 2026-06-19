@@ -1,6 +1,7 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/constants/app_constants.dart';
 import '../models/media_upload_model.dart';
 
 /// Service for handling media uploads (images) to the API
@@ -22,7 +23,7 @@ class MediaService {
   MediaService({
     Dio? dio,
     ImagePicker? imagePicker,
-  })  : _dio = dio ?? Dio(),
+  })  : _dio = dio ?? Dio(BaseOptions(baseUrl: AppConstants.baseUrl)),
         _imagePicker = imagePicker ?? ImagePicker();
 
   /// Pick an image from the device gallery

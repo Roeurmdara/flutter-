@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../core/constants/app_constants.dart';
 import '../models/community_model.dart';
 import '../../core/exceptions/api_exception.dart';
 
@@ -8,7 +9,8 @@ class CommunityService {
 
   final Dio _dio;
 
-  CommunityService({Dio? dio}) : _dio = dio ?? Dio();
+  CommunityService({Dio? dio})
+      : _dio = dio ?? Dio(BaseOptions(baseUrl: AppConstants.baseUrl));
 
   /// Get all communities with pagination
   /// [page] - Page number (default: 1)
