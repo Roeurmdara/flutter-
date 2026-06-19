@@ -349,50 +349,94 @@ class _CreateCommunityDialogState
                     color: text)),
             const SizedBox(height: 20),
 
-            // Cover image picker (minimal): tap to pick, shows preview
+            // Cover image picker: tap to pick, shows preview with change/remove controls
             GestureDetector(
-            onTap: _pickImageFromPhone,
-            child: Container(
-              height: 160,
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.lightBorder),
-              ),
-              child: _coverImageFile == null
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: text.withValues(alpha: 0.05),
-                              shape: BoxShape.circle,
+              onTap: _coverImageFile == null ? _pickImageFromPhone : null,
+              child: Container(
+                height: 160,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.lightBorder),
+                ),
+                child: _coverImageFile == null
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: text.withValues(alpha: 0.05),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.add, color: text, size: 28),
                             ),
-                            child: Icon(Icons.add, color: text, size: 28),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Upload Cover Image',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, color: text),
+                            ),
+                            Text(
+                              'Optional background banner',
+                              style: TextStyle(fontSize: 12, color: sub),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.file(
+                              File(_coverImageFile!.path),
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Upload Cover Image',
-                            style: TextStyle(fontWeight: FontWeight.w600, color: text),
+                          // Gradient overlay so action buttons stay legible over any photo
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0.0),
+                                    Colors.black.withValues(alpha: 0.45),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                          Text(
-                            'Optional background banner',
-                            style: TextStyle(fontSize: 12, color: sub),
+                          // Change / Remove controls
+                          Positioned(
+                            bottom: 10,
+                            right: 10,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _CoverImageActionButton(
+                                  icon: Icons.edit,
+                                  label: 'Change',
+                                  onTap: _pickImageFromPhone,
+                                ),
+                                const SizedBox(width: 8),
+                                _CoverImageActionButton(
+                                  icon: Icons.close,
+                                  label: 'Remove',
+                                  onTap: () =>
+                                      setState(() => _coverImageFile = null),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.file(
-                        File(_coverImageFile!.path),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+              ),
             ),
-          ),
             const SizedBox(height: 14),
 
             // Live preview — mirrors card exactly
@@ -441,22 +485,28 @@ class _CreateCommunityDialogState
             const SizedBox(height: 20),
 
             // Name field
+            _FieldLabel('COMMUNITY NAME', color: sub),
+            const SizedBox(height: 6),
             _Field(
                 controller: _nameCtrl,
-                hint: 'Community name',
+                hint: 'e.g. Morning Runners Club',
                 isDark: isDark,
                 onChanged: (_) => setState(() {})),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
 
             // Description field
+            _FieldLabel('DESCRIPTION', color: sub, optional: true),
+            const SizedBox(height: 6),
             _Field(
                 controller: _descCtrl,
-                hint: 'Description (optional)',
+                hint: 'What is this community about?',
                 maxLines: 2,
                 isDark: isDark),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
 
             // Category dropdown
+            _FieldLabel('CATEGORY', color: sub),
+            const SizedBox(height: 6),
             ref.watch(categoriesProvider).when(
                   data: (cats) {
                     if (cats.isEmpty) return const SizedBox.shrink();
@@ -494,8 +544,6 @@ class _CreateCommunityDialogState
                   error: (_, __) => const SizedBox.shrink(),
                 ),
             const SizedBox(height: 20),
-
-          
 
             // Actions
             Row(children: [
@@ -589,7 +637,6 @@ class _CreateCommunityDialogState
                 description: _descCtrl.text.trim(),
                 categoryId: _selectedCategoryId!,
                 coverImage: coverImageUrl,
-            
               );
       try {
         await ref.read(communityServiceProvider).joinCommunity(newCommunity.id);
@@ -873,11 +920,77 @@ class _PickerButton extends StatelessWidget {
 
 // ─── Text field ───────────────────────────────────────────────────────────────
 
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  final Color color;
+  final bool optional;
+  const _FieldLabel(this.text, {required this.color, this.optional = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(text,
+            style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: color,
+                letterSpacing: -0.1)),
+        if (optional) ...[
+          const SizedBox(width: 4),
+          Text('(optional)',
+              style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w400,
+                  color: color.withValues(alpha: 0.6))),
+        ],
+      ],
+    );
+  }
+}
+
+class _CoverImageActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _CoverImageActionButton(
+      {required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: Colors.white),
+              const SizedBox(width: 4),
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Shared minimal text field (local to this file) ──────────────────────────
 class _Field extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
-  final int maxLines;
   final bool isDark;
+  final int maxLines;
+  final bool enabled;
   final ValueChanged<String>? onChanged;
 
   const _Field({
@@ -885,6 +998,7 @@ class _Field extends StatelessWidget {
     required this.hint,
     required this.isDark,
     this.maxLines = 1,
+    this.enabled = true,
     this.onChanged,
   });
 
@@ -897,6 +1011,7 @@ class _Field extends StatelessWidget {
 
     return TextField(
       controller: controller,
+      enabled: enabled,
       maxLines: maxLines,
       onChanged: onChanged,
       style: TextStyle(fontSize: 14, color: text),
@@ -906,13 +1021,9 @@ class _Field extends StatelessWidget {
         filled: true,
         fillColor: bg,
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(
-                color: AppColors.primaryPurple.withValues(alpha: 0.35),
-                width: 1)),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),

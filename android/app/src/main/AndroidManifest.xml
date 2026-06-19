@@ -4,9 +4,9 @@
     <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
-        android:label="flutter001"
+        android:label="habitFlow"
         android:name="${applicationName}"
-        android:icon="@drawable/launch_background">
+        android:icon="@drawable/meeeee">
         <activity
             android:name=".MainActivity"
             android:exported="true"

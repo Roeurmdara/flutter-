@@ -126,20 +126,6 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized) {
-      return ShadApp.custom(
-        themeMode: ThemeMode.light,
-        theme: appShadcnLightTheme,
-        appBuilder: (context) => MaterialApp(
-          debugShowCheckedModeBanner: false,
-          builder: (context, child) => ShadAppBuilder(child: child!),
-          home: const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          ),
-        ),
-      );
-    }
-
     return ShadApp.custom(
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
       theme: appShadcnLightTheme,
@@ -158,6 +144,12 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   // ─── Navigation logic ───────────────────────────────────────────────────
   Widget _buildHome() {
+    if (!_initialized) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (!_hasSeenOnboarding) {
       return OnboardingScreen(
         onCompleted: _completeOnboarding,

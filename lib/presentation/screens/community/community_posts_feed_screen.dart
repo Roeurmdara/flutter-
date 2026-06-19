@@ -944,6 +944,34 @@ class _AboutTab extends ConsumerWidget {
     );
   }
 }
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  final Color color;
+  final bool optional;
+  const _FieldLabel(this.text, {required this.color, this.optional = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(text,
+            style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: color,
+                letterSpacing: -0.1)),
+        if (optional) ...[
+          const SizedBox(width: 4),
+          Text('(optional)',
+              style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w400,
+                  color: color.withValues(alpha: 0.6))),
+        ],
+      ],
+    );
+  }
+}
 
 // ── _PostDialog ────────────────────────────────────────────────────────────
 
@@ -1110,17 +1138,47 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Image Section (Now at the Top) ──
+            // ── Title ──
+            Text(
+              _isEditing ? 'Edit Post' : 'New Post',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+                color: text,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // ── Image Section ──
             if (_selectedImagePreview != null) ...[
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     child: Image.memory(
                       _selectedImagePreview!,
                       width: double.infinity,
-                      height: 170,
+                      height: 160,
                       fit: BoxFit.cover,
+                    ),
+                  ),
+                  // Gradient overlay so buttons/label stay legible over any photo
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.0),
+                              Colors.black.withValues(alpha: 0.45),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   Positioned(
@@ -1131,7 +1189,7 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.58),
+                        color: Colors.black.withValues(alpha: 0.55),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
@@ -1148,9 +1206,10 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
                   ),
                   if (!_isLoading)
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      bottom: 10,
+                      right: 10,
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           _ImageActionButton(
                             icon: Icons.edit_outlined,
@@ -1166,62 +1225,63 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
                     ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
             ] else ...[
               GestureDetector(
                 onTap: _isLoading ? null : _pickImage,
                 child: Container(
+                  height: 160,
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
                   decoration: BoxDecoration(
                     color: bg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDark ? Colors.white10 : Colors.black12,
-                      style: BorderStyle.solid,
-                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.lightBorder),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_photo_alternate_outlined,
-                          size: 20, color: sub),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Add post image',
-                        style: TextStyle(
-                            color: sub,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500),
-                      ),
-                    ],
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: text.withValues(alpha: 0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.add_photo_alternate_outlined,
+                              color: text, size: 28),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Add Post Image',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, color: text),
+                        ),
+                        Text(
+                          'Optional cover photo',
+                          style: TextStyle(fontSize: 12, color: sub),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
             ],
 
-            // ── Title ──
-            Text(
-              _isEditing ? 'Edit Post' : 'New Post',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-                color: text,
-              ),
-            ),
-            const SizedBox(height: 20),
-
             // ── Input Fields ──
+            _FieldLabel('POST TITLE', color: sub),
+            const SizedBox(height: 6),
             _Field(
               controller: _titleController,
-              hint: 'Post title',
+              hint: 'e.g. My 5k personal best!',
               isDark: isDark,
               enabled: !_isLoading,
               onChanged: (_) => setState(() {}),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
+
+            _FieldLabel('POST BODY', color: sub, optional: true),
+            const SizedBox(height: 6),
             _Field(
               controller: _bodyController,
               hint: 'What\'s on your mind?',
@@ -1270,7 +1330,7 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
                 ),
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
 
             // ── Action Buttons ──
             Row(
@@ -1279,20 +1339,25 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
                   child: TextButton(
                     onPressed: _isLoading ? null : () => Navigator.pop(context),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      foregroundColor: sub,
+                      padding: const EdgeInsets.symmetric(vertical: 19),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.black.withValues(alpha: 0.08)),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Cancel',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: sub),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
@@ -1300,15 +1365,14 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
                       backgroundColor: AppColors.primaryPurple,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                     child: _isLoading
                         ? const SizedBox(
-                            width: 18,
-                            height: 18,
+                            width: 16,
+                            height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: Colors.white,
@@ -1317,7 +1381,7 @@ class _PostDialogState extends ConsumerState<_PostDialog> {
                         : Text(
                             _isEditing ? 'Update' : 'Create',
                             style: const TextStyle(
-                              fontSize: 15,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
                           ),

@@ -20,7 +20,7 @@ class CommunityCardStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = isDark ? AppColors.darkText : AppColors.lightText;
-    final cardBgColor = isDark ? AppColors.darkSurface : const Color(0xFFE8F1FF);
+    final cardBgColor = isDark ? AppColors.darkSurface : AppColors.primaryPurple.withValues(alpha: 0.08);
 
     return Stack(
       clipBehavior: Clip.none,

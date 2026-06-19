@@ -11,6 +11,7 @@ import 'community_posts_feed_screen.dart';
 import 'community_helpers.dart' show communityColor;
 import 'widgets/about_tab.dart';
 import 'widgets/community_card_stack.dart';
+import 'community_search_screen.dart';
 
 class CommunityDetailScreen extends ConsumerStatefulWidget {
   final Community community;
@@ -446,29 +447,60 @@ class _CommunityDetailScreenState extends ConsumerState<CommunityDetailScreen>
           backgroundColor:
               isDark ? AppColors.darkBackground : AppColors.lightBackground,
           appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            toolbarHeight: 50,
-            leading: IconButton(
-                icon: Icon(Icons.arrow_back_ios_new_rounded,
-                    size: 20, color: isDark ? Colors.white : Colors.black87),
-                onPressed: () => Navigator.pop(context)),
-            titleSpacing: 0,
-            title: Text(_tab.index == 0 ? 'Community' : widget.community.name,
-                style: GoogleFonts.poppins(
-                    fontSize: _tab.index == 0 ? 22 : 18,
-                    fontWeight: FontWeight.w700,
-                    color: text),
-                overflow: TextOverflow.ellipsis),
-            centerTitle: false,
-            actions: [
-              IconButton(
-                  icon: Icon(Icons.more_horiz_rounded, color: text, size: 28),
-                  onPressed: () => _showCommunityOptions(context)),
-              const SizedBox(width: 8),
-            ],
+    backgroundColor:
+            isDark ? AppColors.darkSurface : AppColors.lightSurface,
+  elevation: 0,
+  scrolledUnderElevation: 0,
+  toolbarHeight: 50,
+  titleSpacing: 0,
+  centerTitle: false,
+  
+  // Back button matching second AppBar color scheme
+  leading: IconButton(
+    icon: Icon(
+      Icons.arrow_back_ios_new_rounded,
+      size: 20, 
+      color: isDark ? Colors.white : Colors.black87,
+    ),
+    onPressed: () => Navigator.pop(context),
+  ),
+
+  // Title styled exactly with GoogleFonts.poppins and the 'text' variable
+  title: Text(
+    'Communities',
+    style: GoogleFonts.poppins(
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      color: text, // 👈 Uses your 'text' variable now
+    ),
+    overflow: TextOverflow.ellipsis,
+  ),
+
+  // Search button updated to use the exact same color variable and sizing
+  actions: [
+    IconButton(
+      icon: Icon(
+        Icons.search_rounded,
+        size: 28, // Matches the size of the options icon from snippet two
+        color: text, // 👈 Uses your 'text' variable now
+      ),
+      onPressed: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const CommunitySearchScreen(),
           ),
+        );
+        ref.invalidate(
+          communitiesProvider(
+            const CommunityPaginationParams(page: 1, perPage: 100),
+          ),
+        );
+      },
+    ),
+    const SizedBox(width: 8),
+  ],
+),
           body: NestedScrollView(
             headerSliverBuilder:
                 (BuildContext context, bool innerBoxIsScrolled) {
