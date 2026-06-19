@@ -425,7 +425,7 @@ class FollowingNotifier extends StateNotifier<FollowingState> {
 final userProfileServiceProvider = Provider<UserProfileService>((ref) {
   // Use shared DioClient so requests go through the auth interceptor
   final dioClient = DioClient();
-  final service = UserProfileService(dio: dioClient.dio);
+  final service = UserProfileService(dioClient: dioClient);
   return service;
 });
 

@@ -27,7 +27,7 @@ class HabitService {
   }) async {
     try {
       final response = await _dio.post(
-        '$_baseUrl/habits',
+        '/habits',
         data: {
           'category_id': categoryId,
           'title': title,
@@ -71,7 +71,7 @@ class HabitService {
       };
 
       final response = await _dio.get(
-        '$_baseUrl/habits',
+        '/habits',
         queryParameters: params,
       );
 
@@ -112,7 +112,7 @@ class HabitService {
   // Get a specific habit
   Future<Habit> getHabit(String habitId) async {
     try {
-      final response = await _dio.get('$_baseUrl/habits/$habitId');
+      final response = await _dio.get('/habits/$habitId');
 
       if (response.statusCode == 200) {
         return Habit.fromJson(response.data['data']);
@@ -151,7 +151,7 @@ class HabitService {
       if (colorHex != null) data['color_hex'] = colorHex;
 
       final response = await _dio.put(
-        '$_baseUrl/habits/$habitId',
+        '/habits/$habitId',
         data: data,
       );
 
@@ -168,7 +168,7 @@ class HabitService {
   Future<Habit?> markHabitAsDone(String habitId, DateTime date) async {
     try {
       final response = await _dio.post(
-        '$_baseUrl/habits/$habitId/tracking',
+        '/habits/$habitId/tracking',
         data: {
           'period_date': _formatDate(date),
           'status': 'completed',
@@ -195,7 +195,7 @@ class HabitService {
   Future<Habit?> unmarkHabitAsDone(String habitId, DateTime date) async {
     try {
       final response = await _dio.post(
-        '$_baseUrl/habits/$habitId/tracking',
+        '/habits/$habitId/tracking',
         data: {
           'period_date': _formatDate(date),
           'status': 'pending',
@@ -237,11 +237,11 @@ class HabitService {
       final params = {
         'page': page,
         'per_page': perPage,
-        'date': _formatDate(date),
+        'settlement_period_date': _formatDate(date),
       };
 
       final response = await _dio.get(
-        '$_baseUrl/habits/$habitId/activities',
+        '/habits/$habitId/activities',
         queryParameters: params,
       );
 
@@ -289,7 +289,7 @@ class HabitService {
   }) async {
     try {
       final response = await _dio.post(
-        '$_baseUrl/habits/$habitId/activities',
+        '/habits/$habitId/activities',
         data: {
           'activity_type': activityType,
           'value': value,
@@ -316,7 +316,7 @@ class HabitService {
   ) async {
     try {
       final response = await _dio.put(
-        '$_baseUrl/habits/$habitId/activities/$activityId/mark-done',
+        '/habits/$habitId/activities/$activityId/mark-done',
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -335,7 +335,7 @@ class HabitService {
   ) async {
     try {
       final response = await _dio.delete(
-        '$_baseUrl/habits/$habitId/activities/$activityId/mark-done',
+        '/habits/$habitId/activities/$activityId/mark-done',
       );
 
       if (response.statusCode == 200 ||
@@ -370,7 +370,7 @@ class HabitService {
       if (note != null) data['note'] = note;
 
       final response = await _dio.put(
-        '$_baseUrl/habits/$habitId/activities/$activityId',
+        '/habits/$habitId/activities/$activityId',
         data: data,
       );
 
@@ -387,7 +387,7 @@ class HabitService {
   Future<void> deleteActivity(String habitId, String activityId) async {
     try {
       final response = await _dio.delete(
-        '$_baseUrl/habits/$habitId/activities/$activityId',
+        '/habits/$habitId/activities/$activityId',
       );
 
       if (response.statusCode != 200 &&
@@ -403,7 +403,7 @@ class HabitService {
   // Delete a habit
   Future<void> deleteHabit(String habitId) async {
     try {
-      final response = await _dio.delete('$_baseUrl/habits/$habitId');
+      final response = await _dio.delete('/habits/$habitId');
 
       if (response.statusCode != 200 &&
           response.statusCode != 201 &&

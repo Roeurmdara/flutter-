@@ -1,11 +1,10 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import '../models/community_model.dart';
 import '../../core/exceptions/api_exception.dart';
 
 /// Service for handling community API operations
 class CommunityService {
-  static const String _baseUrl =
-      'https://habit-api.rattanakmony.com/api/v1/communities';
+  static const String _basePath = '/communities';
 
   final Dio _dio;
 
@@ -20,7 +19,7 @@ class CommunityService {
   }) async {
     try {
       final response = await _dio.get(
-        _baseUrl,
+        _basePath,
         queryParameters: {
           'page': page,
           'per_page': perPage,
@@ -60,7 +59,7 @@ class CommunityService {
   Future<Community> getCommunityById(String communityId) async {
     try {
       final response = await _dio.get(
-        '$_baseUrl/$communityId',
+        '$_basePath/$communityId',
         options: Options(
           contentType: Headers.jsonContentType,
           followRedirects: true,
@@ -89,7 +88,7 @@ class CommunityService {
   Future<void> joinCommunity(String communityId) async {
     try {
       final response = await _dio.post(
-        '$_baseUrl/$communityId/join',
+        '$_basePath/$communityId/join',
         options: Options(
           contentType: Headers.jsonContentType,
           followRedirects: true,
@@ -115,7 +114,7 @@ class CommunityService {
   Future<bool> leaveCommunity(String communityId) async {
     try {
       final response = await _dio.post(
-        '$_baseUrl/$communityId/leave',
+        '$_basePath/$communityId/leave',
         options: Options(
           contentType: Headers.jsonContentType,
           followRedirects: true,
@@ -154,7 +153,7 @@ class CommunityService {
   }) async {
     try {
       final response = await _dio.get(
-        '$_baseUrl/$communityId/members',
+        '$_basePath/$communityId/members',
         queryParameters: {
           'page': page,
           'per_page': perPage,
@@ -212,7 +211,7 @@ class CommunityService {
       };
 
       final response = await _dio.post(
-        _baseUrl,
+        _basePath,
         data: requestData,
         options: Options(
           contentType: Headers.jsonContentType,

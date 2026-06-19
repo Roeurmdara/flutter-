@@ -286,9 +286,9 @@ class AboutTab extends ConsumerWidget {
                               }).toList(),
                             ),
                             const Spacer(),
-                            Column(
+                            const Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
-                              children: const [
+                              children: [
                                 Text(
                                   'See all members',
                                   style: TextStyle(

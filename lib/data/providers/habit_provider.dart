@@ -255,6 +255,18 @@ class HabitsNotifier extends StateNotifier<HabitState> {
       } catch (_) {
         // Disposed during async operation, ignore
       }
+
+      // On fresh login / new device, seed the streak from per-habit API data.
+      final mapSize = mergedMap.values.fold<int>(
+          0, (sum, dates) => sum + dates.length);
+      if (mapSize <= fetchedHabits.length && fetchedHabits.isNotEmpty) {
+        final minPerHabitStreak = fetchedHabits
+            .map((h) => h.currentStreak)
+            .reduce((a, b) => a < b ? a : b);
+        if (minPerHabitStreak > state.currentUserStreak) {
+          state = state.copyWith(currentUserStreak: minPerHabitStreak);
+        }
+      }
     } catch (e) {
       debugPrint('❌ HabitsNotifier: Error loading habits: $e');
       try {
@@ -540,20 +552,20 @@ class HabitsNotifier extends StateNotifier<HabitState> {
     _syncSelectedDateFromServer(selectedDate);
   }
 
-  // Background sync: query the server for activities on the selected date
-  // for each habit and update the local completedDatesMap accordingly. This
-  // ensures that marking a habit as done on another device/account is
-  // reflected when the same account opens this device.
-  void _syncSelectedDateFromServer(DateTime date) async {
+  // Fire-and-forget wrapper for backward compatibility with selectDate()
+  void _syncSelectedDateFromServer(DateTime date) {
+    _syncDateWithServer(date);
+  }
+
+  // Sync a single date's completion status from the server for all habits.
+  // Only ADDS server-confirmed completions — never removes local data,
+  // preventing race conditions that reset streaks.
+  Future<void> _syncDateWithServer(DateTime date) async {
     try {
       final dateStr = _formatDate(date);
       final updatedDatesMap =
           Map<String, Set<String>>.from(state.completedDatesMap);
 
-      // Query activities for each habit in parallel. IMPORTANT:
-      // - If the server call succeeds we apply its result.
-      // - If the server call fails (network / server error) we SKIP updating
-      //   that habit so local optimistic state remains intact.
       final futures = state.habits.map((habit) async {
         try {
           final resp =
@@ -561,7 +573,6 @@ class HabitsNotifier extends StateNotifier<HabitState> {
           final hasCompleted = resp.data.any((a) => a.isCompleted);
           return MapEntry(habit.id, hasCompleted);
         } catch (_) {
-          // Return null to signal a failed fetch for this habit.
           return null;
         }
       }).toList();
@@ -576,20 +587,15 @@ class HabitsNotifier extends StateNotifier<HabitState> {
         final currentSet = updatedDatesMap[habitId] ?? <String>{};
         if (isCompleted) {
           updatedDatesMap[habitId] = {...currentSet, dateStr};
-        } else {
-          // If server reports not completed, remove local record for that date
-          updatedDatesMap[habitId] =
-              currentSet.where((d) => d != dateStr).toSet();
         }
       }
 
-      // Apply and persist
       state = state.copyWith(completedDatesMap: updatedDatesMap);
       await _saveLocalCompletedDates();
       _updateCompletionStatus(state.habits);
       _updateStreak();
     } catch (_) {
-      // ignore sync errors; local cache remains authoritative until server responds
+      // ignore sync errors; local cache remains authoritative
     }
   }
 

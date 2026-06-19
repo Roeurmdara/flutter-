@@ -10,8 +10,12 @@ class CommunityCard extends StatelessWidget {
   final bool isDark;
   final CommunityTap onTap;
 
-  const CommunityCard(
-      {required this.community, required this.isDark, required this.onTap});
+  const CommunityCard({
+    super.key,
+    required this.community,
+    required this.isDark,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,8 +24,6 @@ class CommunityCard extends StatelessWidget {
     final nameColor = isDark ? AppColors.darkText : AppColors.lightText;
     final subColor =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-    final description = community.description.trim();
-
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -121,6 +123,3 @@ class CommunityCard extends StatelessWidget {
     );
   }
 }
-
-String _fmt(int n) =>
-    n >= 1000 ? '${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}k' : '$n';

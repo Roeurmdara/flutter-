@@ -13,7 +13,6 @@ class ProfileActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    const forestGreen = Color(0xFF1B3D2F);
 
     return Row(
       children: [

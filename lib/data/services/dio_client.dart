@@ -1,4 +1,5 @@
-﻿import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'secure_storage_service.dart';
 
 /// HTTP Client using Dio with interceptors for auth token management
@@ -8,7 +9,7 @@ class DioClient {
   final SecureStorageService _secureStorage;
   static Future<String?>? _refreshFuture;
 
-  static const String _baseUrl = 'https://habit-api.rattanakmony.com/api/v1';
+  static const String _baseUrl = '/api/v1';
 
   DioClient({
     Dio? dio,
@@ -35,7 +36,8 @@ class DioClient {
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
-          return handler.next(options);
+          // Debug log for request authorization
+          debugPrint('DioClient Request: ${options.method} ${options.path} - Authorization: ${options.headers['Authorization'] ?? 'None'}');
         },
         onResponse: (response, handler) async {
           if (_shouldRefresh(response)) {
